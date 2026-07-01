@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Products — Bards Seller</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#0A0A0A;--white:#FAFAFA;--gray-50:#F9F9F7;--gray-100:#F2F2F0;--gray-200:#E4E4E2;--gray-300:#C8C8C6;--gray-400:#8A8A88;--gray-600:#4A4A48;--orange:#FF4F00;--red:#C8001A;--green:#16A34A;--blue:#2563EB;--sidebar:220px;--radius:14px;--radius-sm:10px;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var(--black);display:flex;min-height:100vh;}
+.sidebar{width:var(--sidebar);background:var(--black);min-height:100vh;position:fixed;top:0;left:0;z-index:100;display:flex;flex-direction:column;}
+.sb-brand{padding:22px 18px 18px;border-bottom:1px solid rgba(255,255,255,.08);}
+.sb-brand .logo{font-family:'Bebas Neue';font-size:20px;letter-spacing:3px;color:#fff;}
+.sb-brand .sub{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.sb-nav{flex:1;padding:12px 10px;overflow-y:auto;}
+.sb-section{font-size:8.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:rgba(255,255,255,.25);padding:10px 8px 5px;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;color:rgba(255,255,255,.55);text-decoration:none;font-size:12.5px;font-weight:500;cursor:pointer;transition:all .15s;margin-bottom:1px;border:none;background:none;width:100%;text-align:left;white-space:nowrap;}
+.sb-item:hover{background:rgba(255,255,255,.07);color:#fff;}
+.sb-item.active{background:rgba(255,255,255,.13);color:#fff;}
+.sb-item svg{flex-shrink:0;}
+.sb-foot{padding:12px 10px;border-top:1px solid rgba(255,255,255,.07);}
+.sb-profile{display:flex;align-items:center;gap:9px;padding:9px 10px;background:rgba(255,255,255,.06);border-radius:9px;}
+.sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--orange);color:#fff;font-family:'Bebas Neue';font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+.sb-avatar img{width:100%;height:100%;object-fit:cover;}
+.sb-uname{font-size:11.5px;font-weight:600;color:#fff;line-height:1.2;}
+.sb-urole{font-size:9.5px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.8px;}
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;}
+.topbar{background:var(--white);border-bottom:1px solid var(--gray-200);height:58px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.page-title{font-family:'Bebas Neue';font-size:19px;letter-spacing:2px;}
+.tb-right{display:flex;align-items:center;gap:10px;}
+.tb-btn{height:32px;padding:0 13px;border:1.5px solid var(--gray-200);border-radius:20px;background:var(--white);color:var(--gray-600);font-size:11.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;font-family:'Space Grotesk',sans-serif;}
+.tb-btn:hover{border-color:var(--black);color:var(--black);}
+.tb-btn.primary{background:var(--black);border-color:var(--black);color:#fff;}
+.tb-btn.primary:hover{opacity:.85;}
+.content{padding:22px 24px;flex:1;}
+
+/* Info banner */
+.info-banner{background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:18px;display:flex;align-items:flex-start;gap:10px;font-size:12px;color:#1E40AF;line-height:1.5;}
+
+/* Products grid */
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
+.prod-card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);overflow:hidden;transition:transform .15s,box-shadow .15s;cursor:pointer;}
+.prod-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08);}
+.prod-img{width:100%;aspect-ratio:1;object-fit:cover;background:var(--gray-100);display:block;}
+.prod-img-ph{width:100%;aspect-ratio:1;background:var(--gray-100);display:flex;align-items:center;justify-content:center;color:var(--gray-300);}
+.prod-body{padding:14px 16px 16px;}
+.prod-name{font-size:13.5px;font-weight:700;margin-bottom:3px;line-height:1.3;}
+.prod-cat{font-size:10.5px;color:var(--gray-400);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;}
+.prod-price{font-family:'DM Mono',monospace;font-size:16px;font-weight:500;color:var(--black);}
+.prod-sale{font-family:'DM Mono',monospace;font-size:12px;color:var(--gray-400);text-decoration:line-through;margin-left:6px;}
+.prod-footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:1px solid var(--gray-100);}
+.prod-stock{font-size:10.5px;color:var(--gray-400);}
+.prod-actions{display:flex;gap:6px;}
+.ic-btn{width:28px;height:28px;border-radius:7px;border:1.5px solid var(--gray-200);background:var(--white);color:var(--gray-600);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;}
+.ic-btn:hover{border-color:var(--black);color:var(--black);}
+.ic-btn.del:hover{border-color:var(--red);color:var(--red);}
+.ic-btn.active-toggle{border-color:var(--green);color:var(--green);}
+.prod-inactive{opacity:.5;}
+.badge-new{display:inline-block;background:var(--black);color:#fff;font-size:8.5px;font-weight:700;padding:1px 6px;border-radius:4px;letter-spacing:.8px;margin-left:6px;vertical-align:middle;}
+.badge-sale{display:inline-block;background:var(--orange);color:#fff;font-size:8.5px;font-weight:700;padding:1px 6px;border-radius:4px;letter-spacing:.8px;margin-left:6px;vertical-align:middle;}
+
+/* Modal */
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+.mask.on{display:flex;}
+.modal{background:var(--white);border-radius:var(--radius);padding:26px;width:560px;max-width:94vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.15);animation:slideUp .25s ease;}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.modal-title{font-family:'Bebas Neue';font-size:19px;letter-spacing:2px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--gray-400);padding:2px;transition:color .15s;}
+.modal-close:hover{color:var(--black);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group.full{grid-column:1/-1;}
+.f-label{font-size:9px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--gray-400);}
+.f-input{height:42px;padding:0 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-family:'Space Grotesk',sans-serif;font-size:12.5px;background:var(--white);color:var(--black);outline:none;transition:border-color .15s;}
+.f-input:focus{border-color:var(--black);}
+.f-textarea{min-height:80px;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-family:'Space Grotesk',sans-serif;font-size:12.5px;background:var(--white);color:var(--black);outline:none;resize:vertical;transition:border-color .15s;}
+.f-textarea:focus{border-color:var(--black);}
+.f-select{height:42px;padding:0 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-family:'Space Grotesk',sans-serif;font-size:12.5px;background:var(--white);color:var(--black);outline:none;cursor:pointer;-webkit-appearance:none;}
+.f-select:focus{border-color:var(--black);}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;}
+.toggle-lbl{font-size:12.5px;font-weight:600;}
+.toggle-sub{font-size:11px;color:var(--gray-400);margin-top:2px;}
+.toggle{width:38px;height:22px;border-radius:11px;background:var(--gray-200);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;border:none;}
+.toggle.on{background:var(--black);}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s;}
+.toggle.on::after{left:19px;}
+.modal-actions{display:flex;gap:8px;margin-top:18px;}
+.btn-ghost{flex:1;height:44px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);background:var(--white);color:var(--gray-600);font-size:13px;font-weight:600;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .15s;}
+.btn-ghost:hover{border-color:var(--black);color:var(--black);}
+.btn-primary{flex:2;height:44px;border:none;border-radius:var(--radius-sm);background:var(--black);color:#fff;font-family:'Bebas Neue';font-size:16px;letter-spacing:2px;cursor:pointer;transition:opacity .15s;}
+.btn-primary:hover{opacity:.85;}
+.btn-primary.loading{opacity:.5;pointer-events:none;}
+.btn-danger{height:44px;padding:0 18px;border:none;border-radius:var(--radius-sm);background:var(--red);color:#fff;font-family:'Bebas Neue';font-size:16px;letter-spacing:2px;cursor:pointer;transition:opacity .15s;}
+.btn-danger:hover{opacity:.85;}
+.colors-input-hint{font-size:10.5px;color:var(--gray-400);margin-top:4px;}
+
+/* ── Image Upload Zone ── */
+.img-upload-section{display:flex;flex-direction:column;gap:10px;}
+.img-drop-zone{border:2px dashed var(--gray-200);border-radius:var(--radius-sm);padding:20px 16px;text-align:center;cursor:pointer;transition:all .2s;background:var(--gray-50);position:relative;}
+.img-drop-zone:hover,.img-drop-zone.drag-over{border-color:var(--black);background:#F5F5F3;}
+.img-drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.img-drop-icon{color:var(--gray-300);margin-bottom:6px;}
+.img-drop-title{font-size:12.5px;font-weight:600;color:var(--black);margin-bottom:2px;}
+.img-drop-sub{font-size:10.5px;color:var(--gray-400);}
+.img-drop-limit{font-size:10px;color:var(--gray-300);margin-top:4px;}
+
+/* ── Image Grid (Sortable) ── */
+.img-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:2px;}
+.img-thumb{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--gray-100);border:1.5px solid var(--gray-200);cursor:grab;transition:transform .15s,box-shadow .15s;}
+.img-thumb:active{cursor:grabbing;}
+.img-thumb.dragging{opacity:.45;transform:scale(.96);}
+.img-thumb.drop-target{border-color:var(--black);box-shadow:0 0 0 3px rgba(0,0,0,.12);}
+.img-thumb img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;}
+.img-thumb-badge{position:absolute;top:4px;left:4px;background:var(--black);color:#fff;font-size:8px;font-weight:700;padding:1px 5px;border-radius:4px;letter-spacing:.5px;}
+.img-thumb-del{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.65);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;}
+.img-thumb:hover .img-thumb-del{opacity:1;}
+.img-thumb-uploading{position:absolute;inset:0;background:rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;}
+.img-thumb-uploading .spinner{width:18px;height:18px;border:2.5px solid var(--gray-200);border-top-color:var(--black);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.img-count-bar{font-size:10.5px;color:var(--gray-400);text-align:right;}
+.img-count-bar span{font-weight:700;color:var(--black);}
+
+/* ── Color Swatches ── */
+.color-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.color-tag{display:inline-flex;align-items:center;gap:5px;padding:4px 8px 4px 6px;border-radius:20px;border:1.5px solid var(--gray-200);font-size:11px;font-weight:500;background:var(--white);cursor:pointer;transition:border-color .15s;}
+.color-tag:hover{border-color:var(--gray-400);}
+.color-tag .swatch{width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,.1);flex-shrink:0;}
+.color-tag .del-x{font-size:10px;color:var(--gray-400);margin-left:2px;line-height:1;}
+.color-add-row{display:flex;gap:6px;align-items:center;margin-top:4px;}
+.color-hex-pick{width:32px;height:32px;border-radius:7px;border:1.5px solid var(--gray-200);cursor:pointer;padding:2px;background:var(--white);}
+.color-name-in{flex:1;height:32px;padding:0 10px;border:1.5px solid var(--gray-200);border-radius:7px;font-family:'Space Grotesk',sans-serif;font-size:12px;outline:none;transition:border-color .15s;}
+.color-name-in:focus{border-color:var(--black);}
+.color-add-btn{height:32px;padding:0 12px;background:var(--black);color:#fff;border:none;border-radius:7px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Space Grotesk',sans-serif;transition:opacity .15s;}
+.color-add-btn:hover{opacity:.8;}
+
+.toast{position:fixed;bottom:20px;right:20px;background:var(--black);color:#fff;padding:11px 16px;border-radius:10px;font-size:12.5px;font-weight:500;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;transform:translateY(4px);pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25);}
+.toast.on{opacity:1;transform:translateY(0);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .32s ease both;}
+.empty{padding:56px 20px;text-align:center;color:var(--gray-400);}
+.empty-icon{font-size:32px;margin-bottom:10px;}
+.empty-title{font-size:14px;font-weight:600;color:var(--black);}
+
+/* Confirm delete */
+.del-mask{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.del-mask.on{display:flex;}
+.del-modal{background:var(--white);border-radius:var(--radius);padding:26px;width:360px;max-width:90vw;text-align:center;animation:slideUp .2s ease;}
+.del-modal h3{font-family:'Bebas Neue';font-size:20px;letter-spacing:2px;margin-bottom:8px;}
+.del-modal p{font-size:12.5px;color:var(--gray-400);margin-bottom:20px;line-height:1.6;}
+.del-actions{display:flex;gap:8px;}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sb-brand"><div class="logo">BARDS</div><div class="sub">Seller Hub</div></div>
+  <nav class="sb-nav">
+    <div class="sb-section">Main</div>
+    <a href="/seller" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Overview</a>
+    <a href="/seller-orders" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>Orders</a>
+    <a href="/seller-analytics" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Analytics</a>
+    <div class="sb-section">Store</div>
+    <a href="/seller-products" class="sb-item active"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Products</a>
+    <a href="/seller-coupons" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>Coupons</a>
+    <div class="sb-section">Account</div>
+    <a href="/" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>View Store</a>
+    <button class="sb-item" onclick="Auth.logout('/signin')"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 17H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out</button>
+  </nav>
+  <div class="sb-foot">
+    <div class="sb-profile">
+      <div class="sb-avatar" id="sbAvatar">S</div>
+      <div><div class="sb-uname" id="sbName">Loading…</div><div class="sb-urole">Seller</div></div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="page-title">Products <span id="prodCount" style="font-size:13px;color:var(--gray-400);font-family:'DM Mono',monospace;font-weight:400;letter-spacing:0"></span></div>
+    <div class="tb-right">
+      <button class="tb-btn primary" onclick="openModal()">+ Add Product</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="info-banner fu">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div>Products are saved to the database via the API. Add, edit, or toggle visibility — changes appear in the store immediately across all pages.</div>
+    </div>
+    <div class="prod-grid fu" id="prodGrid"></div>
+  </div>
+</main>
+
+<!-- Add/Edit Modal -->
+<div class="mask" id="mask">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modalTitle">Add Product</span>
+      <button class="modal-close" onclick="closeMask()"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label class="f-label">Product Name *</label>
+        <input class="f-input" id="fName" placeholder="e.g. Oversized Tee Vol.3">
+      </div>
+      <div class="form-group">
+        <label class="f-label">Price (USD) *</label>
+        <input class="f-input" id="fPrice" type="number" min="0" step="0.01" placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label class="f-label">Sale Price (leave empty if none)</label>
+        <input class="f-input" id="fSalePrice" type="number" min="0" step="0.01" placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label class="f-label">Category</label>
+        <select class="f-select" id="fCategory">
+          <option value="tops">Tops (Tees &amp; Hoodies)</option>
+          <option value="pants">Pants</option>
+          <option value="accessories">Accessories</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="f-label">Stock</label>
+        <input class="f-input" id="fStock" type="number" min="0" placeholder="99">
+      </div>
+      <div class="form-group full">
+        <label class="f-label">Product Images <span style="color:var(--gray-300);font-weight:400">(max 17 · drag to reorder · first = cover)</span></label>
+        <div class="img-upload-section">
+          <!-- Drop Zone -->
+          <div class="img-drop-zone" id="dropZone">
+            <input type="file" id="fileInput" accept="image/*" multiple onchange="handleFiles(this.files)">
+            <div class="img-drop-icon">
+              <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+            <div class="img-drop-title">คลิกหรือลากรูปมาวางที่นี่</div>
+            <div class="img-drop-sub">PNG, JPG, WEBP — แนะนำ 1:1 หรือ 4:5</div>
+            <div class="img-drop-limit">สูงสุด 17 รูป / ไฟล์ละไม่เกิน 10MB</div>
+          </div>
+          <!-- Count bar -->
+          <div class="img-count-bar" id="imgCountBar" style="display:none"><span id="imgCount">0</span> / 17 รูป</div>
+          <!-- Thumbnail Grid -->
+          <div class="img-grid" id="imgGrid"></div>
+          <!-- URL fallback -->
+          <details style="margin-top:4px">
+            <summary style="font-size:10.5px;color:var(--gray-400);cursor:pointer;user-select:none">หรือวาง URL รูปภาพ</summary>
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <input class="f-input" id="fImageUrl" placeholder="https://cdn.bardskh.com/…" style="flex:1;height:36px;font-size:12px">
+              <button type="button" onclick="addImageUrl()" style="height:36px;padding:0 12px;background:var(--black);color:#fff;border:none;border-radius:8px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:'Space Grotesk',sans-serif;white-space:nowrap">เพิ่ม URL</button>
+            </div>
+          </details>
+        </div>
+      </div>
+      <div class="form-group full">
+        <label class="f-label">Colors</label>
+        <div class="color-add-row">
+          <input type="color" class="color-hex-pick" id="colorHex" value="#111111">
+          <input class="color-name-in" id="colorName" placeholder="ชื่อสี เช่น Noir Black" onkeydown="if(event.key==='Enter'){event.preventDefault();addColor();}">
+          <button class="color-add-btn" onclick="addColor()">+ เพิ่มสี</button>
+        </div>
+        <div class="color-tags" id="colorTags"></div>
+        <div class="colors-input-hint">คลิก swatch เพื่อลบ · ไม่ใส่ก็ได้</div>
+      </div>
+      <div class="form-group full">
+        <label class="f-label">Sizes (comma separated)</label>
+        <input class="f-input" id="fSizes" placeholder="S, M, L, XL, XXL">
+      </div>
+      <div class="form-group full">
+        <label class="f-label">Description</label>
+        <textarea class="f-textarea" id="fDesc" placeholder="Product description…"></textarea>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-lbl">New Arrival</div><div class="toggle-sub">Show "NEW" badge on product</div></div>
+      <button class="toggle" id="togNew" onclick="this.classList.toggle('on')"></button>
+    </div>
+    <div class="toggle-row">
+      <div><div class="toggle-lbl">Active / Visible</div><div class="toggle-sub">Show product in store</div></div>
+      <button class="toggle on" id="togActive" onclick="this.classList.toggle('on')"></button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeMask()">Cancel</button>
+      <button class="btn-danger" id="delBtn" style="display:none" onclick="confirmDelete()">DELETE</button>
+      <button class="btn-primary" id="saveBtn" onclick="saveProduct()">SAVE PRODUCT</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm delete -->
+<div class="del-mask" id="delMask">
+  <div class="del-modal">
+    <h3>Delete Product?</h3>
+    <p>This will remove the product from your store. This action cannot be undone.</p>
+    <div class="del-actions">
+      <button class="btn-ghost" style="flex:1" onclick="document.getElementById('delMask').classList.remove('on')">Cancel</button>
+      <button class="btn-danger" style="flex:1" onclick="doDelete()">DELETE</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="/api.js"></script>
+<script src="/products.js"></script>
+<script>
+let _products = [];
+let _editId = null;
+// image & color state — managed by modal
+let _images = [];
+let _colors = [];
+let _dragSrc = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!Auth.isLoggedIn()) { location.href='/signin?redirect=/seller-products'; return; }
+  try {
+    const {user} = await AuthAPI.me();
+    if (!['seller','admin'].includes(user.role)) { location.href='/'; return; }
+    document.getElementById('sbName').textContent = user.name||'Seller';
+    const av=document.getElementById('sbAvatar');
+    if(user.avatar){av.innerHTML=`<img src="${user.avatar}" alt="">`;} else {av.textContent=(user.name||'S')[0].toUpperCase();}
+  } catch(e){location.href='/signin';return;}
+  await loadProducts();
+});
+
+async function loadProducts() {
+  try {
+    const d = await apiFetch('/seller/products', { auth:true });
+    _products = d.products || [];
+    renderGrid();
+  } catch(e) {
+    toast('❌ Cannot load products: ' + e.message);
+    _products = [];
+    renderGrid();
+  }
+}
+
+function renderGrid() {
+  document.getElementById('prodCount').textContent = `(${_products.length})`;
+  const el = document.getElementById('prodGrid');
+  if (!_products.length) {
+    el.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-icon">📦</div><div class="empty-title">No products yet</div><div style="font-size:12px;color:var(--gray-400);margin-top:6px">Click "+ Add Product" to get started.</div></div>`;
+    return;
+  }
+  el.innerHTML = _products.map(p => {
+    // รองรับทั้ง is_active (DB) และ active (เก่า)
+    const isActive = p.is_active !== false && p.active !== false;
+    // รองรับทั้ง sale_price (DB) และ salePrice (เก่า)
+    const salePrice = p.sale_price || p.salePrice;
+    const imgSrc = (Array.isArray(p.images) ? p.images[0] : null) || p.image || '';
+    return `
+    <div class="prod-card${!isActive?' prod-inactive':''}" onclick="openModal('${p.id}')">
+      ${imgSrc
+        ? `<img class="prod-img" src="${imgSrc}" alt="${p.name}" onerror="this.style.display='none'">`
+        : `<div class="prod-img-ph"><svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`}
+      <div class="prod-body">
+        <div class="prod-name">
+          ${p.name}
+          ${p.is_new||p.isNew?'<span class="badge-new">NEW</span>':''}
+          ${salePrice?'<span class="badge-sale">SALE</span>':''}
+        </div>
+        <div class="prod-cat">${p.category||'Product'}</div>
+        <div>
+          <span class="prod-price">$${Number(p.price||0).toFixed(2)}</span>
+          ${salePrice?`<span class="prod-sale">$${Number(salePrice).toFixed(2)}</span>`:''}
+        </div>
+        <div class="prod-footer">
+          <span class="prod-stock">Stock: ${p.stock??'∞'}</span>
+          <div class="prod-actions" onclick="event.stopPropagation()">
+            <button class="ic-btn${isActive?' active-toggle':''}" title="Toggle active" onclick="toggleActive('${p.id}')">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s3-7 11-7 11 7 11 7-3 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+            <button class="ic-btn del" title="Delete" onclick="confirmDelete('${p.id}')">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function toggleActive(id) {
+  const p = _products.find(x=>x.id===id);
+  if (!p) return;
+  const newVal = !(p.is_active !== false);
+  try {
+    await apiFetch(`/seller/products/${id}`, { method:'PATCH', body:{ is_active: newVal }, auth:true });
+    p.is_active = newVal;
+    renderGrid();
+    toast(newVal ? 'Product is now visible' : 'Product hidden from store');
+  } catch(e) { toast('Error: ' + e.message); }
+}
+
+function openModal(id=null) {
+  _editId = id;
+  const p = id ? _products.find(x=>x.id===id) : null;
+  document.getElementById('modalTitle').textContent = p ? 'Edit Product' : 'Add Product';
+  document.getElementById('fName').value    = p?.name||'';
+  document.getElementById('fPrice').value   = p?.price||'';
+  document.getElementById('fSalePrice').value = p?.sale_price||p?.salePrice||'';
+  document.getElementById('fCategory').value = p?.category||'tees';
+  document.getElementById('fStock').value   = p?.stock??'';
+  document.getElementById('fSizes').value   = (Array.isArray(p?.sizes)?p.sizes:[]).map(s=>typeof s==='object'?s.name||s:s).join(', ');
+  document.getElementById('fDesc').value    = p?.description||'';
+  document.getElementById('togNew').className    = 'toggle'+((p?.is_new||p?.isNew)?' on':'');
+  document.getElementById('togActive').className = 'toggle'+(p?.is_active!==false&&p?.active!==false?' on':'');
+  document.getElementById('delBtn').style.display = p ? '' : 'none';
+
+  // Load images
+  _images = [];
+  const imgs = Array.isArray(p?.images) ? p.images : (p?.image ? [p.image] : []);
+  imgs.forEach(url => { if(url) _images.push({ url, type:'url' }); });
+  renderImgGrid();
+
+  // Load colors
+  _colors = [];
+  const colArr = Array.isArray(p?.colors) ? p.colors : [];
+  colArr.forEach(c => {
+    if (typeof c === 'object') _colors.push({ name: c.name||'', hex: c.hex||'#888888' });
+    else _colors.push({ name: String(c), hex: '#888888' });
+  });
+  renderColorTags();
+
+  document.getElementById('mask').classList.add('on');
+}
+function closeMask(){ document.getElementById('mask').classList.remove('on'); }
+
+/* ══════════════════════════════════════════
+   IMAGE MANAGEMENT (max 17, drag-to-reorder)
+══════════════════════════════════════════ */
+const MAX_IMAGES = 17;
+
+function renderImgGrid() {
+  const grid = document.getElementById('imgGrid');
+  const bar  = document.getElementById('imgCountBar');
+  document.getElementById('imgCount').textContent = _images.length;
+  bar.style.display = _images.length ? '' : 'none';
+
+  grid.innerHTML = _images.map((img, i) => `
+    <div class="img-thumb" draggable="true"
+         ondragstart="onDragStart(event,${i})"
+         ondragover="onDragOver(event,${i})"
+         ondrop="onDrop(event,${i})"
+         ondragend="onDragEnd()"
+         id="ithumb-${i}">
+      <img src="${img.url}" alt="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22/>'">
+      ${i===0?'<div class="img-thumb-badge">COVER</div>':''}
+      <button class="img-thumb-del" onclick="removeImg(${i})" title="ลบรูป">
+        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>`).join('');
+
+  // Update drop zone state
+  const dz = document.getElementById('dropZone');
+  if (_images.length >= MAX_IMAGES) {
+    dz.style.opacity = '.45';
+    dz.style.pointerEvents = 'none';
+    document.getElementById('fileInput').disabled = true;
+  } else {
+    dz.style.opacity = '';
+    dz.style.pointerEvents = '';
+    document.getElementById('fileInput').disabled = false;
+  }
+}
+
+function removeImg(i) {
+  _images.splice(i, 1);
+  renderImgGrid();
+}
+
+// Drag reorder
+function onDragStart(e, i) { _dragSrc = i; e.currentTarget.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; }
+function onDragOver(e, i) {
+  e.preventDefault(); e.dataTransfer.dropEffect='move';
+  document.querySelectorAll('.img-thumb').forEach(el=>el.classList.remove('drop-target'));
+  document.getElementById('ithumb-'+i)?.classList.add('drop-target');
+}
+function onDrop(e, i) {
+  e.preventDefault();
+  if (_dragSrc === null || _dragSrc === i) return;
+  const moved = _images.splice(_dragSrc, 1)[0];
+  _images.splice(i, 0, moved);
+  _dragSrc = null;
+  renderImgGrid();
+}
+function onDragEnd() {
+  _dragSrc = null;
+  document.querySelectorAll('.img-thumb').forEach(el=>el.classList.remove('dragging','drop-target'));
+}
+
+// Drop zone events
+document.addEventListener('DOMContentLoaded', () => {
+  const dz = document.getElementById('dropZone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag-over');
+    handleFiles(e.dataTransfer.files);
+  });
+});
+
+async function handleFiles(fileList) {
+  const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+  const remaining = MAX_IMAGES - _images.length;
+  if (!remaining) { toast('⚠️ ครบ 17 รูปแล้ว'); return; }
+  const toUpload = files.slice(0, remaining);
+  if (!toUpload.length) return;
+  if (files.length > remaining) toast(`⚠️ เพิ่มได้อีก ${remaining} รูป — ตัดเหลือ ${toUpload.length} ไฟล์`);
+
+  // Placeholder thumbs (spinner)
+  const startIdx = _images.length;
+  toUpload.forEach(() => _images.push({ url: '', type: 'uploading' }));
+  renderImgGrid();
+
+  // Batch upload ทุกไฟล์ในครั้งเดียว
+  const token = Auth.getToken();
+  const fd = new FormData();
+  toUpload.forEach(f => fd.append('images', f));
+  try {
+    const res = await fetch(API_BASE + '/seller/upload', {
+      method: 'POST',
+      headers: token ? { Authorization: 'Bearer ' + token } : {},
+      credentials: 'include',
+      body: fd,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    const urls = data.urls || [];
+    urls.forEach((url, j) => { _images[startIdx + j] = { url, type: 'uploaded' }; });
+    // ลบ placeholder ที่ไม่มี URL (กรณีบางไฟล์ fail)
+    _images = _images.filter(x => x.url);
+    toast(`✓ อัปโหลด ${urls.length} รูป`);
+  } catch(e) {
+    _images = _images.filter(x => x.url); // ลบ placeholder ออก
+    toast('❌ ' + e.message);
+  }
+  renderImgGrid();
+  // reset file input
+  const fi = document.getElementById('fileInput');
+  if (fi) fi.value = '';
+}
+
+function addImageUrl() {
+  const val = document.getElementById('fImageUrl').value.trim();
+  if (!val) return;
+  if (_images.length >= MAX_IMAGES) { toast('⚠️ ครบ 17 รูปแล้ว'); return; }
+  _images.push({ url: val, type: 'url' });
+  document.getElementById('fImageUrl').value = '';
+  renderImgGrid();
+}
+
+/* ══════════════════════════════════════════
+   COLOR TAG MANAGEMENT
+══════════════════════════════════════════ */
+
+function renderColorTags() {
+  document.getElementById('colorTags').innerHTML = _colors.map((c, i) => `
+    <span class="color-tag" onclick="removeColor(${i})" title="คลิกเพื่อลบ">
+      <span class="swatch" style="background:${c.hex}"></span>
+      ${c.name||c.hex}
+      <span class="del-x">✕</span>
+    </span>`).join('');
+}
+
+function addColor() {
+  const hex  = document.getElementById('colorHex').value;
+  const name = document.getElementById('colorName').value.trim();
+  if (!name) { document.getElementById('colorName').focus(); return; }
+  if (_colors.find(c => c.name.toLowerCase() === name.toLowerCase())) {
+    toast('มีสีนี้แล้ว'); return;
+  }
+  _colors.push({ name, hex });
+  document.getElementById('colorName').value = '';
+  renderColorTags();
+}
+
+function removeColor(i) {
+  _colors.splice(i, 1);
+  renderColorTags();
+}
+
+async function saveProduct() {
+  const name = document.getElementById('fName').value.trim();
+  if (!name) { toast('Product name is required'); return; }
+  const price     = parseFloat(document.getElementById('fPrice').value)||0;
+  if (!price) { toast('Price is required'); return; }
+  const sale_price = parseFloat(document.getElementById('fSalePrice').value)||null;
+  const sizes  = document.getElementById('fSizes').value.split(',').map(s=>s.trim()).filter(Boolean);
+
+  const payload = {
+    name,
+    price,
+    sale_price: sale_price || null,
+    category:    document.getElementById('fCategory').value,
+    stock:       parseInt(document.getElementById('fStock').value)||null,
+    images:      _images.filter(img=>img.url).map(img=>img.url),
+    colors:      _colors,
+    sizes,
+    description: document.getElementById('fDesc').value.trim(),
+    is_new:      document.getElementById('togNew').classList.contains('on'),
+    is_active:   document.getElementById('togActive').classList.contains('on'),
+  };
+
+  const btn = document.getElementById('saveBtn');
+  btn.classList.add('loading');
+  try {
+    if (_editId) {
+      const d = await apiFetch(`/seller/products/${_editId}`, { method:'PATCH', body:payload, auth:true });
+      const idx = _products.findIndex(x=>x.id===_editId);
+      if (idx>=0) _products[idx] = d.product;
+      toast('✓ Product updated');
+    } else {
+      const d = await apiFetch('/seller/products', { method:'POST', body:payload, auth:true });
+      _products.unshift(d.product);
+      toast('✓ Product added');
+    }
+    renderGrid();
+    closeMask();
+  } catch(e) {
+    toast('❌ ' + e.message);
+  } finally {
+    btn.classList.remove('loading');
+  }
+}
+
+let _deleteTarget = null;
+function confirmDelete(id) {
+  _deleteTarget = id || _editId;
+  document.getElementById('delMask').classList.add('on');
+  closeMask();
+}
+async function doDelete() {
+  try {
+    await apiFetch(`/seller/products/${_deleteTarget}`, { method:'DELETE', auth:true });
+    _products = _products.filter(p=>p.id!==_deleteTarget);
+    renderGrid();
+    document.getElementById('delMask').classList.remove('on');
+    toast('Product deleted');
+  } catch(e) { toast('❌ ' + e.message); }
+}
+
+let _tt; function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('on'),2500);}
+</script>
+</body>
+</html>

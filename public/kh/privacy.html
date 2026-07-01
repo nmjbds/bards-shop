@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="km">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>គោលការណ៍ភាពឯកជន — BARDS</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Outfit:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Noto+Serif+Khmer:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0D0D0D;--paper:#FAFAF8;--white:#FFFFFF;--rule:#E2E2DE;--muted:#9A9A96;--faint:#F4F4F0;--nav-w:240px;--fs-body:0.92rem;--lh:1.95;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}html{scroll-behavior:smooth;}
+body{font-family:'Noto Serif Khmer','Outfit',sans-serif;background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;}
+.top-nav{position:fixed;top:0;left:0;right:0;z-index:200;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;background:rgba(250,250,248,0.94);backdrop-filter:blur(20px);border-bottom:1px solid var(--rule);}
+.nav-brand{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:600;letter-spacing:0.38em;text-decoration:none;color:var(--ink);text-transform:uppercase;}
+.nav-right{display:flex;align-items:center;gap:20px;}
+.nav-link{font-size:0.7rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color 0.2s;}
+.nav-link:hover{color:var(--ink);}
+.lang-tag{font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.06em;color:var(--muted);padding:4px 10px;border:1px solid var(--rule);border-radius:2px;text-decoration:none;transition:all 0.2s;}
+.lang-tag:hover,.lang-tag.on{background:var(--ink);color:var(--white);border-color:var(--ink);}
+.page-wrap{padding-top:56px;}
+.hero{padding:96px 40px 72px;border-bottom:1px solid var(--rule);max-width:1100px;margin:0 auto;}
+.hero-eyebrow{font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--muted);margin-bottom:22px;display:flex;align-items:center;gap:14px;}
+.hero-eyebrow::before{content:'';display:block;width:36px;height:1px;background:var(--rule);}
+.hero-title{font-family:'Noto Serif Khmer',serif;font-size:clamp(2.2rem,5vw,3.5rem);font-weight:300;line-height:1.2;color:var(--ink);margin-bottom:24px;}
+.hero-meta{font-size:0.72rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.06em;}
+.doc-layout{display:grid;grid-template-columns:var(--nav-w) 1fr;max-width:1100px;margin:0 auto;}
+.side-nav{position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto;padding:48px 28px 48px 40px;border-right:1px solid var(--rule);}
+.side-nav::-webkit-scrollbar{width:0;}
+.side-label{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--rule);margin-bottom:22px;}
+.side-list{list-style:none;display:flex;flex-direction:column;}
+.side-list li a{display:flex;align-items:baseline;gap:10px;font-size:0.8rem;color:var(--muted);text-decoration:none;padding:8px 0;transition:color 0.18s;line-height:1.4;font-family:'Noto Serif Khmer',sans-serif;}
+.side-list li a:hover,.side-list li a.active{color:var(--ink);}
+.sn{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--rule);flex-shrink:0;min-width:18px;transition:color 0.18s;}
+.side-list li a:hover .sn,.side-list li a.active .sn{color:var(--muted);}
+.doc-content{padding:64px 64px 120px;}
+.doc-section{padding-bottom:72px;margin-bottom:72px;border-bottom:1px solid var(--rule);}
+.doc-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.sec-hdr{display:flex;align-items:baseline;gap:16px;margin-bottom:32px;}
+.sec-idx{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--rule);padding-top:4px;}
+.sec-title{font-family:'Noto Serif Khmer',serif;font-size:clamp(1.4rem,2.6vw,1.9rem);font-weight:400;line-height:1.25;}
+.body{font-size:var(--fs-body);line-height:var(--lh);color:#3a3a38;}
+.body p{margin-bottom:1.15em;}.body p:last-child{margin-bottom:0;}
+.body ul{list-style:none;margin:1em 0;}
+.body ul li{padding:0.55em 0 0.55em 1.3em;position:relative;border-bottom:1px solid var(--faint);font-size:var(--fs-body);line-height:1.75;}
+.body ul li::before{content:'—';position:absolute;left:0;color:var(--rule);}
+.body ul li:last-child{border-bottom:none;}
+.body strong{font-weight:600;color:var(--ink);}
+.callout{border:1px solid var(--rule);padding:24px 28px;margin:28px 0;font-size:0.86rem;line-height:1.8;color:#3a3a38;position:relative;}
+.callout::before{content:attr(data-label);position:absolute;top:-9px;left:20px;background:var(--paper);font-family:'DM Mono',monospace;font-size:0.56rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);padding:0 8px;}
+.data-tbl{width:100%;border-collapse:collapse;margin:20px 0;font-size:0.84rem;}
+.data-tbl th{font-family:'DM Mono',monospace;font-size:0.57rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 14px;border-bottom:1px solid var(--rule);font-weight:400;}
+.data-tbl td{padding:11px 14px;border-bottom:1px solid var(--faint);vertical-align:top;line-height:1.65;}
+.data-tbl tr:last-child td{border-bottom:none;}
+.doc-footer{border-top:1px solid var(--rule);padding:40px;max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.footer-brand{font-family:'Cormorant Garamond',serif;font-size:0.95rem;font-weight:500;letter-spacing:0.32em;text-transform:uppercase;color:var(--muted);}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap;}
+.footer-links a{font-size:0.68rem;color:var(--muted);text-decoration:none;letter-spacing:0.06em;transition:color 0.2s;}
+.footer-links a:hover{color:var(--ink);}
+.footer-copy{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--rule);width:100%;margin-top:8px;}
+@media(max-width:768px){.top-nav{padding:0 20px;}.hero{padding:56px 24px 48px;}.doc-layout{grid-template-columns:1fr;}.side-nav{display:none;}.doc-content{padding:40px 24px 80px;}.doc-footer{padding:32px 24px;}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.fu{animation:fadeUp 0.5s ease both;}.d1{animation-delay:0.08s;}.d2{animation-delay:0.16s;}
+</style>
+</head>
+<body>
+<nav class="top-nav">
+  <a href="/" class="nav-brand">Bards</a>
+  <div class="nav-right">
+    <a href="/en/privacy" class="lang-tag">EN</a>
+    <a href="/kh/privacy" class="lang-tag on">ខ្មែរ</a>
+    <a href="/" class="nav-link">ហាង</a>
+    <a href="/contact" class="nav-link">ទំនាក់ទំនង</a>
+  </div>
+</nav>
+<div class="page-wrap">
+  <div class="hero fu">
+    <div class="hero-eyebrow">ឯកសារច្បាប់</div>
+    <h1 class="hero-title">គោលការណ៍<br>ភាពឯកជន</h1>
+    <div class="hero-meta">ចូលជាធរមាន ២៥ ឧសភា ២០២៦ &nbsp;·&nbsp; bardskh.com</div>
+  </div>
+  <div class="doc-layout">
+    <aside class="side-nav fu d1">
+      <div class="side-label">មាតិកា</div>
+      <ul class="side-list">
+        <li><a href="#kp-collect"><span class="sn">០១</span>ទិន្នន័យដែលប្រមូល</a></li>
+        <li><a href="#kp-use"><span class="sn">០២</span>របៀបប្រើប្រាស់</a></li>
+        <li><a href="#kp-share"><span class="sn">០៣</span>ការចែករំលែក</a></li>
+        <li><a href="#kp-retain"><span class="sn">០៤</span>ការរក្សាទុក</a></li>
+        <li><a href="#kp-cookies"><span class="sn">០៥</span>Cookies</a></li>
+        <li><a href="#kp-rights"><span class="sn">០៦</span>សិទ្ធិរបស់អ្នក</a></li>
+        <li><a href="#kp-security"><span class="sn">០៧</span>សុវត្ថិភាព</a></li>
+        <li><a href="#kp-third"><span class="sn">០៨</span>ភាគីទីបី</a></li>
+        <li><a href="#kp-children"><span class="sn">០៩</span>កុមារ</a></li>
+        <li><a href="#kp-contact"><span class="sn">១០</span>ទំនាក់ទំនង</a></li>
+      </ul>
+    </aside>
+    <main class="doc-content fu d2">
+
+      <section class="doc-section" id="kp-collect">
+        <div class="sec-hdr"><span class="sec-idx">០១</span><h2 class="sec-title">ទិន្នន័យដែលយើងប្រមូល</h2></div>
+        <div class="body">
+          <p>យើងប្រមូលតែអ្វីដែលចាំបាច់ ដើម្បីដំណើរការ និងបំពេញការបញ្ជាទិញរបស់អ្នក។ គ្មានអ្វីច្រើនជាងនេះ។</p>
+          <table class="data-tbl">
+            <tr><th>ប្រភេទ</th><th>ព័ត៌មានលម្អិត</th></tr>
+            <tr><td><strong>គណនី</strong></td><td>ឈ្មោះ អ៊ីមែល លេខសំងាត់ hashed</td></tr>
+            <tr><td><strong>ការបញ្ជាទិញ</strong></td><td>ទំនិញ ទំហំ ចំនួន ការបញ្ជាក់ការទូទាត់</td></tr>
+            <tr><td><strong>ការដឹកជញ្ជូន</strong></td><td>អាសយដ្ឋាន លេខទូរស័ព្ទ</td></tr>
+            <tr><td><strong>ការប្រើប្រាស់</strong></td><td>ទំព័រដែលបានចូលមើល ប្រភេទឧបករណ៍ IP អនាមិក</td></tr>
+          </table>
+        </div>
+      </section>
+
+      <section class="doc-section" id="kp-use">
+        <div class="sec-hdr"><span class="sec-idx">០២</span><h2 class="sec-title">របៀបប្រើប្រាស់</h2></div>
+        <div class="body">
+          <ul>
+            <li>ដើម្បីដំណើរការ និងបំពេញការបញ្ជាទិញ</li>
+            <li>ដើម្បីផ្ញើការបញ្ជាក់ការបញ្ជាទិញ និងការធ្វើបច្ចុប្បន្នភាពការដឹកជញ្ជូន</li>
+            <li>ដើម្បីឆ្លើយតបការសាកសួររបស់សេវាកម្មអតិថិជន</li>
+            <li>ដើម្បីកែលម្អគេហទំព័រ និងបទពិសោធន៍ផលិតផល</li>
+            <li>ដើម្បីផ្ញើសារទីផ្សារ — តែប្រសិនបើអ្នកបានជ្រើសរើសទទួល</li>
+          </ul>
+          <p>ទិន្នន័យរបស់អ្នកនឹងមិនត្រូវប្រើប្រាស់ក្រៅពីគោលបំណងដែលបានរៀបរាប់ ដោយគ្មានការយល់ព្រមច្បាស់លាស់របស់អ្នក។</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="kp-share">
+        <div class="sec-hdr"><span class="sec-idx">០៣</span><h2 class="sec-title">ការចែករំលែក</h2></div>
+        <div class="body">
+          <div class="callout" data-label="ការប្តេជ្ញារបស់យើង">យើង មិន លក់ ជួល ឬជួញដូរទិន្នន័យផ្ទាល់ខ្លួនរបស់អ្នក ឡើយ។</div>
+          <ul>
+            <li><strong>ដៃគូដឹកជញ្ជូន</strong> — ដើម្បីដឹកជញ្ជូនការបញ្ជាទិញក្នុងប្រទេសកម្ពុជា</li>
+            <li><strong>អ្នកដំណើរការការទូទាត់</strong> — KHQR / ABA / Bakong សម្រាប់ដំណើរការប្រតិបត្តិការប៉ុណ្ណោះ</li>
+            <li><strong>អាជ្ញាធរច្បាប់</strong> — នៅពេលតម្រូវដោយច្បាប់កម្ពុជា</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="doc-section" id="kp-retain">
+        <div class="sec-hdr"><span class="sec-idx">០៤</span><h2 class="sec-title">ការរក្សាទុក</h2></div>
+        <div class="body">
+          <p>យើងរក្សាទុកទិន្នន័យផ្ទាល់ខ្លួនរបស់អ្នក ខណៈពេលគណនីនៅដំណើរការ។ កំណត់ត្រាការបញ្ជាទិញត្រូវបានរក្សាទុករហូតដល់ <strong>ពីរឆ្នាំ</strong>។</p>
+          <p>អ្នកអាចស្នើសុំការលុបគណនី និងទិន្នន័យរបស់អ្នកគ្រប់ពេល ដោយទំនាក់ទំនងយើងដោយផ្ទាល់។</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="kp-cookies">
+        <div class="sec-hdr"><span class="sec-idx">០៥</span><h2 class="sec-title">Cookies</h2></div>
+        <div class="body">
+          <p>យើងប្រើ cookies ចាំបាច់ ដើម្បីថែទាំ session និងកន្ត្រក់ទិញទំនិញ។ យើងក៏ប្រើ analytics មានទម្ងន់ស្រាល ដើម្បីយល់ពីរបៀបប្រើប្រាស់គេហទំព័ររបស់យើង — គ្មាន cookies ផ្សព្វផ្សាយ គ្មានការតាមដាន cross-site។</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="kp-rights">
+        <div class="sec-hdr"><span class="sec-idx">០៦</span><h2 class="sec-title">សិទ្ធិរបស់អ្នក</h2></div>
+        <div class="body">
+          <ul>
+            <li>ចូលប្រើទិន្នន័យផ្ទាល់ខ្លួនដែលយើងកាន់កាប់</li>
+            <li>ស្នើសុំការកែប្រែទិន្នន័យមិនត្រឹមត្រូវ</li>
+            <li>ស្នើសុំការលុបគណនី និងទិន្នន័យដែលពាក់ព័ន្ធ</li>
+            <li>ដកខ្លួនចេញពីការទំនាក់ទំនងទីផ្សារគ្រប់ពេល</li>
+          </ul>
+          <p>ទំនាក់ទំនង <strong>support@bardskh.com</strong> ដើម្បីប្រើប្រាស់សិទ្ធិទាំងនេះ។</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="kp-security">
+        <div class="sec-hdr"><span class="sec-idx">០៧</span><h2 class="sec-title">សុវត្ថិភាព</h2></div>
+        <div class="body">
+          <p>យើងអនុវត្តការការពារបច្ចេកទេស និងអង្គការសមស្រប ដើម្បីការពារទិន្នន័យ។ លេខសំងាត់ត្រូវបានរក្សាទុកក្នុង hashed form ចរាចរណ៍ site ទាំងអស់ត្រូវបានអ៊ិនគ្រីបតាម HTTPS។</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="kp-third">
+        <div class="sec-hdr"><span class="sec-idx">០៨</span><h2 class="sec-title">ភាគីទីបី</h2></div>
+        <div class="body">
+          <p>គេហទំព័ររបស់យើងអាចភ្ជាប់ទៅកាន់ platform ខាងក្រៅដូចជា social media។ BARDS មិនទទួលខុសត្រូវចំពោះការអនុវត្តភាពឯកជនរបស់គេហទំព័រភាគីទីបី។</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="kp-children">
+        <div class="sec-hdr"><span class="sec-idx">០៩</span><h2 class="sec-title">កុមារ</h2></div>
+        <div class="body">
+          <p>សេវាកម្មរបស់យើងមិនត្រូវបានដឹកនាំ ចំពោះកុមារក្រោម ១៣ ឆ្នាំ។ ប្រសិនបើអ្នកជឿថាកុមារម្នាក់បានផ្តល់ព័ត៌មានរបស់ខ្លួន ទំនាក់ទំនងយើងភ្លាម​ ដើម្បីលុបចោល។</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="kp-contact">
+        <div class="sec-hdr"><span class="sec-idx">១០</span><h2 class="sec-title">ទំនាក់ទំនង</h2></div>
+        <div class="body">
+          <ul>
+            <li><strong>អ៊ីមែល</strong> — support@bardskh.com</li>
+            <li><strong>Telegram</strong> — @bards_official</li>
+            <li><strong>គេហទំព័រ</strong> — bardskh.com</li>
+          </ul>
+        </div>
+      </section>
+
+    </main>
+  </div>
+  <footer class="doc-footer">
+    <div class="footer-brand">Bards</div>
+    <div class="footer-links">
+      <a href="/kh/terms">លក្ខខណ្ឌប្រើប្រាស់</a>
+      <a href="/kh/refund">គោលការណ៍សងប្រាក់</a>
+      <a href="/contact">ទំនាក់ទំនង</a>
+    </div>
+    <div class="footer-copy">© 2026 BARDS SHOP · ភ្នំពេញ, កម្ពុជា · bardskh.com</div>
+  </footer>
+</div>
+<script>(function(){const ss=document.querySelectorAll('.doc-section'),ll=document.querySelectorAll('.side-list a');if(!ss.length)return;const ob=new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting){ll.forEach(a=>a.classList.remove('active'));const a=document.querySelector(`.side-list a[href="#${x.target.id}"]`);if(a)a.classList.add('active');}});},{rootMargin:'-15% 0px -70% 0px'});ss.forEach(s=>ob.observe(s));})();</script>
+</body></html>

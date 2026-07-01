@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Order Confirmed — Bards</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --black:    #0A0A0A;
+            --white:    #FAFAFA;
+            --green:    #16A34A;
+            --red:      #C8001A;
+            --gray-50:  #F9F9F7;
+            --gray-100: #F2F2F0;
+            --gray-200: #E4E4E2;
+            --gray-300: #C8C8C6;
+            --gray-400: #8A8A88;
+            --gray-600: #4A4A48;
+            --radius:    14px;
+            --radius-sm: 10px;
+            --nav-h:     60px;
+        }
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        body {
+            font-family:'Space Grotesk',sans-serif;
+            background:var(--gray-100); color:var(--black);
+            min-height:100vh; overscroll-behavior:none;
+            padding-bottom:56px;
+        }
+
+        /* NAV */
+        .nav {
+            position:fixed; top:0; left:0; right:0; z-index:200;
+            height:var(--nav-h);
+            display:flex; align-items:center; padding:0 18px;
+            background:rgba(250,250,250,.97);
+            backdrop-filter:blur(18px) saturate(160%);
+            -webkit-backdrop-filter:blur(18px) saturate(160%);
+            border-bottom:1px solid var(--gray-200);
+        }
+        .brand { font-family:'Bebas Neue'; font-size:21px; letter-spacing:3px; color:var(--black); text-decoration:none; }
+
+        /* PAGE */
+        .page {
+            margin-top:var(--nav-h);
+            padding:20px 14px 0;
+            max-width:480px;
+            margin-left:auto; margin-right:auto;
+        }
+
+        /* HERO */
+        .hero {
+            background:var(--white); border:1.5px solid var(--gray-200);
+            border-radius:var(--radius); padding:32px 20px 28px;
+            text-align:center; margin-bottom:12px;
+        }
+        .hero-ring {
+            width:80px; height:80px; border-radius:50%;
+            background:#DCFCE7; border:3px solid #BBF7D0;
+            display:flex; align-items:center; justify-content:center;
+            margin:0 auto 18px;
+        }
+        .hero-title { font-family:'Bebas Neue'; font-size:30px; letter-spacing:3.5px; margin-bottom:6px; }
+        .hero-sub { font-size:13px; color:var(--gray-400); line-height:1.7; max-width:280px; margin:0 auto 22px; }
+        .order-ref-box {
+            display:inline-flex; flex-direction:column; align-items:center;
+            background:var(--gray-50); border:1.5px solid var(--gray-200);
+            border-radius:var(--radius-sm); padding:12px 22px;
+        }
+        .order-ref-lbl { font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--gray-400); margin-bottom:5px; }
+        .order-ref-val { font-family:'DM Mono',monospace; font-size:16px; font-weight:500; letter-spacing:1px; }
+
+        /* INFO CARDS */
+        .info-card {
+            background:var(--white); border:1.5px solid var(--gray-200);
+            border-radius:var(--radius); overflow:hidden; margin-bottom:12px;
+        }
+        .info-hd {
+            padding:13px 16px 12px; border-bottom:1px solid var(--gray-100);
+            display:flex; align-items:center; gap:9px;
+        }
+        .info-icon {
+            width:26px; height:26px; border-radius:7px;
+            background:var(--black); color:#fff;
+            display:flex; align-items:center; justify-content:center; flex-shrink:0;
+        }
+        .info-title { font-family:'Bebas Neue'; font-size:14px; letter-spacing:2px; }
+        .info-body  { padding:14px 16px; }
+        .info-row   { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:7px; }
+        .info-row:last-child { margin-bottom:0; }
+        .info-lbl   { font-size:11px; color:var(--gray-400); font-weight:500; }
+        .info-val   { font-size:12px; font-weight:600; text-align:right; max-width:60%; }
+        .info-val.mono { font-family:'DM Mono',monospace; font-weight:500; }
+        .info-val.red  { color:var(--red); }
+
+        /* ORDER ITEMS */
+        .item-row {
+            display:flex; gap:11px; align-items:center;
+            padding:9px 0; border-bottom:1px solid var(--gray-100);
+        }
+        .item-row:last-child { border-bottom:none; }
+        .item-img {
+            width:48px; height:48px; border-radius:8px;
+            overflow:hidden; background:var(--gray-100); flex-shrink:0;
+            border:1px solid var(--gray-200);
+        }
+        .item-img img { width:100%; height:100%; object-fit:cover; display:block; }
+        .item-info  { flex:1; min-width:0; }
+        .item-name  { font-size:12px; font-weight:600; line-height:1.3; }
+        .item-meta  { font-size:10px; color:var(--gray-400); margin-top:2px; }
+        .item-price { font-family:'DM Mono',monospace; font-size:12px; font-weight:500; color:var(--red); flex-shrink:0; }
+
+        /* ACTIONS */
+        .actions { display:flex; flex-direction:column; gap:10px; margin-top:4px; }
+        .btn-primary {
+            height:52px; background:var(--black); color:#fff; border:none;
+            border-radius:var(--radius-sm); font-family:'Bebas Neue'; font-size:17px;
+            letter-spacing:2.5px; cursor:pointer; text-decoration:none;
+            display:flex; align-items:center; justify-content:center; gap:8px;
+            transition:opacity .18s;
+        }
+        .btn-primary:active { opacity:.8; }
+        .btn-secondary {
+            height:46px; background:var(--white); color:var(--gray-600);
+            border:1.5px solid var(--gray-200); border-radius:var(--radius-sm);
+            font-size:12px; font-weight:700; cursor:pointer;
+            display:flex; align-items:center; justify-content:center; gap:7px;
+            transition:all .18s; font-family:'Space Grotesk',sans-serif;
+        }
+        .btn-secondary:active { background:var(--gray-100); }
+        .btn-secondary.loading { opacity:.55; pointer-events:none; }
+
+        /* Toast */
+        .toast {
+            position:fixed; bottom:24px; left:50%;
+            transform:translateX(-50%) translateY(6px);
+            background:var(--black); color:#fff; padding:11px 18px;
+            border-radius:12px; font-size:13px; font-weight:500; z-index:9999;
+            opacity:0; transition:opacity .28s,transform .28s; pointer-events:none;
+            box-shadow:0 8px 24px rgba(0,0,0,.28);
+        }
+        .toast.on { opacity:1; transform:translateX(-50%) translateY(0); }
+
+        @keyframes fadeUp  { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes checkPop{ 0%{transform:scale(0)} 60%{transform:scale(1.2)} 100%{transform:scale(1)} }
+        @keyframes spin    { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        .fu { animation:fadeUp .42s ease both; }
+        .d1 { animation-delay:.06s; }
+        .d2 { animation-delay:.12s; }
+        .d3 { animation-delay:.18s; }
+        .hero-ring { animation:checkPop .55s cubic-bezier(.22,1,.36,1) .1s both; }
+    </style>
+</head>
+<body>
+
+<nav class="nav">
+    <a href="index.html" class="brand">BARDS</a>
+</nav>
+
+<div class="page">
+
+    <!-- HERO -->
+    <div class="hero fu">
+        <div class="hero-ring">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--green)"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
+        </div>
+        <div class="hero-title">ORDER CONFIRMED!</div>
+        <div class="hero-sub">Payment received. We'll prepare your order and deliver it soon.</div>
+        <div class="order-ref-box">
+            <div class="order-ref-lbl">Order Reference</div>
+            <div class="order-ref-val" id="orderRefVal">—</div>
+        </div>
+    </div>
+
+    <!-- ITEMS -->
+    <div class="info-card fu d1">
+        <div class="info-hd">
+            <div class="info-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <path d="M16 10a4 4 0 01-8 0"/>
+                </svg>
+            </div>
+            <span class="info-title">Items Ordered</span>
+        </div>
+        <div class="info-body" id="itemsBody">
+            <div style="font-size:12px;color:var(--gray-400)">Loading…</div>
+        </div>
+    </div>
+
+    <!-- ORDER DETAILS -->
+    <div class="info-card fu d1">
+        <div class="info-hd">
+            <div class="info-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+                    <line x1="8" y1="18" x2="21" y2="18"/>
+                    <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>
+                    <line x1="3" y1="18" x2="3.01" y2="18"/>
+                </svg>
+            </div>
+            <span class="info-title">Order Details</span>
+        </div>
+        <div class="info-body">
+            <div class="info-row"><span class="info-lbl">Order ID</span><span class="info-val mono" id="detOrderId">—</span></div>
+            <div class="info-row"><span class="info-lbl">Date</span><span class="info-val mono" id="detDate">—</span></div>
+            <div class="info-row"><span class="info-lbl">Subtotal</span><span class="info-val mono" id="detSub">—</span></div>
+            <div class="info-row"><span class="info-lbl">Shipping</span><span class="info-val mono" id="detShip">—</span></div>
+            <div class="info-row" id="discountRow" style="display:none">
+                <span class="info-lbl" style="color:var(--green);display:flex;align-items:center;gap:5px;">
+                  <svg width="11" height="11" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  Discount
+                </span>
+                <span class="info-val mono" id="detDiscount" style="color:var(--green)">—</span>
+            </div>
+            <div class="info-row" id="couponRow" style="display:none">
+                <span class="info-lbl" style="color:var(--green);">Coupon</span>
+                <span id="detCoupon" style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:var(--green);background:#DCFCE7;padding:2px 8px;border-radius:10px;border:1px solid #86EFAC;letter-spacing:.5px;">—</span>
+            </div>
+            <div class="info-row" style="border-top:1px solid var(--gray-100);padding-top:9px;margin-top:2px">
+                <span class="info-lbl" style="font-weight:700;color:var(--black)">Total</span>
+                <span class="info-val mono red" id="detTotal" style="font-size:16px">—</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHIPPING ADDRESS -->
+    <div class="info-card fu d2">
+        <div class="info-hd">
+            <div class="info-icon">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                </svg>
+            </div>
+            <span class="info-title">Shipping Address</span>
+        </div>
+        <div class="info-body" style="font-size:13px;line-height:1.8;color:var(--gray-600)" id="shipBody">—</div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="actions fu d3">
+        <a href="index.html" class="btn-primary">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+            CONTINUE SHOPPING
+        </a>
+        <button class="btn-secondary" id="saveBtn" onclick="saveReceipt()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Save Receipt
+        </button>
+    </div>
+
+    <div style="height:16px"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="products.js"></script>
+<script src="api.js"></script>
+<script>
+/* ─── Global state ─── */
+let _ORDER = null;
+
+window.onload = async function () {
+    updateBadge();
+    const orderId = new URLSearchParams(location.search).get('order');
+    if (!orderId) { location.href = 'index.html'; return; }
+
+    document.getElementById('orderRefVal').textContent = orderId;
+    document.getElementById('detOrderId').textContent  = orderId;
+    document.getElementById('detDate').textContent     = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+
+    if (!Auth.isLoggedIn()) { _renderFromSession(orderId); return; }
+    try {
+        const d = await OrdersAPI.get(orderId);
+        _renderOrder(d.order);
+    } catch (e) {
+        _renderFromSession(orderId);
+    }
+    /* ลบ sessionStorage หลังจากโหลดข้อมูลเสร็จแล้ว */
+    setTimeout(() => sessionStorage.removeItem('BARDS_ORDER'), 2000);
+};
+
+/* ─── Render from API ─── */
+function _renderOrder(o) {
+    if (!o) return;
+    _ORDER = o;
+
+    const items    = Array.isArray(o.items) ? o.items : JSON.parse(o.items || '[]');
+    const addr     = _parseAddr(o.address);
+    const date     = o.created_at ? new Date(o.created_at) : new Date();
+    const dateStr  = date.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+    const timeStr  = date.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const discount = Number(o.discount || 0);
+    // merge coupon จาก session ถ้า API ยังไม่มี (backward compat)
+    const sessionRaw = sessionStorage.getItem('BARDS_ORDER');
+    const sessionData = sessionRaw ? JSON.parse(sessionRaw) : {};
+    const coupon = o.couponCode || o.coupon_code || o.couponcode || sessionData.couponCode || null;
+
+    document.getElementById('orderRefVal').textContent = o.id;
+    document.getElementById('detOrderId').textContent  = o.id;
+    document.getElementById('detDate').textContent     = dateStr + ' · ' + timeStr;
+    document.getElementById('detSub').textContent      = '$' + Number(o.subtotal || 0).toFixed(2);
+    document.getElementById('detShip').textContent     = Number(o.shipping || 0) === 0 ? 'FREE' : '$' + Number(o.shipping).toFixed(2);
+    document.getElementById('detTotal').textContent    = '$' + Number(o.total || 0).toFixed(2);
+
+    // discount row
+    if (discount > 0) {
+        document.getElementById('discountRow').style.display = '';
+        document.getElementById('detDiscount').textContent   = '-$' + discount.toFixed(2);
+    }
+    // coupon badge
+    if (coupon) {
+        document.getElementById('couponRow').style.display = '';
+        document.getElementById('detCoupon').textContent   = coupon;
+    }
+
+    document.getElementById('shipBody').innerHTML = _addrHTML(addr);
+    _renderItems(items);
+}
+
+/* ─── Fallback: sessionStorage ─── */
+function _renderFromSession(orderId) {
+    try {
+        const raw = sessionStorage.getItem('BARDS_ORDER');
+        if (!raw) return;
+        const o = JSON.parse(raw);
+        if (o.orderId !== orderId) return;
+        _renderOrder({ id:o.orderId, items:o.items||[], subtotal:o.subtotal, shipping:o.shipping||0, discount:o.discount||0, couponCode:o.couponCode||null, coupon_code:o.couponCode||null, total:o.total, address:o.address, created_at:new Date().toISOString() });
+    } catch (_) {}
+}
+
+/* ─── Items ─── */
+function _renderItems(items) {
+    const el = document.getElementById('itemsBody');
+    if (!items || !items.length) { el.innerHTML = '<div style="font-size:12px;color:var(--gray-400)">No items</div>'; return; }
+    el.innerHTML = items.map(i => {
+        const img = i.image || PRODUCTS[i.id]?.images[0] || '';
+        const sub = (Number(i.price) * Number(i.quantity || 1)).toFixed(2);
+        return `<div class="item-row">
+            <div class="item-img"><img src="${img}" alt="" loading="lazy"></div>
+            <div class="item-info">
+                <div class="item-name">${_esc(i.name || i.id)}</div>
+                <div class="item-meta">${[i.color, i.size, '×'+(i.quantity||1)].filter(Boolean).join(' · ')}</div>
+            </div>
+            <div class="item-price">$${sub}</div>
+        </div>`;
+    }).join('');
+}
+
+/* ─── Address helpers ───────────────────────────────────────────────
+   Address schema from checkout.html:
+   { name, phone, line, line2, province, note }
+──────────────────────────────────────────────────────────────────── */
+function _parseAddr(raw) {
+    if (!raw) return {};
+    if (typeof raw === 'string') { try { return JSON.parse(raw); } catch { return {}; } }
+    return raw;
+}
+
+function _addrHTML(a) {
+    if (!a || !Object.keys(a).length) return '<span style="color:var(--gray-400)">No address on file</span>';
+    const parts = [];
+    // รองรับทั้ง checkout schema (name/line) และ addresses.js schema (full_name/address_line)
+    const name   = a.name || a.full_name || '';
+    const phone  = a.phone || '';
+    const street = [a.line || a.address_line || a.address || a.line1, a.line2].filter(Boolean).map(_esc).join(', ');
+    const city   = a.city || '';
+    const prov   = a.province || '';
+    const postal = a.postal_code || '';
+    const note   = a.note || '';
+
+    if (name)   parts.push('<strong>' + _esc(name) + '</strong>');
+    if (phone)  parts.push('<span style="color:var(--gray-400);font-size:12px">' + _esc(phone) + '</span>');
+    if (street) parts.push(_esc(street));
+    const cityLine = [city, prov, postal].filter(Boolean).map(_esc).join(', ');
+    if (cityLine) parts.push(cityLine);
+    if (note)   parts.push('<span style="color:var(--gray-400);font-size:11px;display:flex;align-items:center;gap:4px;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' + _esc(note) + '</span>');
+    return parts.length ? parts.join('<br>') : '<span style="color:var(--gray-400)">No address on file</span>';
+}
+
+function _addrLines(a) {
+    /* Returns plain array of strings for canvas rendering */
+    if (!a || !Object.keys(a).length) return ['Address on file'];
+    const parts = [];
+    if (a.name)     parts.push(a.name);
+    if (a.phone)    parts.push(a.phone);
+    const street = [a.line || a.line1 || a.address, a.line2].filter(Boolean).join(', ');
+    if (street)     parts.push(street);
+    if (a.province) parts.push(a.province);
+    if (a.country)  parts.push(a.country);
+    if (a.note)     parts.push('Note: ' + a.note);
+    return parts;
+}
+
+function _esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ══════════════════════════════════════════════════════
+   RECEIPT CANVAS — สร้าง PNG มืออาชีพ ticket style
+   ไม่มี barcode / "Total Paid" ใช้ "Grand Total"
+   แสดงวิธีชำระ KHQR logo ใน receipt
+══════════════════════════════════════════════════════ */
+async function saveReceipt() {
+    const btn = document.getElementById('saveBtn');
+    btn.classList.add('loading');
+    btn.innerHTML = `<svg style="animation:spin .8s linear infinite;flex-shrink:0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Generating…`;
+    try {
+        const canvas = await _drawReceipt();
+        const a = document.createElement('a');
+        const id = (_ORDER?.id || document.getElementById('detOrderId').textContent || 'order').replace(/[^A-Z0-9\-]/gi,'');
+        a.download = 'bards-receipt-' + id + '.png';
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+        toast('Receipt saved — check your downloads.');
+    } catch (e) {
+        console.error(e);
+        toast('Could not generate receipt');
+    }
+    btn.classList.remove('loading');
+    btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save Receipt`;
+}
+
+async function _drawReceipt() {
+    const DPR  = 3;
+    const CW   = 420;   // card logical width
+    const PAD  = 28;
+    const FONT = '"Space Grotesk", sans-serif';
+    const MONO = '"DM Mono", monospace';
+    const BEBAS= '"Bebas Neue", sans-serif';
+
+    /* ── collect data ── */
+    const o       = _ORDER || {};
+    const items   = Array.isArray(o.items) ? o.items : (o.items ? JSON.parse(o.items) : []);
+    const addr    = _parseAddr(o.address);
+    const addrArr = _addrLines(addr);
+    const date    = o.created_at ? new Date(o.created_at) : new Date();
+    const dateStr = date.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
+                  + ' · ' + date.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const orderId  = o.id  || document.getElementById('detOrderId').textContent || '—';
+    const subtotal = '$' + Number(o.subtotal || 0).toFixed(2);
+    const shipping = Number(o.shipping || 0) === 0 ? 'FREE' : '$' + Number(o.shipping).toFixed(2);
+    const total    = '$' + Number(o.total || 0).toFixed(2);
+
+    /* ── preload images ── */
+    const loadedImgs = await Promise.all(items.map(i => {
+        const src = i.image || PRODUCTS[i.id]?.images[0] || '';
+        return src ? _loadImg(src) : Promise.resolve(null);
+    }));
+
+    /* ── calculate total canvas height ── */
+    const HEADER_H = 80;
+    const HERO_H   = 120;
+    const SEP1_H   = 30;
+    const FIELD_H  = 22;
+    const ITEM_H   = 60;
+    const FOOTER_H = 50;   // just brand text
+
+    const infoRows = 2;           // order id + date only (no shipping row)
+    const addrH    = addrArr.length * FIELD_H;
+    const itemsH   = items.length * ITEM_H;
+    const totalsH  = FIELD_H * 3 + 16;
+    const SEP2_H   = 28;
+
+    const totalH = 24
+                 + HEADER_H
+                 + HERO_H
+                 + SEP1_H
+                 + (infoRows * FIELD_H) + 20
+                 + addrH + 16
+                 + SEP2_H
+                 + 24
+                 + itemsH
+                 + totalsH
+                 + 16
+                 + FOOTER_H
+                 + 24;
+
+    /* ── setup canvas ── */
+    const canvas  = document.createElement('canvas');
+    canvas.width  = CW * DPR;
+    canvas.height = totalH * DPR;
+    const ctx     = canvas.getContext('2d');
+    ctx.scale(DPR, DPR);
+
+    /* Background */
+    ctx.fillStyle = '#F2F2F0';
+    ctx.fillRect(0, 0, CW, totalH);
+
+    /* Card shadow + fill */
+    const cX = 20, cY = 20, cW = CW - 40, cH = totalH - 40;
+    ctx.shadowColor   = 'rgba(0,0,0,.10)';
+    ctx.shadowBlur    = 28;
+    ctx.shadowOffsetY = 6;
+    _rrect(ctx, cX, cY, cW, cH, 18, '#FAFAFA');
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+    /* ── BLACK HEADER ── */
+    _rrectTop(ctx, cX, cY, cW, HEADER_H, 18, '#0A0A0A');
+
+    /* Store name left */
+    ctx.textAlign    = 'left';
+    ctx.font         = `700 20px ${BEBAS}`;
+    ctx.letterSpacing = '3px';
+    ctx.fillStyle    = '#FAFAFA';
+    ctx.fillText('BARDS', cX + PAD, cY + 36);
+    ctx.letterSpacing = '0px';
+    ctx.font          = `400 9.5px ${FONT}`;
+    ctx.fillStyle     = 'rgba(255,255,255,.42)';
+    ctx.fillText('PAYMENT RECEIPT', cX + PAD, cY + 53);
+
+    /* Amount right */
+    ctx.textAlign  = 'right';
+    ctx.font       = `500 20px ${MONO}`;
+    ctx.fillStyle  = '#FAFAFA';
+    ctx.fillText(total, cX + cW - PAD, cY + 46);
+    ctx.font       = `400 8.5px ${FONT}`;
+    ctx.fillStyle  = 'rgba(255,255,255,.38)';
+    ctx.letterSpacing = '0.5px';
+    ctx.fillText('TOTAL', cX + cW - PAD, cY + 59);
+    ctx.letterSpacing = '0px';
+    ctx.textAlign  = 'left';
+
+    let y = cY + HEADER_H + 30;
+
+    /* ── CHECKMARK HERO ── */
+    const cx = CW / 2;
+    const cR = 28;
+    /* circle */
+    ctx.beginPath();
+    ctx.arc(cx, y + cR, cR, 0, Math.PI * 2);
+    ctx.fillStyle   = '#DCFCE7';
+    ctx.fill();
+    ctx.strokeStyle = '#BBF7D0';
+    ctx.lineWidth   = 2.5;
+    ctx.stroke();
+    /* check */
+    ctx.beginPath();
+    ctx.strokeStyle = '#16A34A';
+    ctx.lineWidth   = 3.2;
+    ctx.lineCap     = 'round';
+    ctx.lineJoin    = 'round';
+    ctx.moveTo(cx - 13, y + cR + 1);
+    ctx.lineTo(cx - 2,  y + cR + 12);
+    ctx.lineTo(cx + 15, y + cR - 10);
+    ctx.stroke();
+
+    /* ข้อความห่างจากขอบล่างวงกลม 18px — ไม่เบียด */
+    y += cR * 2 + 18;
+
+    ctx.textAlign     = 'center';
+    ctx.font          = `700 16px ${BEBAS}`;
+    ctx.letterSpacing = '2px';
+    ctx.fillStyle     = '#0A0A0A';
+    ctx.fillText('ORDER CONFIRMED', cx, y);
+    ctx.letterSpacing = '0px';
+    y += 20;
+    ctx.font      = `400 10px ${FONT}`;
+    ctx.fillStyle = '#8A8A88';
+    ctx.fillText('Thank you for your purchase', cx, y);
+    ctx.textAlign = 'left';
+    y += 28;
+
+    /* ── DASHED SEPARATOR ── */
+    _dashed(ctx, cX + PAD, y, cX + cW - PAD, '#C8C8C6');
+    y += SEP1_H;
+
+    /* ── ORDER INFO ROWS ── */
+    /* Order ID */
+    _lbl(ctx, cX + PAD, y, 'ORDER ID', FONT);
+    y += 14;
+    ctx.font      = `500 12px ${MONO}`;
+    ctx.fillStyle = '#0A0A0A';
+    ctx.fillText(orderId, cX + PAD, y);
+    y += FIELD_H;
+
+    /* Date only — no shipping column */
+    _lbl(ctx, cX + PAD, y, 'DATE & TIME', FONT);
+    y += 14;
+    ctx.font      = `500 11.5px ${MONO}`;
+    ctx.fillStyle = '#0A0A0A';
+    ctx.fillText(dateStr, cX + PAD, y);
+    y += FIELD_H + 6;
+
+    /* ── ADDRESS ── */
+    _lbl(ctx, cX + PAD, y, 'DELIVER TO', FONT);
+    y += 14;
+    addrArr.forEach((line, i) => {
+        ctx.font      = i === 0 ? `600 11.5px ${FONT}` : `400 11px ${FONT}`;
+        ctx.fillStyle = i === 0 ? '#0A0A0A' : '#4A4A48';
+        ctx.fillText(line, cX + PAD, y);
+        y += FIELD_H;
+    });
+    y += 6;
+
+    /* ── ITEMS SECTION SEPARATOR ── */
+    _thin(ctx, cX + PAD, y, cX + cW - PAD, '#E4E4E2');
+    y += SEP2_H;
+
+    /* Items label */
+    _lbl(ctx, cX + PAD, y - 8, 'ITEMS ORDERED', FONT);
+    y += 4;
+
+    /* Each item */
+    items.forEach((it, idx) => {
+        const img = loadedImgs[idx];
+        const sub = '$' + (Number(it.price) * Number(it.quantity || 1)).toFixed(2);
+        const imgX = cX + PAD, imgY = y;
+        const imgS = 44;
+
+        /* item image */
+        if (img) {
+            ctx.save();
+            _rrect(ctx, imgX, imgY, imgS, imgS, 9, '#E4E4E2');
+            ctx.clip();
+            ctx.drawImage(img, imgX, imgY, imgS, imgS);
+            ctx.restore();
+        } else {
+            _rrect(ctx, imgX, imgY, imgS, imgS, 9, '#E4E4E2');
+        }
+
+        /* name */
+        const tx = imgX + imgS + 12;
+        const maxTW = cW - PAD * 2 - imgS - 12 - 60;
+        ctx.font      = `600 12px ${FONT}`;
+        ctx.fillStyle = '#0A0A0A';
+        ctx.fillText(_trunc(ctx, it.name || it.id || '—', maxTW), tx, y + 14);
+
+        /* meta */
+        ctx.font      = `400 10px ${FONT}`;
+        ctx.fillStyle = '#8A8A88';
+        const meta = [it.color, it.size, '×'+(it.quantity||1)].filter(Boolean).join(' · ');
+        ctx.fillText(meta, tx, y + 28);
+
+        /* price right */
+        ctx.font      = `500 13px ${MONO}`;
+        ctx.fillStyle = '#C8001A';
+        ctx.textAlign = 'right';
+        ctx.fillText(sub, cX + cW - PAD, y + 22);
+        ctx.textAlign = 'left';
+
+        y += ITEM_H;
+
+        /* divider between items */
+        if (idx < items.length - 1) _thin(ctx, tx, y - 8, cX + cW - PAD, '#F2F2F0');
+    });
+
+    y += 4;
+
+    /* ── TOTALS ── */
+    _thin(ctx, cX + PAD, y, cX + cW - PAD, '#E4E4E2');
+    y += 16;
+
+    /* subtotal row */
+    ctx.font      = `400 11px ${FONT}`;
+    ctx.fillStyle = '#8A8A88';
+    ctx.fillText('Subtotal', cX + PAD, y);
+    ctx.font      = `500 11px ${MONO}`;
+    ctx.textAlign = 'right';
+    ctx.fillText(subtotal, cX + cW - PAD, y);
+    ctx.textAlign = 'left';
+    y += FIELD_H;
+
+    /* shipping row */
+    ctx.font      = `400 11px ${FONT}`;
+    ctx.fillStyle = '#8A8A88';
+    ctx.fillText('Shipping', cX + PAD, y);
+    ctx.font      = `500 11px ${MONO}`;
+    ctx.fillStyle = Number(o.shipping || 0) === 0 ? '#16A34A' : '#8A8A88';
+    ctx.textAlign = 'right';
+    ctx.fillText(shipping, cX + cW - PAD, y);
+    ctx.textAlign = 'left';
+    y += FIELD_H;
+
+    /* grand total thick line */
+    _thin(ctx, cX + PAD, y - 4, cX + cW - PAD, '#E4E4E2');
+    y += 10;
+    ctx.font      = `700 13px ${FONT}`;
+    ctx.fillStyle = '#0A0A0A';
+    ctx.fillText('Total', cX + PAD, y);
+    ctx.font      = `500 18px ${MONO}`;
+    ctx.fillStyle = '#C8001A';
+    ctx.textAlign = 'right';
+    ctx.fillText(total, cX + cW - PAD, y);
+    ctx.textAlign = 'left';
+    y += 24;
+
+    /* ── BRAND FOOTER ── */
+    ctx.textAlign    = 'center';
+    ctx.font         = `700 13px ${BEBAS}`;
+    ctx.letterSpacing = '2px';
+    ctx.fillStyle    = '#C8C8C6';
+    ctx.fillText('BARDS · BARDSKH.COM', cx, y);
+    ctx.letterSpacing = '0px';
+    y += 14;
+    ctx.font      = `400 9.5px ${FONT}`;
+    ctx.fillStyle = '#C8C8C6';
+    ctx.fillText('Thank you for your order', cx, y);
+    ctx.textAlign = 'left';
+
+    return canvas;
+}
+
+/* ── Draw KHQR logo onto canvas using inline SVG paths ── */
+function _drawKHQR(ctx, x, y, w, h) {
+    /* Scale factor from SVG viewBox 34×20 to desired w×h */
+    const sx = w / 34, sy = h / 20;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(sx, sy);
+
+    /* Card background */
+    ctx.beginPath();
+    const rx = 2.1;
+    ctx.moveTo(rx, 0); ctx.lineTo(34 - rx, 0);
+    ctx.quadraticCurveTo(34, 0, 34, rx);
+    ctx.lineTo(34, 20 - rx);
+    ctx.quadraticCurveTo(34, 20, 34 - rx, 20);
+    ctx.lineTo(rx, 20);
+    ctx.quadraticCurveTo(0, 20, 0, 20 - rx);
+    ctx.lineTo(0, rx);
+    ctx.quadraticCurveTo(0, 0, rx, 0);
+    ctx.closePath();
+    ctx.fillStyle = '#E1232E';
+    ctx.fill();
+
+    /* White paths — simplified rects for the KHQR letters */
+    ctx.fillStyle = '#FFFFFF';
+    /* K */
+    ctx.fillRect(4, 7, 1.1, 6);
+    ctx.save(); ctx.translate(4, 10);
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(2.5,-3); ctx.lineTo(3.8,-3); ctx.lineTo(1.1,0); ctx.lineTo(3.8,3); ctx.lineTo(2.5,3); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    /* H */
+    ctx.fillRect(9, 7, 1.1, 6); ctx.fillRect(13, 7, 1.1, 6); ctx.fillRect(10.1, 9.5, 2.9, 1);
+    /* Q — outer ring, inner cutout */
+    ctx.beginPath(); ctx.arc(18, 10, 3, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#E1232E';
+    ctx.beginPath(); ctx.arc(18, 10, 1.7, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(19.2, 11.2, 2, 1);
+    /* R */
+    ctx.fillRect(23, 7, 1.1, 6);
+    ctx.beginPath(); ctx.arc(25, 8.5, 1.5, -Math.PI/2, Math.PI/2); ctx.fill();
+    ctx.fillStyle = '#E1232E';
+    ctx.beginPath(); ctx.arc(25, 8.5, 0.8, -Math.PI/2, Math.PI/2); ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.save(); ctx.translate(24.1, 9.5); ctx.rotate(0.5); ctx.fillRect(0, 0, 1, 3.5); ctx.restore();
+
+    ctx.restore();
+}
+
+/* ── Canvas utility functions ── */
+function _rrect(ctx, x, y, w, h, r, fill) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+}
+
+function _rrectTop(ctx, x, y, w, h, r, fill) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h); ctx.lineTo(x, y + h);
+    ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+}
+
+function _dashed(ctx, x1, y, x2, color) {
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+    ctx.setLineDash([]); ctx.restore();
+}
+
+function _thin(ctx, x1, y, x2, color) {
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+    ctx.restore();
+}
+
+function _lbl(ctx, x, y, text, font) {
+    ctx.font = `700 8px ${font}`; ctx.fillStyle = '#8A8A88'; ctx.fillText(text, x, y);
+}
+
+function _trunc(ctx, text, maxW) {
+    if (ctx.measureText(text).width <= maxW) return text;
+    while (text.length > 0 && ctx.measureText(text + '…').width > maxW) text = text.slice(0,-1);
+    return text + '…';
+}
+
+function _loadImg(src) {
+    return new Promise(resolve => {
+        const img = new Image(); img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img); img.onerror = () => resolve(null);
+        img.src = src;
+    });
+}
+
+let _tt;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('on');
+    clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('on'), 3000);
+}
+</script>
+</body>
+</html>

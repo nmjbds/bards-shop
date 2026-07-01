@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shop — Bards</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#0A0A0A;--white:#FAFAFA;--gray-100:#F2F2F0;--gray-200:#E4E4E2;--gray-300:#C8C8C6;--gray-400:#8A8A88;--orange:#FF4F00;--red:#C8001A;--green:#16A34A;--radius:12px;--radius-sm:8px;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var(--black);}
+/* Nav — minimal, reuse your existing nav */
+.nav{background:var(--white);border-bottom:1px solid var(--gray-200);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.nav-logo{font-family:'Bebas Neue';font-size:22px;letter-spacing:4px;text-decoration:none;color:var(--black);}
+.nav-links{display:flex;gap:20px;align-items:center;}
+.nav-link{font-size:12px;font-weight:600;color:var(--gray-400);text-decoration:none;transition:color .15s;}
+.nav-link:hover,.nav-link.active{color:var(--black);}
+/* Page header */
+.page-header{padding:32px 24px 20px;max-width:1200px;margin:0 auto;}
+.breadcrumb{font-size:11px;color:var(--gray-400);margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.breadcrumb a{color:var(--gray-400);text-decoration:none;}
+.breadcrumb a:hover{color:var(--black);}
+.page-h1{font-family:'Bebas Neue';font-size:36px;letter-spacing:3px;}
+.page-count{font-size:12px;color:var(--gray-400);margin-top:4px;font-family:'DM Mono',monospace;}
+/* Category tabs */
+.cat-tabs{display:flex;gap:6px;padding:0 24px 16px;max-width:1200px;margin:0 auto;flex-wrap:wrap;}
+.cat-tab{height:30px;padding:0 14px;border:1.5px solid var(--gray-200);border-radius:20px;background:var(--white);color:var(--gray-400);font-size:11.5px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Space Grotesk',sans-serif;text-decoration:none;display:flex;align-items:center;}
+.cat-tab:hover{border-color:var(--black);color:var(--black);}
+.cat-tab.active{background:var(--black);border-color:var(--black);color:#fff;}
+/* Toolbar */
+.toolbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px 16px;max-width:1200px;margin:0 auto;gap:10px;flex-wrap:wrap;}
+.search-wrap{position:relative;flex:1;max-width:280px;}
+.search-input{width:100%;height:34px;padding:0 12px 0 32px;border:1.5px solid var(--gray-200);border-radius:20px;font-family:'Space Grotesk',sans-serif;font-size:12px;outline:none;background:var(--white);transition:border-color .15s;}
+.search-input:focus{border-color:var(--black);}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--gray-400);pointer-events:none;}
+.sort-select{height:34px;padding:0 12px;border:1.5px solid var(--gray-200);border-radius:20px;font-family:'Space Grotesk',sans-serif;font-size:11.5px;background:var(--white);color:var(--black);outline:none;cursor:pointer;appearance:none;-webkit-appearance:none;padding-right:24px;}
+/* Products grid */
+.products-wrap{padding:0 24px 48px;max-width:1200px;margin:0 auto;}
+.products-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;}
+/* Product card */
+.prod-card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .18s,box-shadow .18s;}
+.prod-card:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,.1);}
+.prod-img-wrap{position:relative;aspect-ratio:1;overflow:hidden;background:var(--gray-100);}
+.prod-img{width:100%;height:100%;object-fit:cover;transition:transform .4s;}
+.prod-card:hover .prod-img{transform:scale(1.04);}
+.prod-badge{position:absolute;top:10px;left:10px;display:flex;gap:4px;flex-wrap:wrap;}
+.badge{font-size:8.5px;font-weight:700;padding:2px 7px;border-radius:4px;letter-spacing:.6px;text-transform:uppercase;}
+.badge-new{background:var(--black);color:#fff;}
+.badge-sale{background:var(--orange);color:#fff;}
+.fav-btn{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.9);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray-400);transition:all .15s;backdrop-filter:blur(4px);}
+.fav-btn:hover,.fav-btn.active{color:var(--red);}
+.fav-btn.active svg{fill:var(--red);}
+.prod-body{padding:12px 14px 14px;}
+.prod-name{font-size:13px;font-weight:700;margin-bottom:2px;line-height:1.3;}
+.prod-cat{font-size:10px;color:var(--gray-400);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;}
+.prod-price-row{display:flex;align-items:center;justify-content:space-between;}
+.prod-price{font-family:'DM Mono',monospace;font-size:15px;font-weight:600;}
+.prod-price-orig{font-family:'DM Mono',monospace;font-size:11px;color:var(--gray-400);text-decoration:line-through;margin-left:5px;}
+.add-btn{width:28px;height:28px;border-radius:7px;background:var(--black);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;transition:opacity .15s;flex-shrink:0;}
+.add-btn:hover{opacity:.8;}
+/* Empty */
+.empty{padding:80px 20px;text-align:center;color:var(--gray-400);}
+.empty-icon{font-size:40px;margin-bottom:14px;}
+.empty-title{font-size:16px;font-weight:700;color:var(--black);margin-bottom:6px;}
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(4px);background:var(--black);color:#fff;padding:10px 18px;border-radius:10px;font-size:12.5px;font-weight:500;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .32s ease both;}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/" class="nav-logo">BARDS</a>
+  <div class="nav-links">
+    <a href="/all-products" class="nav-link">Shop</a>
+    <a href="/new-arrivals" class="nav-link">New Arrivals</a>
+    <a href="/cart" class="nav-link">Cart <span id="cartCount"></span></a>
+    <a href="/account" class="nav-link">Account</a>
+  </div>
+</nav>
+
+<div class="page-header fu">
+  <div class="breadcrumb">
+    <a href="/">Home</a> › <a href="/all-products">Shop</a> › <span id="breadCat">All</span>
+  </div>
+  <h1 class="page-h1" id="pageTitle">ALL PRODUCTS</h1>
+  <div class="page-count" id="pageCount"></div>
+</div>
+
+<!-- Category tabs — auto-generated from PRODUCTS data -->
+<div class="cat-tabs fu" id="catTabs"></div>
+
+<!-- Toolbar -->
+<div class="toolbar fu">
+  <div class="search-wrap">
+    <svg class="search-icon" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input class="search-input" id="searchInput" placeholder="Search products…" oninput="renderProducts()">
+  </div>
+  <select class="sort-select" id="sortSelect" onchange="renderProducts()">
+    <option value="default">Sort: Default</option>
+    <option value="price-asc">Price: Low → High</option>
+    <option value="price-desc">Price: High → Low</option>
+    <option value="newest">Newest First</option>
+    <option value="name">Name A–Z</option>
+  </select>
+</div>
+
+<div class="products-wrap">
+  <div class="products-grid fu" id="prodGrid"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/api.js"></script>
+<script src="/products.js"></script>
+<script>
+// ── Read category from URL ──────────────────────────────────
+// Supports: /categories/tops  OR  /categories.html?cat=tops
+function getCat() {
+  const parts = location.pathname.split('/').filter(Boolean);
+  // /categories/tops → last segment
+  if (parts.length >= 2 && parts[parts.length-2] === 'categories') {
+    return parts[parts.length-1];
+  }
+  // /all-products or /new-arrivals
+  if (location.pathname.includes('new-arrival')) return 'new';
+  if (location.pathname.includes('all-product')) return 'all';
+  return new URLSearchParams(location.search).get('cat') || 'all';
+}
+
+let _cat = getCat();
+
+// ── Build category tabs from PRODUCTS ──────────────────────
+function buildTabs() {
+  const allProds = typeof PRODUCTS !== 'undefined' ? Object.values(PRODUCTS) : [];
+  const cats = ['all', ...new Set(allProds.map(p=>p.category).filter(Boolean))];
+  const labels = { all:'All', tees:'Tees', hoodies:'Hoodies', pants:'Pants', accessories:'Accessories', new:'New Arrivals' };
+  const tabs = document.getElementById('catTabs');
+  tabs.innerHTML = cats.map(c => `
+    <a href="${c==='all'?'/all-products':'/categories/'+c}"
+       class="cat-tab${_cat===c?' active':''}"
+       onclick="event.preventDefault();setcat('${c}')">
+      ${labels[c]||c.charAt(0).toUpperCase()+c.slice(1)}
+    </a>`).join('');
+}
+
+function setcat(c) {
+  _cat = c;
+  // Update URL without reload
+  const url = c==='all' ? '/all-products' : c==='new' ? '/new-arrivals' : `/categories/${c}`;
+  history.pushState({}, '', url);
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.toggle('active', t.textContent.trim().toLowerCase()===c||(c==='all'&&t.textContent.trim()==='All')));
+  updateHeader();
+  renderProducts();
+}
+
+function updateHeader() {
+  const labels = { all:'ALL PRODUCTS', new:'NEW ARRIVALS', tees:'TEES', hoodies:'HOODIES', pants:'PANTS', accessories:'ACCESSORIES' };
+  document.getElementById('pageTitle').textContent = labels[_cat] || _cat.toUpperCase();
+  document.getElementById('breadCat').textContent  = labels[_cat] || _cat;
+  document.title = (labels[_cat]||_cat) + ' — Bards';
+}
+
+// ── Render ──────────────────────────────────────────────────
+let _favs = [];
+async function init() {
+  _favs = await WishlistAPI.load().catch(()=>[]);
+  updateBadge();
+  // ── โหลดสินค้าจาก DB ก่อน render ──
+  await fetchAndMerge({ category: _cat === 'all' || _cat === 'new' ? undefined : _cat }).catch(()=>{});
+  buildTabs();
+  updateHeader();
+  renderProducts();
+}
+
+function renderProducts() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const sort   = document.getElementById('sortSelect').value;
+  // PRODUCTS เป็น object { id: {...} } — ต้องใช้ Object.values()
+  const prods  = typeof PRODUCTS !== 'undefined' ? Object.values(PRODUCTS) : [];
+
+  let filtered = prods.filter(p => {
+    if (p.active === false) return false;
+    if (_cat === 'new' && !p.isNew) return false;
+    if (_cat !== 'all' && _cat !== 'new' && p.category !== _cat) return false;
+    if (search) {
+      const hay = `${p.name} ${p.category} ${p.description||''}`.toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // Sort
+  if (sort === 'price-asc')  filtered.sort((a,b) => (a.salePrice||a.price) - (b.salePrice||b.price));
+  if (sort === 'price-desc') filtered.sort((a,b) => (b.salePrice||b.price) - (a.salePrice||a.price));
+  if (sort === 'newest')     filtered.sort((a,b) => (b.isNew?1:0)-(a.isNew?1:0));
+  if (sort === 'name')       filtered.sort((a,b) => a.name.localeCompare(b.name));
+
+  document.getElementById('pageCount').textContent = `${filtered.length} product${filtered.length!==1?'s':''}`;
+
+  const el = document.getElementById('prodGrid');
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty" style="grid-column:1/-1">
+      <div class="empty-icon">🔍</div>
+      <div class="empty-title">No products found</div>
+      <div style="font-size:12px;margin-top:4px">Try a different category or search term.</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = filtered.map(p => {
+    const price  = p.salePrice || p.price;
+    const orig   = p.salePrice ? p.price : null;
+    const isFav  = _favs.includes(p.id);
+    const img    = p.images?.[0] || p.image || '';
+    return `
+    <div class="prod-card" onclick="goProduct('${p.id}')">
+      <div class="prod-img-wrap">
+        ${img ? `<img class="prod-img" src="${img}" alt="${p.name}" loading="lazy">` : ''}
+        <div class="prod-badge">
+          ${p.isNew ? '<span class="badge badge-new">New</span>' : ''}
+          ${p.salePrice ? '<span class="badge badge-sale">Sale</span>' : ''}
+        </div>
+        <button class="fav-btn${isFav?' active':''}" onclick="toggleFav(event,'${p.id}')">
+          <svg width="14" height="14" fill="${isFav?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </button>
+      </div>
+      <div class="prod-body">
+        <div class="prod-name">${p.name}</div>
+        <div class="prod-cat">${p.category||''}</div>
+        <div class="prod-price-row">
+          <div>
+            <span class="prod-price">$${Number(price).toFixed(2)}</span>
+            ${orig ? `<span class="prod-price-orig">$${Number(orig).toFixed(2)}</span>` : ''}
+          </div>
+          <button class="add-btn" onclick="addCart(event,'${p.id}')">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function goProduct(id) { location.href = `/product/${id}`; }
+
+async function toggleFav(e, id) {
+  e.stopPropagation();
+  const btn = e.currentTarget;
+  const { favs, added } = await WishlistAPI.toggle(id);
+  _favs = favs;
+  btn.classList.toggle('active', added);
+  btn.querySelector('svg').setAttribute('fill', added ? 'currentColor' : 'none');
+  toast(added ? '❤️ Added to wishlist' : 'Removed from wishlist');
+}
+
+function addCart(e, id) {
+  e.stopPropagation();
+  const p = typeof PRODUCTS !== 'undefined' ? Object.values(PRODUCTS).find(x=>x.id===id) : null;
+  if (!p) return;
+  Cart.add({ id:p.id, name:p.name, price:p.salePrice||p.price, image:p.images?.[0]||p.image||'', color:p.colors?.[0]||'', size:p.sizes?.[0]||'', quantity:1 });
+  updateBadge();
+  toast('✓ Added to cart');
+}
+
+let _tt; function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('on'),2000);}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

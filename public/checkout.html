@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Checkout — Bards</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --black:    #0A0A0A;
+            --white:    #FAFAFA;
+            --orange:   #FF4F00;
+            --green:    #16A34A;
+            --red:      #C8001A;
+            --gray-50:  #F9F9F7;
+            --gray-100: #F2F2F0;
+            --gray-200: #E4E4E2;
+            --gray-300: #C8C8C6;
+            --gray-400: #8A8A88;
+            --gray-600: #4A4A48;
+            --radius:    14px;
+            --radius-sm: 10px;
+            --nav-h:     60px;
+        }
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+        html { scroll-behavior:smooth; }
+        body {
+            font-family:'Space Grotesk', sans-serif;
+            background:var(--gray-100); color:var(--black);
+            overscroll-behavior:none; min-height:100vh;
+            padding-bottom:56px;
+        }
+
+        /* NAV */
+        .nav {
+            position:fixed; top:0; left:0; right:0; z-index:300;
+            height:var(--nav-h);
+            display:flex; align-items:center; gap:12px;
+            padding:0 18px;
+            background:rgba(250,250,250,.97);
+            backdrop-filter:blur(18px) saturate(160%);
+            -webkit-backdrop-filter:blur(18px) saturate(160%);
+            border-bottom:1px solid var(--gray-200);
+        }
+        .icon-btn {
+            width:36px; height:36px; border-radius:50%;
+            background:var(--gray-100); border:none;
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; transition:background .18s, transform .12s;
+            text-decoration:none; color:var(--black); flex-shrink:0;
+        }
+        .icon-btn:active { background:var(--gray-200); transform:scale(.9); }
+        .brand { font-family:'Bebas Neue'; font-size:21px; letter-spacing:3px; color:var(--black); text-decoration:none; }
+        .nav-secure {
+            margin-left:auto;
+            display:flex; align-items:center; gap:5px;
+            font-family:'DM Mono',monospace; font-size:10px;
+            color:var(--gray-400); letter-spacing:.5px; white-space:nowrap;
+        }
+
+        /* PAGE */
+        .page {
+            margin-top:var(--nav-h);
+            padding:16px 14px 0;
+            max-width:540px;
+            margin-left:auto; margin-right:auto;
+        }
+
+        /* CARDS */
+        .ck-card {
+            background:var(--white); border:1.5px solid var(--gray-200);
+            border-radius:var(--radius); margin-bottom:12px; overflow:hidden;
+        }
+        .ck-card-hd {
+            padding:14px 16px 13px;
+            display:flex; align-items:center; gap:10px;
+            border-bottom:1px solid var(--gray-100);
+        }
+        .ck-icon {
+            width:28px; height:28px; border-radius:8px;
+            background:var(--black); color:#fff;
+            display:flex; align-items:center; justify-content:center; flex-shrink:0;
+        }
+        .ck-title { font-family:'Bebas Neue'; font-size:16px; letter-spacing:2px; flex:1; }
+        .ck-body  { padding:16px; }
+
+        /* ORDER SUMMARY */
+        .order-item {
+            display:flex; gap:11px; align-items:center;
+            padding:9px 0; border-bottom:1px solid var(--gray-100);
+        }
+        .order-item:last-child { border-bottom:none; }
+        .oi-img {
+            width:52px; height:52px; border-radius:9px;
+            overflow:hidden; background:var(--gray-100); flex-shrink:0;
+            border:1px solid var(--gray-200);
+        }
+        .oi-img img { width:100%; height:100%; object-fit:cover; display:block; }
+        .oi-info { flex:1; min-width:0; }
+        .oi-name { font-size:12px; font-weight:600; line-height:1.3; }
+        .oi-meta { font-size:10px; color:var(--gray-400); margin-top:2px; }
+        .oi-qty  {
+            font-family:'DM Mono',monospace; font-size:10px;
+            background:var(--gray-100); border-radius:5px;
+            padding:2px 7px; margin-top:4px; display:inline-block;
+        }
+        .oi-price { font-family:'DM Mono',monospace; font-size:13px; font-weight:500; color:var(--red); flex-shrink:0; }
+
+        .sum-area     { padding-top:12px; }
+        .sum-row      { display:flex; justify-content:space-between; align-items:center; margin-bottom:7px; }
+        .sum-lbl      { font-size:12px; color:var(--gray-400); font-weight:500; }
+        .sum-val      { font-family:'DM Mono',monospace; font-size:12px; font-weight:500; color:var(--gray-600); }
+        .sum-val.free { color:var(--green); font-weight:700; }
+        .sum-val.paid { color:var(--black); }
+        .sum-divider  { border:none; border-top:1px solid var(--gray-200); margin:9px 0 10px; }
+        .sum-total-row { display:flex; justify-content:space-between; align-items:baseline; }
+        .sum-total-lbl { font-size:14px; font-weight:700; }
+        .sum-total-val { font-family:'DM Mono',monospace; font-size:24px; font-weight:500; color:var(--red); }
+
+
+        /* COUPON */
+        .coupon-wrap{margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-100);}
+        .coupon-row{display:flex;gap:8px;align-items:center;}
+        .coupon-input{flex:1;height:42px;padding:0 13px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--black);background:var(--white);outline:none;text-transform:uppercase;letter-spacing:1px;transition:border-color .18s;}
+        .coupon-input:focus{border-color:var(--black);}
+        .coupon-input.ok{border-color:var(--black);background:var(--white);}
+        .coupon-input.err{border-color:var(--red);background:#FFF5F5;}
+        .coupon-btn{height:42px;padding:0 16px;background:var(--black);color:#fff;border:none;border-radius:var(--radius-sm);font-family:'Bebas Neue';font-size:14px;letter-spacing:1.5px;cursor:pointer;transition:opacity .18s;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:7px;}
+        .coupon-btn:active{opacity:.8;}
+        .coupon-btn.loading{opacity:.6;pointer-events:none;}
+        .coupon-btn .btn-spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none;flex-shrink:0;}
+        .coupon-btn.loading .btn-spinner{display:block;}
+        .coupon-btn.loading .btn-label{display:none;}
+        .coupon-tag{display:flex;align-items:center;gap:7px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:var(--radius-sm);padding:9px 12px;margin-top:8px;}
+        .coupon-tag-text{flex:1;font-size:12px;font-weight:600;color:var(--green);}
+        .coupon-remove{background:none;border:none;cursor:pointer;color:#6B7280;padding:2px;display:flex;align-items:center;transition:color .15s;}
+        .coupon-remove:hover{color:var(--red);}
+        .coupon-err{font-size:11px;color:var(--red);font-weight:600;margin-top:5px;display:none;}
+        .coupon-err.show{display:block;}
+        .sum-val.discount{color:var(--green);font-weight:700;}
+        .ship-note {
+            margin-top:10px; padding:9px 12px;
+            background:var(--gray-50); border-radius:var(--radius-sm);
+            border:1px solid var(--gray-200);
+            font-size:11px; color:var(--gray-600); line-height:1.55;
+            display:flex; gap:7px; align-items:flex-start;
+        }
+
+        /* FORM */
+        .form-row       { margin-bottom:13px; }
+        .form-row.two   { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+        .f-label {
+            font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase;
+            color:var(--gray-400); margin-bottom:6px; display:flex; align-items:center; gap:3px;
+        }
+        .f-req { color:var(--red); font-size:11px; line-height:1; }
+        .f-opt { font-weight:400; text-transform:none; letter-spacing:0; color:var(--gray-300); font-size:9px; }
+        .f-input, .f-select {
+            width:100%; height:44px;
+            border:1.5px solid var(--gray-200); border-radius:var(--radius-sm);
+            background:var(--white); font-family:'Space Grotesk',sans-serif;
+            font-size:13px; font-weight:500; color:var(--black);
+            padding:0 13px; outline:none;
+            transition:border-color .18s;
+            -webkit-appearance:none; appearance:none;
+        }
+        .f-input:focus, .f-select:focus { border-color:var(--black); }
+        .f-input.err,   .f-select.err   { border-color:var(--red); background:#FFF5F5; }
+        .f-input::placeholder { color:var(--gray-300); font-weight:400; }
+        .f-select {
+            background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%238A8A88' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat:no-repeat; background-position:right 14px center;
+            cursor:pointer; padding-right:36px;
+        }
+        .f-err { font-size:10px; color:var(--red); margin-top:4px; display:none; font-weight:500; }
+        .f-err.show { display:block; }
+
+        /* PAYMENT */
+        .pay-method {
+            border:1.5px solid var(--gray-200); border-radius:var(--radius-sm);
+            padding:13px 14px; cursor:pointer; display:flex;
+            align-items:center; gap:12px;
+            transition:border-color .18s, background .18s;
+        }
+        .pay-method.on { border-color:var(--black); background:var(--gray-50); }
+        .pay-radio {
+            width:18px; height:18px; border-radius:50%;
+            border:2px solid var(--gray-300); flex-shrink:0;
+            display:flex; align-items:center; justify-content:center; transition:all .18s;
+        }
+        .pay-method.on .pay-radio { border-color:var(--black); }
+        .pay-dot { width:8px; height:8px; border-radius:50%; background:var(--black); display:none; }
+        .pay-method.on .pay-dot { display:block; }
+        .pay-info { flex:1; min-width:0; }
+        .pay-name { font-size:13px; font-weight:700; }
+        .pay-sub  { font-size:10px; color:var(--gray-400); margin-top:2px; line-height:1.45; }
+
+        /* PLACE BTN */
+        .place-btn {
+            width:100%; height:54px; border:none; border-radius:var(--radius-sm);
+            font-family:'Bebas Neue'; font-size:18px; letter-spacing:3px;
+            cursor:pointer; display:flex; align-items:center; justify-content:center; gap:9px;
+            margin-top:16px; transition:opacity .18s, transform .12s, background .2s;
+        }
+        .place-btn.idle    { background:var(--black); color:#fff; }
+        .place-btn.idle:active { opacity:.82; transform:scale(.98); }
+        .place-btn.loading { background:var(--gray-200); color:var(--gray-400); pointer-events:none; }
+        .place-sub {
+            margin-top:10px; font-size:10px; color:var(--gray-400);
+            display:flex; align-items:center; justify-content:center; gap:5px;
+            line-height:1.55; text-align:center;
+        }
+
+        /* TOAST */
+        .toast {
+            position:fixed; bottom:24px; left:50%;
+            transform:translateX(-50%) translateY(6px);
+            background:var(--black); color:#fff;
+            padding:12px 18px 12px 14px; border-radius:14px;
+            font-size:13px; font-weight:500; z-index:9999;
+            opacity:0; transition:opacity .28s, transform .28s;
+            white-space:nowrap; display:flex; align-items:center; gap:10px;
+            pointer-events:none; box-shadow:0 8px 24px rgba(0,0,0,.28); min-width:200px;
+        }
+        .toast.on { opacity:1; transform:translateX(-50%) translateY(0); }
+        .t-icon { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .t-icon.ok   { background:rgba(22,163,74,.25); }
+        .t-icon.warn { background:rgba(234,179,8,.2); }
+        .t-text  { display:flex; flex-direction:column; gap:1px; }
+        .t-title { font-size:12px; font-weight:700; letter-spacing:.3px; }
+        .t-sub   { font-size:11px; color:rgba(255,255,255,.55); }
+
+        @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes spin    { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+        .fu { animation:fadeUp .38s ease both; }
+        .d1 { animation-delay:.06s; }
+        .d2 { animation-delay:.12s; }
+        .d3 { animation-delay:.18s; }
+    </style>
+</head>
+<body>
+
+<nav class="nav">
+    <button class="icon-btn" onclick="history.back()" aria-label="Back">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 11.5L6 8l3.5-3.5"/></svg>
+    </button>
+    <a href="index.html" class="brand">BARDS</a>
+    <div class="nav-secure">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        Secure Checkout
+    </div>
+</nav>
+
+<div class="page">
+
+    <!-- ① ORDER SUMMARY -->
+    <div class="ck-card fu">
+        <div class="ck-card-hd">
+            <div class="ck-icon">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <path d="M16 10a4 4 0 01-8 0"/>
+                </svg>
+            </div>
+            <span class="ck-title">Order Summary</span>
+            <a href="cart.html" style="font-size:11px;font-weight:700;color:var(--gray-400);text-decoration:none;letter-spacing:.5px">Edit</a>
+        </div>
+        <div class="ck-body">
+            <div id="orderItemsList"></div>
+            <div class="sum-area">
+                <div class="sum-row">
+                    <span class="sum-lbl">Subtotal</span>
+                    <span class="sum-val" id="sumSub">$0.00</span>
+                </div>
+                <div class="sum-row">
+                    <span class="sum-lbl">Shipping</span>
+                    <span class="sum-val" id="sumShip">—</span>
+                </div>
+                <div class="sum-row" id="discountRow" style="display:none">
+                    <span class="sum-lbl">Discount</span>
+                    <span class="sum-val discount" id="sumDiscount">-$0.00</span>
+                </div>
+                <hr class="sum-divider">
+                <div class="sum-total-row">
+                    <span class="sum-total-lbl">Total</span>
+                    <span class="sum-total-val" id="sumTotal">$0.00</span>
+                </div>
+            </div>
+            <div class="ship-note">
+                <svg style="margin-top:1px;flex-shrink:0" width="13" height="13" viewBox="0 0 24 24"
+                     fill="none" stroke="var(--gray-400)" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <span id="shipNoteText">Select your province to calculate shipping cost.</span>
+            </div>
+        <!-- COUPON -->
+            <div class="coupon-wrap">
+                <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-400);margin-bottom:7px">Promo Code</div>
+                <div class="coupon-row">
+                    <input class="coupon-input" id="couponInput" placeholder="ENTER CODE" maxlength="32" oninput="this.value=this.value.toUpperCase()">
+                    <button class="coupon-btn" id="couponBtn" onclick="applyCoupon()">
+                    <div class="btn-spinner"></div>
+                    <span class="btn-label">APPLY</span>
+                  </button>
+                </div>
+                <div class="coupon-err" id="couponErr"></div>
+                <div id="couponTag" style="display:none">
+                    <div class="coupon-tag">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span class="coupon-tag-text" id="couponTagText"></span>
+                        <button class="coupon-remove" onclick="removeCoupon()" title="Remove coupon">
+                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ② SHIPPING INFO -->
+    <div class="ck-card fu d1">
+        <div class="ck-card-hd">
+            <div class="ck-icon">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/>
+                    <circle cx="12" cy="10" r="3"/>
+                </svg>
+            </div>
+            <span class="ck-title">Shipping Info</span>
+        </div>
+        <div class="ck-body">
+
+            <!-- ── Saved Addresses (แสดงถ้า login และมีที่อยู่บันทึกไว้) ── -->
+            <div id="savedAddrSection" style="display:none;margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--gray-400);text-transform:uppercase;margin-bottom:8px;">Saved Addresses</div>
+                <div id="savedAddrList"></div>
+                <button onclick="showNewAddrForm()" style="width:100%;height:36px;border:1.5px dashed var(--gray-300);border-radius:var(--radius-sm);background:transparent;font-size:11px;font-weight:700;color:var(--gray-400);cursor:pointer;margin-top:8px;">
+                    + Enter a different address
+                </button>
+            </div>
+            <div id="newAddrForm">
+
+            <div class="form-row two">
+                <div>
+                    <label class="f-label">First Name <span class="f-req">*</span></label>
+                    <input class="f-input" id="fname" type="text" placeholder="Sokha" autocomplete="given-name">
+                    <div class="f-err" id="fname-err">Required</div>
+                </div>
+                <div>
+                    <label class="f-label">Last Name <span class="f-req">*</span></label>
+                    <input class="f-input" id="lname" type="text" placeholder="Chan" autocomplete="family-name">
+                    <div class="f-err" id="lname-err">Required</div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <label class="f-label">Phone Number <span class="f-req">*</span></label>
+                <input class="f-input" id="phone" type="tel" placeholder="+855 12 345 678" autocomplete="tel">
+                <div class="f-err" id="phone-err">Required</div>
+            </div>
+
+            <div class="form-row">
+                <label class="f-label">Address <span class="f-req">*</span></label>
+                <input class="f-input" id="addr1" type="text" placeholder="Street / House No. / Village" autocomplete="address-line1">
+                <div class="f-err" id="addr1-err">Required</div>
+            </div>
+
+            <div class="form-row">
+                <label class="f-label">Address Line 2 <span class="f-opt">(optional)</span></label>
+                <input class="f-input" id="addr2" type="text" placeholder="Commune / Sangkat / District…" autocomplete="address-line2">
+            </div>
+
+            <div class="form-row">
+                <label class="f-label">Province <span class="f-req">*</span></label>
+                <select class="f-select" id="province" onchange="onProvinceChange(this.value)">
+                    <option value="">— Select Province —</option>
+                    <option value="Phnom Penh">ភ្នំពេញ · Phnom Penh</option>
+                    <option value="Siem Reap">សៀមរាប · Siem Reap</option>
+                    <option value="Sihanoukville">ព្រះសីហនុ · Sihanoukville</option>
+                    <option value="Battambang">បាត់ដំបង · Battambang</option>
+                    <option value="Kampong Cham">កំពង់ចាម · Kampong Cham</option>
+                    <option value="Kampong Chhnang">កំពង់ឆ្នាំង · Kampong Chhnang</option>
+                    <option value="Kampong Speu">កំពង់ស្ពឺ · Kampong Speu</option>
+                    <option value="Kampong Thom">កំពង់ធំ · Kampong Thom</option>
+                    <option value="Kampot">កំពត · Kampot</option>
+                    <option value="Kandal">កណ្ដាល · Kandal</option>
+                    <option value="Kep">កែប · Kep</option>
+                    <option value="Koh Kong">កោះកុង · Koh Kong</option>
+                    <option value="Kratie">ក្រចេះ · Kratie</option>
+                    <option value="Mondulkiri">មណ្ឌលគីរី · Mondulkiri</option>
+                    <option value="Oddar Meanchey">ឧត្ដរមានជ័យ · Oddar Meanchey</option>
+                    <option value="Pailin">ប៉ៃលិន · Pailin</option>
+                    <option value="Preah Vihear">ព្រះវិហារ · Preah Vihear</option>
+                    <option value="Prey Veng">ព្រៃវែង · Prey Veng</option>
+                    <option value="Pursat">ពោធិ៍សាត់ · Pursat</option>
+                    <option value="Ratanakiri">រតនគីរី · Ratanakiri</option>
+                    <option value="Stung Treng">ស្ទឹងត្រែង · Stung Treng</option>
+                    <option value="Svay Rieng">ស្វាយរៀង · Svay Rieng</option>
+                    <option value="Takeo">តាកែវ · Takeo</option>
+                    <option value="Tboung Khmum">ត្បូងឃ្មុំ · Tboung Khmum</option>
+                </select>
+                <div class="f-err" id="province-err">Please select a province</div>
+            </div>
+
+            <div class="form-row" style="margin-bottom:0">
+                <label class="f-label">Order Note <span class="f-opt">(optional)</span></label>
+                <input class="f-input" id="note" type="text" placeholder="E.g. Leave at door, call before delivery…">
+            </div>
+
+            </div><!-- end newAddrForm -->
+
+        </div>
+    </div>
+
+    <!-- ③ PAYMENT METHOD -->
+    <div class="ck-card fu d2">
+        <div class="ck-card-hd">
+            <div class="ck-icon">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="1" y="4" width="22" height="16" rx="2"/>
+                    <line x1="1" y1="10" x2="23" y2="10"/>
+                </svg>
+            </div>
+            <span class="ck-title">Payment Method</span>
+        </div>
+        <div class="ck-body">
+
+            <div class="pay-method on" id="pm-khqr" onclick="selectPay('khqr')">
+                <div class="pay-radio"><div class="pay-dot"></div></div>
+                <!-- Official KHQR SVG -->
+                <svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34 20"
+                     style="width:56px;height:34px;border-radius:5px;flex-shrink:0">
+                    <path fill-rule="evenodd" clip-rule="evenodd"
+                          d="M31.8969 20H2.10315C0.946422 20 0 19.0596 0 17.9103V2.08968C0 0.940362 0.946422 0 2.10315 0H31.8969C33.0536 0 34 0.940362 34 2.08968V17.9103C34 19.0596 33.0536 20 31.8969 20Z"
+                          fill="#E1232E"/>
+                    <path d="M20.2524 9.22561V11.1126H18.3882C18.197 11.1126 18.0536 10.9554 18.0536 10.7739V9.23772C18.0536 9.04418 18.2089 8.89902 18.3882 8.89902H19.9059C20.109 8.88692 20.2524 9.03207 20.2524 9.22561Z" fill="white"/>
+                    <path d="M28.9881 9.98776H28.056C28.056 8.86281 27.1478 7.9435 26.0364 7.9435C25.1521 7.9435 24.3753 8.52412 24.1124 9.37086C24.0526 9.57649 24.0168 9.78213 24.0168 9.98776V12.9876H23.9929C23.491 12.9876 23.0847 12.5763 23.0847 12.0683V9.98776H23.0966C23.0966 9.16522 23.4312 8.37896 24.0287 7.81044C24.5784 7.2903 25.2955 7 26.0483 7C27.6736 7 28.9881 8.34267 28.9881 9.98776Z" fill="white"/>
+                    <path d="M29 12.9879L27.6855 13L27.3628 12.6734L26.6458 11.9476L25.6539 10.9436H26.9685L29 12.9879Z" fill="white"/>
+                    <path d="M20.5632 12.0441H17.7549C17.4083 12.0441 17.1335 11.7659 17.1335 11.4151V8.57251C17.1335 8.22172 17.4083 7.9435 17.7549 7.9435H20.5632C20.9098 7.9435 21.1846 8.22172 21.1846 8.57251V11.4151L22.1167 12.3586V7.91931C22.1167 7.41127 21.7104 7 21.2085 7H17.1096C16.6077 7 16.2014 7.41127 16.2014 7.91931V12.0683C16.2014 12.5763 16.6077 12.9876 17.1096 12.9876H21.4953L20.5632 12.0441Z" fill="white"/>
+                    <path d="M9.15058 12.9997H7.83605L5.08748 10.2055V12.9997H4V7H5.08748V9.67326L7.72849 7H9.01912L6.15105 9.87889L9.15058 12.9997Z" fill="white"/>
+                    <path d="M14.0623 7H15.1259V12.9997H14.0623V10.399H11.027V12.9997H9.96338V7H11.027V9.50391H14.0623V7Z" fill="white"/>
+                </svg>
+                <div class="pay-info">
+                    <div class="pay-name">KHQR</div>
+                    <div class="pay-sub">Bakong · ABA · Wing · ACLEDA and all KHQR apps</div>
+                </div>
+            </div>
+
+            <button class="place-btn idle" id="placeBtn" onclick="placeOrder()">
+                PLACE ORDER
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </button>
+            <div class="place-sub">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                By placing your order you agree to our Terms of Service
+            </div>
+        </div>
+    </div>
+
+    <div style="height:8px"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+    <div class="t-icon" id="toastIcon"></div>
+    <div class="t-text">
+        <div class="t-title" id="toastTitle"></div>
+        <div class="t-sub"   id="toastSub"></div>
+    </div>
+</div>
+
+<script src="api.js"></script>
+<script src="products.js"></script>
+<script>
+/* checkout.html — Real system: PaymentAPI.create + saved addresses */
+
+const SHIPPING = {
+    'Phnom Penh':1.00,'Siem Reap':2.30,'Sihanoukville':2.50,'Battambang':2.50,
+    'Kampong Cham':0.00,'Kampong Chhnang':2.00,'Kampong Speu':2.00,'Kampong Thom':2.50,
+    'Kampot':2.50,'Kandal':1.50,'Kep':2.50,'Koh Kong':3.50,'Kratie':3.50,
+    'Mondulkiri':4.50,'Oddar Meanchey':4.50,'Pailin':4.00,'Preah Vihear':4.50,
+    'Prey Veng':2.00,'Pursat':3.00,'Ratanakiri':4.50,'Stung Treng':4.50,
+    'Svay Rieng':2.00,'Takeo':2.00,'Tboung Khmum':3.00
+};
+const FREE_OVER = 60;
+
+let ITEMS = [], subtotal = 0, shipCost = 0, _usingAddr = null, _coupon = null;
+
+window.onload = function() {
+    /* ต้อง login */
+    if (!Auth.isLoggedIn()) {
+        location.href = 'signin.html?redirect=checkout.html'; return;
+    }
+    const raw = sessionStorage.getItem('CHECKOUT_ITEMS') || localStorage.getItem('BARDS_CART') || '[]';
+    ITEMS = JSON.parse(raw);
+    if (!ITEMS.length) {
+        showToast('warn','Cart is empty',''); setTimeout(()=>location.href='index.html',1500); return;
+    }
+    renderSummary();
+    loadSavedAddresses();
+};
+
+/* ── Saved Addresses ───────────────────────────────────────────── */
+let _savedAddresses = []; // เก็บ addresses ที่โหลดมาจาก API
+
+async function loadSavedAddresses() {
+    try {
+        const d = await AddressesAPI.list();
+        _savedAddresses = (d.addresses||[]).map(a => ({
+            id:        a.id,
+            name:      a.name,
+            phone:     a.phone||'',
+            line:      a.address||'',
+            line2:     a.city||'',
+            province:  a.province||'',
+            isDefault: a.is_default,
+        }));
+    } catch(e) {
+        // fallback localStorage
+        _savedAddresses = Addresses.get();
+    }
+
+    const list = _savedAddresses;
+    if (!list.length) return;
+
+    document.getElementById('savedAddrSection').style.display = 'block';
+    document.getElementById('newAddrForm').style.display = 'none';
+
+    document.getElementById('savedAddrList').innerHTML = list.map((a, i) => `
+      <div class="saved-addr-card${a.isDefault?' selected':''}" id="sac-${i}" onclick="selectSavedAddr(${i})"
+           style="border:1.5px solid ${a.isDefault?'var(--black)':'var(--gray-200)'};border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;background:${a.isDefault?'var(--gray-50)':'#fff'};">
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <div style="width:16px;height:16px;border-radius:50%;border:2px solid ${a.isDefault?'var(--black)':'var(--gray-300)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+            ${a.isDefault?`<div style="width:7px;height:7px;border-radius:50%;background:var(--black);"></div>`:''}
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:600;">${a.name}${a.isDefault?' <span style="font-size:9px;font-weight:700;color:var(--orange);letter-spacing:.5px;">DEFAULT</span>':''}</div>
+            <div style="font-size:11px;color:var(--gray-400);margin-top:2px;">${a.line}${a.line2?', '+a.line2:''}, ${a.province}</div>
+            <div style="font-size:11px;color:var(--gray-400);">${a.phone}</div>
+          </div>
+        </div>
+      </div>`).join('');
+
+    /* auto-select default */
+    const def = list.findIndex(a => a.isDefault);
+    if (def >= 0) selectSavedAddr(def);
+}
+
+function selectSavedAddr(idx) {
+    const list = _savedAddresses;
+    _usingAddr = list[idx];
+    /* highlight */
+    list.forEach((_,i) => {
+        const el = document.getElementById('sac-'+i);
+        if (!el) return;
+        el.style.borderColor = i===idx ? 'var(--black)' : 'var(--gray-200)';
+        el.style.background  = i===idx ? 'var(--gray-50)' : '#fff';
+        el.querySelector('div>div>div').style.borderColor = i===idx ? 'var(--black)' : 'var(--gray-300)';
+        el.querySelector('div>div>div').innerHTML = i===idx ? `<div style="width:7px;height:7px;border-radius:50%;background:var(--black);"></div>` : '';
+    });
+    /* ตั้งค่า province เพื่อคำนวณ shipping */
+    document.getElementById('province').value = _usingAddr.province;
+    onProvinceChange(_usingAddr.province);
+}
+
+function showNewAddrForm() {
+    _usingAddr = null;
+    document.getElementById('savedAddrSection').style.display = 'none';
+    document.getElementById('newAddrForm').style.display = 'block';
+    document.getElementById('province').value = '';
+    onProvinceChange('');
+}
+
+/* ── Render summary ────────────────────────────────────────────── */
+function renderSummary() {
+    subtotal = ITEMS.reduce((t,i)=>t+(i.price*i.quantity),0);
+    document.getElementById('sumSub').innerText = fmtUSD(subtotal);
+    document.getElementById('sumTotal').innerText = fmtUSD(subtotal);
+    document.getElementById('orderItemsList').innerHTML = ITEMS.map(item => {
+        const p = PRODUCTS[item.id];
+        return `<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray-100);">
+            <img src="${p?.images[0]||item.image||''}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;" alt="">
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:12px;font-weight:600;">${item.name}</div>
+                <div style="font-size:10px;color:var(--gray-400);">${item.color} · ${item.size} · Qty ${item.quantity}</div>
+            </div>
+            <div style="font-size:12px;font-weight:700;white-space:nowrap;">${fmtUSD(item.price*item.quantity)}</div>
+        </div>`;
+    }).join('');
+}
+
+/* ── Province / Shipping ───────────────────────────────────────── */
+function onProvinceChange(val) {
+    if (!val) { document.getElementById('sumShip').innerText='—'; shipCost=0; updateTotals(); document.getElementById('shipNoteText').innerText='Select your province to calculate shipping cost.'; return; }
+    if (subtotal >= FREE_OVER) {
+        shipCost=0;
+        document.getElementById('sumShip').innerText='FREE';
+        document.getElementById('shipNoteText').innerText='🎉 Free shipping on orders $'+FREE_OVER+'+';
+    } else {
+        shipCost = SHIPPING[val]||2.00;
+        document.getElementById('sumShip').innerText = fmtUSD(shipCost);
+        document.getElementById('shipNoteText').innerText = 'Free shipping on orders $'+FREE_OVER+'+';
+    }
+    updateTotals();
+}
+
+function selectPay(id) {
+    document.querySelectorAll('.pay-method').forEach(m=>m.classList.toggle('on',m.id==='pm-'+id));
+}
+
+/* ── Coupon ─────────────────────────────────────────────────────── */
+async function applyCoupon() {
+    const code = document.getElementById('couponInput').value.trim();
+    if (!code) return;
+    const btn = document.getElementById('couponBtn');
+    const errEl = document.getElementById('couponErr');
+    btn.classList.add('loading');
+    errEl.classList.remove('show');
+    try {
+        // ส่ง subtotal+shipCost (ก่อน discount) ให้ server ตรวจ min_order
+        const total = subtotal + shipCost;
+        const d = await CouponsAPI.validate(code, total);
+        _coupon = d.coupon;
+        document.getElementById('couponInput').classList.remove('err');
+        const label = _coupon.type === 'percent'
+            ? `${_coupon.value}% off`
+            : _coupon.type === 'fixed'
+            ? `-${fmtUSD(_coupon.discount)}`
+            : 'Free Shipping';
+        document.getElementById('couponTagText').textContent = `${_coupon.code} · ${label}`;
+        document.getElementById('couponTag').style.display = 'block';
+        updateTotals();
+        showToast('ok', 'Coupon applied!', label);
+    } catch(e) {
+        _coupon = null;
+        document.getElementById('couponInput').classList.add('err');
+        errEl.textContent = e.message;
+        errEl.classList.add('show');
+        updateTotals();
+    } finally {
+        btn.classList.remove('loading');
+    }
+}
+
+function removeCoupon() {
+    _coupon = null;
+    document.getElementById('couponInput').value = '';
+    document.getElementById('couponInput').classList.remove('err');
+    document.getElementById('couponTag').style.display = 'none';
+    document.getElementById('couponErr').classList.remove('show');
+    updateTotals();
+}
+
+function updateTotals() {
+    const freeShip = _coupon?.freeShipping || false;
+    const discount = _coupon?.discount || 0;
+    const effectiveShip = freeShip ? 0 : shipCost;
+    const total = subtotal + effectiveShip - discount;
+    const discountRow = document.getElementById('discountRow');
+    if (_coupon && (discount > 0 || freeShip)) {
+        discountRow.style.display = '';
+        if (freeShip) {
+            document.getElementById('sumDiscount').textContent = 'FREE SHIP';
+            document.getElementById('sumShip').className = 'sum-val free';
+        } else {
+            document.getElementById('sumDiscount').textContent = '-' + fmtUSD(discount);
+            document.getElementById('sumShip').className = 'sum-val paid';
+        }
+    } else {
+        discountRow.style.display = 'none';
+    }
+    document.getElementById('sumTotal').innerText = fmtUSD(Math.max(0, total));
+}
+
+/* ── Place Order → PaymentAPI.create → payment.html ───────────── */
+async function placeOrder() {
+    const prov = document.getElementById('province').value;
+
+    let address;
+    if (_usingAddr) {
+        address = { name:_usingAddr.name, phone:_usingAddr.phone, line:_usingAddr.line, line2:_usingAddr.line2||'', province:_usingAddr.province, note:'' };
+    } else {
+        /* validate form */
+        const req = ['fname','lname','phone','addr1','province'];
+        let ok = true;
+        req.forEach(id=>{
+            const el=document.getElementById(id), er=document.getElementById(id+'-err');
+            if(!el.value.trim()){ el.classList.add('err'); er?.classList.add('show'); ok=false; }
+            else { el.classList.remove('err'); er?.classList.remove('show'); }
+        });
+        if (!ok) { showToast('warn','Please fill required fields',''); return; }
+        address = {
+            name:  document.getElementById('fname').value.trim()+' '+document.getElementById('lname').value.trim(),
+            phone: document.getElementById('phone').value.trim(),
+            line:  document.getElementById('addr1').value.trim(),
+            line2: document.getElementById('addr2').value.trim(),
+            province: prov,
+            note:  document.getElementById('note').value.trim(),
+        };
+    }
+
+    if (!address.province) { showToast('warn','Please select a province',''); return; }
+
+    const btn = document.getElementById('placeBtn');
+    btn.className='place-btn loading';
+    btn.innerHTML=`<svg style="animation:spin .8s linear infinite" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Processing…`;
+
+    try {
+        const freeShip     = _coupon?.freeShipping || false;
+        const discount     = _coupon?.discount || 0;
+        const effectiveShip = freeShip ? 0 : shipCost;
+        const total        = Math.max(0, subtotal + effectiveShip - discount);
+        const data  = await PaymentAPI.create({ items:ITEMS, subtotal, shipping:effectiveShip, discount, couponCode: _coupon?.code||null, total, address });
+
+        /* บันทึก order info สำหรับ payment.html */
+        sessionStorage.setItem('BARDS_ORDER', JSON.stringify({
+            orderId:   data.orderId,
+            qrPayload: data.qrPayload,
+            qrImage:   data.qrImage,
+            expiresAt: data.expiresAt,
+            items: ITEMS, address, subtotal, shipping:shipCost, total: data.amount
+        }));
+        location.href = 'payment.html';
+    } catch(err) {
+        btn.className='place-btn idle';
+        btn.innerHTML='PLACE ORDER <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+        showToast('warn','Could not create order',err.message);
+    }
+}
+
+/* ── Helpers ───────────────────────────────────────────────────── */
+const IC_OK=`<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`;
+const IC_WN=`<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
+let _tt;
+function showToast(type,title,sub){
+    const ic=document.getElementById('toastIcon'); ic.className='t-icon '+(type==='warn'?'warn':'ok'); ic.innerHTML=type==='warn'?IC_WN:IC_OK;
+    document.getElementById('toastTitle').innerText=title; document.getElementById('toastSub').innerText=sub||'';
+    const t=document.getElementById('toast'); t.classList.add('on');
+    clearTimeout(_tt); _tt=setTimeout(()=>t.classList.remove('on'),2800);
+}
+</script>
+</body>
+</html>

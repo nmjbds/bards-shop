@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — BARDS</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0D0D0D;--paper:#FAFAF8;--white:#FFFFFF;--rule:#E2E2DE;--muted:#9A9A96;--faint:#F4F4F0;--nav-w:240px;--fs-display:clamp(2.8rem,6vw,4.5rem);--fs-body:0.9rem;--lh:1.85;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}html{scroll-behavior:smooth;}
+body{font-family:'Outfit',sans-serif;background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;}
+.top-nav{position:fixed;top:0;left:0;right:0;z-index:200;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;background:rgba(250,250,248,0.94);backdrop-filter:blur(20px);border-bottom:1px solid var(--rule);}
+.nav-brand{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:600;letter-spacing:0.38em;text-decoration:none;color:var(--ink);text-transform:uppercase;}
+.nav-right{display:flex;align-items:center;gap:20px;}
+.nav-link{font-size:0.7rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color 0.2s;}
+.nav-link:hover{color:var(--ink);}
+.lang-tag{font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.06em;color:var(--muted);padding:4px 10px;border:1px solid var(--rule);border-radius:2px;text-decoration:none;transition:all 0.2s;}
+.lang-tag:hover,.lang-tag.on{background:var(--ink);color:var(--white);border-color:var(--ink);}
+.page-wrap{padding-top:56px;}
+.hero{padding:96px 40px 72px;border-bottom:1px solid var(--rule);max-width:1100px;margin:0 auto;}
+.hero-eyebrow{font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--muted);margin-bottom:22px;display:flex;align-items:center;gap:14px;}
+.hero-eyebrow::before{content:'';display:block;width:36px;height:1px;background:var(--rule);}
+.hero-title{font-family:'Cormorant Garamond',serif;font-size:var(--fs-display);font-weight:300;line-height:1.0;letter-spacing:-0.01em;color:var(--ink);margin-bottom:24px;}
+.hero-meta{font-size:0.72rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.06em;}
+.doc-layout{display:grid;grid-template-columns:var(--nav-w) 1fr;max-width:1100px;margin:0 auto;}
+.side-nav{position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto;padding:48px 28px 48px 40px;border-right:1px solid var(--rule);}
+.side-nav::-webkit-scrollbar{width:0;}
+.side-label{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--rule);margin-bottom:22px;}
+.side-list{list-style:none;display:flex;flex-direction:column;}
+.side-list li a{display:flex;align-items:baseline;gap:10px;font-size:0.76rem;font-weight:400;color:var(--muted);text-decoration:none;padding:8px 0;transition:color 0.18s;line-height:1.3;}
+.side-list li a:hover,.side-list li a.active{color:var(--ink);}
+.sn{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--rule);flex-shrink:0;min-width:18px;transition:color 0.18s;}
+.side-list li a:hover .sn,.side-list li a.active .sn{color:var(--muted);}
+.doc-content{padding:64px 64px 120px;}
+.doc-section{padding-bottom:72px;margin-bottom:72px;border-bottom:1px solid var(--rule);}
+.doc-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.sec-hdr{display:flex;align-items:baseline;gap:16px;margin-bottom:32px;}
+.sec-idx{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--rule);padding-top:4px;}
+.sec-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.7rem,3vw,2.3rem);font-weight:400;line-height:1.05;letter-spacing:-0.01em;}
+.body{font-size:var(--fs-body);line-height:var(--lh);color:#3a3a38;}
+.body p{margin-bottom:1.15em;}.body p:last-child{margin-bottom:0;}
+.body ul{list-style:none;margin:1em 0;}
+.body ul li{padding:0.55em 0 0.55em 1.3em;position:relative;border-bottom:1px solid var(--faint);font-size:var(--fs-body);line-height:1.65;}
+.body ul li::before{content:'—';position:absolute;left:0;color:var(--rule);}
+.body ul li:last-child{border-bottom:none;}
+.body strong{font-weight:600;color:var(--ink);}
+.callout{border:1px solid var(--rule);padding:24px 28px;margin:28px 0;font-size:0.84rem;line-height:1.7;color:#3a3a38;position:relative;}
+.callout::before{content:attr(data-label);position:absolute;top:-9px;left:20px;background:var(--paper);font-family:'DM Mono',monospace;font-size:0.56rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);padding:0 8px;}
+.data-tbl{width:100%;border-collapse:collapse;margin:20px 0;font-size:0.82rem;}
+.data-tbl th{font-family:'DM Mono',monospace;font-size:0.57rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 14px;border-bottom:1px solid var(--rule);font-weight:400;}
+.data-tbl td{padding:11px 14px;border-bottom:1px solid var(--faint);vertical-align:top;line-height:1.55;}
+.data-tbl tr:last-child td{border-bottom:none;}
+.doc-footer{border-top:1px solid var(--rule);padding:40px;max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.footer-brand{font-family:'Cormorant Garamond',serif;font-size:0.95rem;font-weight:500;letter-spacing:0.32em;text-transform:uppercase;color:var(--muted);}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap;}
+.footer-links a{font-size:0.68rem;color:var(--muted);text-decoration:none;letter-spacing:0.08em;transition:color 0.2s;}
+.footer-links a:hover{color:var(--ink);}
+.footer-copy{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--rule);width:100%;margin-top:8px;}
+@media(max-width:768px){.top-nav{padding:0 20px;}.hero{padding:56px 24px 48px;}.doc-layout{grid-template-columns:1fr;}.side-nav{display:none;}.doc-content{padding:40px 24px 80px;}.doc-footer{padding:32px 24px;}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.fu{animation:fadeUp 0.5s ease both;}.d1{animation-delay:0.08s;}.d2{animation-delay:0.16s;}
+</style>
+</head>
+<body>
+<nav class="top-nav">
+  <a href="/" class="nav-brand">Bards</a>
+  <div class="nav-right">
+    <a href="/en/privacy" class="lang-tag on">EN</a>
+    <a href="/kh/privacy" class="lang-tag">ខ្មែរ</a>
+    <a href="/" class="nav-link">Shop</a>
+    <a href="/contact" class="nav-link">Contact</a>
+  </div>
+</nav>
+<div class="page-wrap">
+  <div class="hero fu">
+    <div class="hero-eyebrow">Legal Documents</div>
+    <h1 class="hero-title">Privacy<br>Policy</h1>
+    <div class="hero-meta">Effective 25 May 2026 &nbsp;·&nbsp; bardskh.com</div>
+  </div>
+  <div class="doc-layout">
+    <aside class="side-nav fu d1">
+      <div class="side-label">Contents</div>
+      <ul class="side-list">
+        <li><a href="#p-collect"><span class="sn">01</span>Data We Collect</a></li>
+        <li><a href="#p-use"><span class="sn">02</span>How We Use It</a></li>
+        <li><a href="#p-share"><span class="sn">03</span>Sharing</a></li>
+        <li><a href="#p-retain"><span class="sn">04</span>Retention</a></li>
+        <li><a href="#p-cookies"><span class="sn">05</span>Cookies</a></li>
+        <li><a href="#p-rights"><span class="sn">06</span>Your Rights</a></li>
+        <li><a href="#p-security"><span class="sn">07</span>Security</a></li>
+        <li><a href="#p-third"><span class="sn">08</span>Third Parties</a></li>
+        <li><a href="#p-children"><span class="sn">09</span>Children</a></li>
+        <li><a href="#p-contact"><span class="sn">10</span>Contact</a></li>
+      </ul>
+    </aside>
+    <main class="doc-content fu d2">
+
+      <section class="doc-section" id="p-collect">
+        <div class="sec-hdr"><span class="sec-idx">01</span><h2 class="sec-title">Data We Collect</h2></div>
+        <div class="body">
+          <p>We collect only what is necessary to process and fulfil your order. Nothing more.</p>
+          <table class="data-tbl">
+            <tr><th>Category</th><th>Detail</th></tr>
+            <tr><td><strong>Account</strong></td><td>Name, email address, hashed password</td></tr>
+            <tr><td><strong>Order</strong></td><td>Items, sizes, quantities, payment confirmation</td></tr>
+            <tr><td><strong>Delivery</strong></td><td>Shipping address, phone number</td></tr>
+            <tr><td><strong>Usage</strong></td><td>Pages visited, device type, anonymised IP</td></tr>
+          </table>
+        </div>
+      </section>
+
+      <section class="doc-section" id="p-use">
+        <div class="sec-hdr"><span class="sec-idx">02</span><h2 class="sec-title">How We Use It</h2></div>
+        <div class="body">
+          <ul>
+            <li>To process and fulfil your orders</li>
+            <li>To send order confirmations and shipping updates</li>
+            <li>To respond to customer support requests</li>
+            <li>To improve our website and product experience</li>
+            <li>To send promotional messages — only if you have opted in</li>
+          </ul>
+          <p>Your data will never be used for purposes beyond those stated without your explicit consent.</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="p-share">
+        <div class="sec-hdr"><span class="sec-idx">03</span><h2 class="sec-title">Sharing</h2></div>
+        <div class="body">
+          <div class="callout" data-label="Our commitment">We do not sell, rent, or trade your personal data. Ever.</div>
+          <p>We share data only where necessary:</p>
+          <ul>
+            <li><strong>Logistics partners</strong> — to deliver your order within Cambodia</li>
+            <li><strong>Payment processors</strong> — KHQR / ABA / Bakong, for transaction processing only</li>
+            <li><strong>Legal authorities</strong> — when required under Cambodian law</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="doc-section" id="p-retain">
+        <div class="sec-hdr"><span class="sec-idx">04</span><h2 class="sec-title">Retention</h2></div>
+        <div class="body">
+          <p>We retain your personal data for as long as your account remains active, or as needed to provide our services. Order records are retained for up to <strong>two years</strong> for business and legal purposes.</p>
+          <p>You may request deletion of your account and all associated data at any time by contacting us directly.</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="p-cookies">
+        <div class="sec-hdr"><span class="sec-idx">05</span><h2 class="sec-title">Cookies</h2></div>
+        <div class="body">
+          <p>We use essential cookies to maintain your session and shopping cart. We may also use lightweight analytics to understand how our site is used — no advertising cookies, no cross-site tracking.</p>
+          <p>Cookies can be disabled in your browser settings; some site functions may not work correctly without them.</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="p-rights">
+        <div class="sec-hdr"><span class="sec-idx">06</span><h2 class="sec-title">Your Rights</h2></div>
+        <div class="body">
+          <ul>
+            <li>Access the personal data we hold about you</li>
+            <li>Request correction of any inaccurate data</li>
+            <li>Request deletion of your account and associated data</li>
+            <li>Opt out of marketing communications at any time</li>
+          </ul>
+          <p>To exercise any of these rights, contact <strong>support@bardskh.com</strong>.</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="p-security">
+        <div class="sec-hdr"><span class="sec-idx">07</span><h2 class="sec-title">Security</h2></div>
+        <div class="body">
+          <p>We implement appropriate technical and organisational safeguards to protect your data against unauthorised access or misuse. Passwords are stored in hashed form; all site traffic is encrypted via HTTPS.</p>
+          <p>No transmission over the internet can be guaranteed 100% secure. We encourage strong, unique passwords for your BARDS account.</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="p-third">
+        <div class="sec-hdr"><span class="sec-idx">08</span><h2 class="sec-title">Third-Party Links</h2></div>
+        <div class="body">
+          <p>Our website may link to external platforms such as social media. BARDS is not responsible for the privacy practices of third-party sites. We recommend reviewing their policies before sharing any information.</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="p-children">
+        <div class="sec-hdr"><span class="sec-idx">09</span><h2 class="sec-title">Children</h2></div>
+        <div class="body">
+          <p>Our services are not directed at children under 13 years of age. We do not knowingly collect personal information from minors. If you believe a child has provided us with their information, please contact us immediately for prompt removal.</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="p-contact">
+        <div class="sec-hdr"><span class="sec-idx">10</span><h2 class="sec-title">Contact</h2></div>
+        <div class="body">
+          <ul>
+            <li><strong>Email</strong> — support@bardskh.com</li>
+            <li><strong>Telegram</strong> — @bards_official</li>
+            <li><strong>Website</strong> — bardskh.com</li>
+          </ul>
+        </div>
+      </section>
+
+    </main>
+  </div>
+  <footer class="doc-footer">
+    <div class="footer-brand">Bards</div>
+    <div class="footer-links">
+      <a href="/en/terms">Terms of Service</a>
+      <a href="/en/refund">Refund Policy</a>
+      <a href="/contact">Contact</a>
+    </div>
+    <div class="footer-copy">© 2026 BARDS SHOP · Phnom Penh, Cambodia · bardskh.com</div>
+  </footer>
+</div>
+<script>(function(){const s=document.querySelectorAll('.doc-section'),l=document.querySelectorAll('.side-list a');if(!s.length)return;new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting){l.forEach(a=>a.classList.remove('active'));const a=document.querySelector(`.side-list a[href="#${x.target.id}"]`);if(a)a.classList.add('active');}});},{rootMargin:'-15% 0px -70% 0px'}).observe&&s.forEach(x=>new IntersectionObserver(e=>{e.forEach(n=>{if(n.isIntersecting){l.forEach(a=>a.classList.remove('active'));const a=document.querySelector(`.side-list a[href="#${n.target.id}"]`);if(a)a.classList.add('active');}});},{rootMargin:'-15% 0px -70% 0px'}).observe(x));})();</script>
+</body></html>

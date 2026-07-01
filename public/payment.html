@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Payment — Bards</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#0A0A0A;--white:#FAFAFA;--primary:#E8002D;--green:#16A34A;--gray-100:#F2F2F0;--gray-200:#E4E4E2;--gray-300:#C8C8C6;--gray-400:#8A8A88;--gray-600:#4A4A48;--radius:14px;--radius-sm:10px;--nav-h:60px;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var(--black);min-height:100vh;padding-bottom:40px;}
+.nav{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--nav-h);display:flex;align-items:center;gap:12px;padding:0 18px;background:rgba(250,250,250,.97);backdrop-filter:blur(18px);border-bottom:1px solid var(--gray-200);}
+.icon-btn{width:36px;height:36px;border-radius:50%;background:var(--gray-100);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--black);}
+.icon-btn:active{background:var(--gray-200);}
+.brand{font-family:'Bebas Neue';font-size:21px;letter-spacing:3px;color:var(--black);text-decoration:none;}
+.nav-timer{margin-left:auto;font-family:'DM Mono',monospace;font-size:12px;color:var(--gray-400);display:flex;align-items:center;gap:5px;}
+.timer-val{color:var(--black);font-weight:700;}
+.timer-val.warn{color:var(--primary);}
+.timer-val.expired{color:var(--gray-400);}
+.page{margin-top:var(--nav-h);padding:16px 14px 0;max-width:480px;margin-left:auto;margin-right:auto;}
+.qr-card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);overflow:hidden;margin-bottom:12px;box-shadow:0 4px 24px rgba(0,0,0,.07);}
+.qr-topband{background:var(--primary);padding:16px 18px;display:flex;align-items:center;justify-content:space-between;}
+.brand-row{display:flex;align-items:center;gap:12px;}
+.store-logo{width:44px;height:44px;border-radius:50%;background:#fff;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.store-logo img{width:44px;height:44px;object-fit:cover;border-radius:50%;}
+.store-logo .fallback{font-family:'Bebas Neue';font-size:20px;color:var(--primary);font-weight:900;}
+.store-name{font-family:'Bebas Neue';font-size:18px;letter-spacing:2.5px;color:#fff;}
+.amount-wrap{text-align:right;}
+.amount-lbl{font-size:9px;color:rgba(255,255,255,.65);letter-spacing:1px;text-transform:uppercase;}
+.amount-val{font-family:'DM Mono',monospace;font-size:26px;color:#fff;font-weight:500;line-height:1;}
+.amount-sub{font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.5);}
+.qr-body{padding:20px 20px 16px;display:flex;flex-direction:column;align-items:center;}
+.qr-wrap{position:relative;width:224px;height:224px;border-radius:12px;overflow:hidden;border:3px solid var(--gray-100);box-shadow:0 4px 20px rgba(0,0,0,.1);background:#fff;}
+#qrCanvas{width:224px;height:224px;display:block;}
+.expired-overlay{position:absolute;inset:0;background:rgba(255,255,255,.93);display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;}
+.expired-overlay.show{display:flex;}
+.expired-icon{font-size:32px;}
+.expired-text{font-size:12px;font-weight:700;color:var(--gray-400);letter-spacing:1px;}
+.qr-meta{margin-top:12px;width:100%;text-align:center;}
+.qr-ref{font-family:'DM Mono',monospace;font-size:10px;color:var(--gray-400);letter-spacing:.5px;}
+.qr-ref strong{color:var(--black);}
+.qr-actions{margin-top:14px;width:100%;}
+.save-btn{width:100%;height:42px;background:var(--black);border:none;border-radius:var(--radius-sm);color:#fff;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-family:'Space Grotesk',sans-serif;transition:opacity .18s;}
+.save-btn:active{opacity:.8;}
+.save-btn.loading{background:var(--gray-200);color:var(--gray-400);pointer-events:none;}
+
+
+.steps-card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
+.steps-title{font-family:'Bebas Neue';font-size:13px;letter-spacing:2px;color:var(--gray-400);margin-bottom:10px;}
+.step-row{display:flex;gap:12px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--gray-100);}
+.step-row:last-child{border-bottom:none;padding-bottom:0;}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--gray-100);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:var(--gray-600);}
+.step-txt{font-size:12px;color:var(--gray-600);line-height:1.55;}
+.step-txt strong{color:var(--black);}
+.confirm-btn{width:100%;height:54px;border:none;border-radius:var(--radius-sm);font-family:'Bebas Neue';font-size:18px;letter-spacing:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .25s;}
+.confirm-btn.idle{background:var(--black);color:#fff;}
+.confirm-btn.idle:active{opacity:.82;transform:scale(.98);}
+.confirm-btn.loading{background:var(--gray-200);color:var(--gray-400);pointer-events:none;}
+.confirm-btn.success{background:var(--green);color:#fff;pointer-events:none;}
+.confirm-sub{margin-top:10px;font-size:10px;color:var(--gray-400);text-align:center;}
+.confirm-sub a{color:var(--black);font-weight:700;text-decoration:none;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(6px);background:var(--black);color:#fff;padding:12px 18px 12px 14px;border-radius:14px;font-size:13px;font-weight:500;z-index:9999;opacity:0;transition:opacity .28s,transform .28s;white-space:nowrap;display:flex;align-items:center;gap:10px;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.28);min-width:200px;}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+.t-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.t-icon.ok{background:rgba(22,163,74,.25);}
+.t-icon.warn{background:rgba(232,0,45,.2);}
+.t-text{display:flex;flex-direction:column;gap:1px;}
+.t-title{font-size:12px;font-weight:700;}
+.t-sub{font-size:11px;color:rgba(255,255,255,.55);}
+/* Download card - hidden off-screen */
+#downloadCard{position:fixed;left:-9999px;top:0;width:400px;background:#fff;border-radius:16px;overflow:hidden;font-family:'Space Grotesk',sans-serif;box-shadow:0 8px 40px rgba(0,0,0,.15);}
+.dc-top{background:var(--primary);padding:18px 20px;display:flex;align-items:center;justify-content:space-between;}
+.dc-brand{display:flex;align-items:center;gap:12px;}
+.dc-logo{width:46px;height:46px;border-radius:50%;background:#fff;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.dc-logo img{width:46px;height:46px;object-fit:cover;border-radius:50%;}
+.dc-name{font-family:'Bebas Neue';font-size:20px;letter-spacing:2.5px;color:#fff;}
+.dc-amt-lbl{font-size:9px;color:rgba(255,255,255,.6);text-align:right;text-transform:uppercase;letter-spacing:1px;}
+.dc-amt{font-family:'DM Mono',monospace;font-size:28px;color:#fff;font-weight:500;text-align:right;line-height:1;}
+.dc-body{padding:20px;display:flex;flex-direction:column;align-items:center;}
+.dc-qr{width:220px;height:220px;border-radius:10px;overflow:hidden;border:3px solid #F2F2F0;}
+.dc-qr img{width:220px;height:220px;display:block;}
+.dc-info{width:100%;margin-top:14px;background:#F9F9F7;border-radius:10px;padding:12px 14px;}
+.dc-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #E4E4E2;}
+.dc-row:last-child{border-bottom:none;}
+.dc-key{font-size:10px;color:#8A8A88;font-weight:600;}
+.dc-val{font-size:11px;font-weight:700;font-family:'DM Mono',monospace;}
+.dc-footer{margin-top:12px;font-size:9px;color:#C8C8C6;text-align:center;letter-spacing:.5px;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.fu{animation:fadeUp .38s ease both;}
+.d1{animation-delay:.07s;}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <button class="icon-btn" onclick="history.back()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 11.5L6 8l3.5-3.5"/></svg></button>
+  <a href="index.html" class="brand">BARDS</a>
+  <div class="nav-timer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="timer-val" id="navTimer">24:00:00</span></div>
+</nav>
+
+<div class="page">
+  <div class="qr-card fu">
+    <div class="qr-topband">
+      <div class="brand-row">
+        <div class="store-logo" id="logoWrap">
+          <img src="https://bardskh.com/logo.png" alt="Bards" id="storeLogo" onerror="this.style.display='none';document.getElementById('logoFb').style.display='flex'">
+          <span class="fallback" id="logoFb" style="display:none">B</span>
+        </div>
+        <div class="store-name">BARDS SHOP</div>
+      </div>
+      <div class="amount-wrap">
+        <div class="amount-lbl">AMOUNT</div>
+        <div class="amount-val" id="qrAmountVal">$0.00</div>
+        <div class="amount-sub">USD</div>
+      </div>
+    </div>
+    <div class="qr-body">
+      <div class="qr-wrap">
+        <img id="qrCanvas" width="224" height="224" alt="KHQR" style="display:block;">
+        <div class="expired-overlay" id="expiredOverlay">
+          <div class="expired-icon">⏱</div>
+          <div class="expired-text">QR EXPIRED</div>
+        </div>
+      </div>
+      <div class="qr-meta">
+        <div class="qr-ref">Order <strong id="qrRefId">—</strong></div>
+      </div>
+      <div class="qr-actions">
+        <button class="save-btn" id="saveBtn" onclick="downloadQRCard()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Save QR
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="steps-card fu d1">
+    <div class="steps-title">HOW TO PAY</div>
+    <div class="step-row"><div class="step-num">1</div><div class="step-txt">Open <strong>ABA Mobile, Bakong, Wing, ACLEDA</strong> or any KHQR app.</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-txt">Tap <strong>Scan QR</strong> and point your camera at the code above.</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-txt">Confirm the amount — <strong id="stepAmtText">$0.00 USD</strong> — then approve.</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-txt">Come back here and tap <strong>I've Paid</strong> to confirm your order.</div></div>
+  </div>
+
+  <div class="fu d1">
+    <button class="confirm-btn idle" id="confirmBtn" onclick="confirmPayment()">I'VE PAID — CONFIRM ORDER</button>
+    <div class="confirm-sub">Need help? <a href="https://t.me/barrrds" target="_blank">Contact Support →</a></div>
+  </div>
+  <div style="height:20px"></div>
+</div>
+
+<!-- Hidden QR Download Card -->
+<div id="downloadCard">
+  <div class="dc-top">
+    <div class="dc-brand">
+      <div class="dc-logo"><img id="dcLogo" src="https://i.ibb.co/xK4Wdqq8/20260207-111400-0000.png" alt="B" onerror="this.style.display='none'"></div>
+      <div><div class="dc-name">BARDS SHOP</div></div>
+    </div>
+    <div>
+      <div class="dc-amt-lbl">AMOUNT</div>
+      <div class="dc-amt" id="dcAmount">$0.00</div>
+    </div>
+  </div>
+  <div class="dc-body">
+    <div class="dc-qr"><img id="dcQrImg" alt="QR"></div>
+    <div class="dc-info">
+      <div class="dc-row"><span class="dc-key">Order ID</span><span class="dc-val" id="dcOrderId">—</span></div>
+      <div class="dc-row"><span class="dc-key">Amount</span><span class="dc-val" id="dcAmt2">—</span></div>
+      <div class="dc-row"><span class="dc-key">Valid Until</span><span class="dc-val" id="dcExpiry">24 hours</span></div>
+      <div class="dc-row"><span class="dc-key">Store</span><span class="dc-val">BARDS SHOP · bardskh.com</span></div>
+    </div>
+    <div class="dc-footer">Scan with ABA · Bakong · Wing · ACLEDA · any KHQR app</div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <div class="t-icon" id="toastIcon"></div>
+  <div class="t-text"><div class="t-title" id="toastTitle"></div><div class="t-sub" id="toastSub"></div></div>
+</div>
+
+<script src="products.js"></script><script src="api.js"></script>
+<script>
+let ORDER=null,EXPIRES_AT=null,TIMER_ID=null,POLL_ID=null,_confirming=false;
+
+window.onload=function(){
+  if(!Auth.isLoggedIn()){location.href='signin.html?redirect=checkout.html';return;}
+  const raw=sessionStorage.getItem('BARDS_ORDER');
+  if(!raw){location.href='checkout.html';return;}
+  ORDER=JSON.parse(raw);
+  const amt=fmtUSD(ORDER.total);
+  document.getElementById('qrAmountVal').textContent=amt;
+  document.getElementById('stepAmtText').textContent=amt+' USD';
+  document.getElementById('qrRefId').textContent=ORDER.orderId;
+  document.getElementById('dcAmount').textContent=amt;
+  document.getElementById('dcOrderId').textContent=ORDER.orderId;
+  document.getElementById('dcAmt2').textContent=amt+' USD';
+  EXPIRES_AT=ORDER.expiresAt?new Date(ORDER.expiresAt):new Date(Date.now()+86400000);
+  const exp=EXPIRES_AT.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('dcExpiry').textContent=exp;
+  const _qrData = ORDER.qrPayload || ORDER.qrString || '';
+  const qrUrl=ORDER.qrImage||(_qrData?'https://api.qrserver.com/v1/create-qr-code/?size=448x448&margin=2&color=0a0a0a&bgcolor=ffffff&data='+encodeURIComponent(_qrData):'');
+  if(ORDER.qrImage){
+    document.getElementById('qrCanvas').src=ORDER.qrImage;
+    document.getElementById('dcQrImg').src=ORDER.qrImage;
+  } else if(_qrData){
+    document.getElementById('qrCanvas').src=qrUrl;
+    document.getElementById('dcQrImg').src=qrUrl;
+  } else {showToast('warn','QR not found','Please go back');return;}
+  startTimer();startAutoPoll();
+};
+
+function startTimer(){clearInterval(TIMER_ID);updateTimer();TIMER_ID=setInterval(()=>{if(getRemainingMs()<=0){clearInterval(TIMER_ID);clearInterval(POLL_ID);onExpired();}else updateTimer();},1000);}
+function getRemainingMs(){return Math.max(0,EXPIRES_AT-Date.now());}
+function updateTimer(){
+  const ms=getRemainingMs(),warn=ms<3600000;
+  const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000),s=Math.floor((ms%60000)/1000);
+  const el=document.getElementById('navTimer');
+  el.textContent=h>0?h+'h '+String(m).padStart(2,'0')+'m':String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  el.className='timer-val'+(warn?' warn':'');
+}
+function onExpired(){
+  document.getElementById('navTimer').textContent='EXPIRED';
+  document.getElementById('navTimer').className='timer-val expired';
+  document.getElementById('expiredOverlay').classList.add('show');
+  const btn=document.getElementById('confirmBtn');
+  btn.className='confirm-btn loading';btn.innerHTML='QR EXPIRED';
+  showToast('warn','QR Expired','Contact support for help');
+}
+function startAutoPoll(){
+  clearInterval(POLL_ID);
+  POLL_ID=setInterval(async()=>{
+    if(!ORDER?.orderId)return;
+    try{const d=await PaymentAPI.status(ORDER.orderId);if(d.status==='paid'){clearInterval(POLL_ID);clearInterval(TIMER_ID);onSuccess();}}catch(_){}
+  },10000);
+}
+
+async function downloadQRCard(){
+  const btn=document.getElementById('saveBtn');
+  btn.className='save-btn loading';
+  btn.innerHTML='<svg style="animation:spin .8s linear infinite" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>';
+
+  const qrImg=document.getElementById('qrCanvas');
+  if(!qrImg.complete||!qrImg.naturalWidth){
+    await new Promise(r=>{qrImg.onload=r;setTimeout(r,4000);});
+  }
+
+  if(!window.html2canvas){
+    await new Promise((res,rej)=>{
+      const s=document.createElement('script');
+      s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      s.onload=res;s.onerror=rej;document.head.appendChild(s);
+    });
+  }
+
+  const card=document.getElementById('downloadCard');
+  // Render off-screen without flashing
+  card.style.cssText='position:fixed;left:-9999px;top:-9999px;z-index:1;width:400px;visibility:visible;';
+  await new Promise(r=>setTimeout(r,200));
+
+  try{
+    const canvas=await html2canvas(card,{scale:3,useCORS:true,allowTaint:true,backgroundColor:'#fff',logging:false});
+    card.style.cssText='position:fixed;left:-9999px;top:0;width:400px;';
+    const a=document.createElement('a');
+    a.href=canvas.toDataURL('image/png');
+    a.download='bards-payment-'+(ORDER?.orderId||'qr')+'.png';
+    a.click();
+    btn.className='save-btn';
+    btn.innerHTML='<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Saved!';
+    setTimeout(()=>{
+      btn.className='save-btn';
+      btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save QR';
+    },2000);
+  }catch(e){
+    card.style.cssText='position:fixed;left:-9999px;top:0;width:400px;';
+    btn.className='save-btn';
+    btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save QR';
+    window.open(qrImg.src,'_blank');
+  }
+}
+
+async function confirmPayment(){
+  if(_confirming)return;_confirming=true;
+  const btn=document.getElementById('confirmBtn');
+  btn.className='confirm-btn loading';
+  btn.innerHTML='<svg style="animation:spin .8s linear infinite" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Processing…';
+  try{
+    await apiFetch('/orders/'+ORDER.orderId+'/pending',{method:'POST',auth:true});
+  }catch(e){console.warn('[pending]',e.message);}
+  clearInterval(POLL_ID);clearInterval(TIMER_ID);
+  btn.className='confirm-btn success';btn.innerHTML='✓ ORDER PLACED!';
+  showToast('ok','Order placed!','Redirecting…');
+  /* ลบ cart ทันที แต่เก็บ BARDS_ORDER ไว้จนกว่า success.html จะโหลดเสร็จ */
+  Cart.clear();
+  sessionStorage.removeItem('CHECKOUT_ITEMS');
+  /* ส่ง orderId ไปใน URL เพื่อให้ success.html โหลดข้อมูลได้ */
+  setTimeout(()=>{ location.href='/success?order='+ORDER.orderId; },1200);
+}
+function onSuccess(){
+  Cart.clear();
+  sessionStorage.removeItem('CHECKOUT_ITEMS');
+  document.getElementById('confirmBtn').className='confirm-btn success';
+  document.getElementById('confirmBtn').innerHTML='✓ PAYMENT CONFIRMED!';
+  showToast('ok','Payment confirmed!','Redirecting…');
+  setTimeout(()=>{ location.href='/success?order='+ORDER.orderId; },1200);
+}
+function fmtUSD(n){return '$'+Number(n).toFixed(2);}
+const IC_OK='<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
+const IC_WN='<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+let _tt;
+function showToast(type,title,sub){
+  const ic=document.getElementById('toastIcon');ic.className='t-icon '+(type==='warn'?'warn':'ok');ic.innerHTML=type==='warn'?IC_WN:IC_OK;
+  document.getElementById('toastTitle').textContent=title;document.getElementById('toastSub').textContent=sub||'';
+  const t=document.getElementById('toast');t.classList.add('on');
+  clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('on'),3000);
+}
+</script>
+</body>
+</html>

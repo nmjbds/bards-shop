@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics — Bards Seller</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--black:#0A0A0A;--white:#FAFAFA;--gray-50:#F9F9F7;--gray-100:#F2F2F0;--gray-200:#E4E4E2;--gray-300:#C8C8C6;--gray-400:#8A8A88;--gray-600:#4A4A48;--orange:#FF4F00;--red:#C8001A;--green:#16A34A;--blue:#2563EB;--yellow:#D97706;--sidebar:220px;--radius:14px;--radius-sm:10px;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var(--black);display:flex;min-height:100vh;}
+.sidebar{width:var(--sidebar);background:var(--black);min-height:100vh;position:fixed;top:0;left:0;z-index:100;display:flex;flex-direction:column;}
+.sb-brand{padding:22px 18px 18px;border-bottom:1px solid rgba(255,255,255,.08);}
+.sb-brand .logo{font-family:'Bebas Neue';font-size:20px;letter-spacing:3px;color:#fff;}
+.sb-brand .sub{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.sb-nav{flex:1;padding:12px 10px;overflow-y:auto;}
+.sb-section{font-size:8.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:rgba(255,255,255,.25);padding:10px 8px 5px;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;color:rgba(255,255,255,.55);text-decoration:none;font-size:12.5px;font-weight:500;cursor:pointer;transition:all .15s;margin-bottom:1px;border:none;background:none;width:100%;text-align:left;white-space:nowrap;}
+.sb-item:hover{background:rgba(255,255,255,.07);color:#fff;}
+.sb-item.active{background:rgba(255,255,255,.13);color:#fff;}
+.sb-item svg{flex-shrink:0;}
+.sb-foot{padding:12px 10px;border-top:1px solid rgba(255,255,255,.07);}
+.sb-profile{display:flex;align-items:center;gap:9px;padding:9px 10px;background:rgba(255,255,255,.06);border-radius:9px;}
+.sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--orange);color:#fff;font-family:'Bebas Neue';font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+.sb-avatar img{width:100%;height:100%;object-fit:cover;}
+.sb-uname{font-size:11.5px;font-weight:600;color:#fff;line-height:1.2;}
+.sb-urole{font-size:9.5px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.8px;}
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;}
+.topbar{background:var(--white);border-bottom:1px solid var(--gray-200);height:58px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.page-title{font-family:'Bebas Neue';font-size:19px;letter-spacing:2px;}
+.tb-right{display:flex;align-items:center;gap:8px;}
+.period-btn{height:30px;padding:0 12px;border:1.5px solid var(--gray-200);border-radius:20px;background:var(--white);color:var(--gray-600);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Space Grotesk',sans-serif;}
+.period-btn:hover{border-color:var(--black);color:var(--black);}
+.period-btn.active{background:var(--black);border-color:var(--black);color:#fff;}
+.content{padding:22px 24px;flex:1;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:20px;}
+.stat-card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);padding:18px 20px;}
+.stat-label{font-size:9.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--gray-400);margin-bottom:10px;}
+.stat-val{font-family:'DM Mono',monospace;font-size:26px;font-weight:500;}
+.stat-sub{font-size:10.5px;color:var(--gray-400);margin-top:5px;}
+.stat-trend{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:4px;}
+.up{background:#DCFCE7;color:var(--green);}
+.down{background:#FEE2E2;color:var(--red);}
+.panel{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);padding:20px;}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.panel-title{font-family:'Bebas Neue';font-size:15px;letter-spacing:1.8px;}
+.chart-h200{height:200px;position:relative;}
+.chart-h260{height:260px;position:relative;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.grid-3{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px;}
+/* Top products table */
+.tp-row{display:grid;grid-template-columns:24px 1fr 80px 80px 60px;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--gray-100);}
+.tp-row:last-child{border-bottom:none;}
+.tp-rank{font-family:'DM Mono',monospace;font-size:10px;color:var(--gray-400);text-align:center;}
+.tp-name{font-size:12.5px;font-weight:600;}
+.tp-cat{font-size:10px;color:var(--gray-400);}
+.tp-rev{font-family:'DM Mono',monospace;font-size:12.5px;font-weight:600;text-align:right;}
+.tp-units{font-family:'DM Mono',monospace;font-size:11px;color:var(--gray-400);text-align:right;}
+.tp-bar-wrap{flex:1;}
+.tp-bar{height:3px;background:var(--gray-200);border-radius:2px;margin-top:4px;overflow:hidden;}
+.tp-fill{height:100%;background:var(--black);border-radius:2px;}
+/* Order funnel */
+.funnel-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--gray-100);}
+.funnel-row:last-child{border-bottom:none;}
+.funnel-label{font-size:12px;font-weight:600;width:130px;flex-shrink:0;}
+.funnel-bar-wrap{flex:1;}
+.funnel-bar{height:22px;border-radius:6px;background:var(--gray-200);overflow:hidden;position:relative;}
+.funnel-fill{height:100%;border-radius:6px;transition:width .8s cubic-bezier(.22,1,.36,1);}
+.funnel-count{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-family:'DM Mono',monospace;font-size:10.5px;font-weight:600;color:var(--black);}
+.funnel-pct{font-family:'DM Mono',monospace;font-size:11px;color:var(--gray-400);width:38px;text-align:right;flex-shrink:0;}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--black);color:#fff;padding:11px 16px;border-radius:10px;font-size:12.5px;font-weight:500;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;transform:translateY(4px);pointer-events:none;}
+.toast.on{opacity:1;transform:translateY(0);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .32s ease both;}
+.d1{animation-delay:.07s;}.d2{animation-delay:.14s;}.d3{animation-delay:.21s;}
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="sb-brand"><div class="logo">BARDS</div><div class="sub">Seller Hub</div></div>
+  <nav class="sb-nav">
+    <div class="sb-section">Main</div>
+    <a href="seller.html" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Overview</a>
+    <a href="seller-orders.html" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>Orders</a>
+    <a href="seller-analytics.html" class="sb-item active"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Analytics</a>
+    <div class="sb-section">Store</div>
+    <a href="seller-products.html" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Products</a>
+    <a href="seller-coupons.html" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>Coupons</a>
+    <div class="sb-section">Account</div>
+    <a href="index.html" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>View Store</a>
+    <button class="sb-item" onclick="Auth.logout('signin.html')"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 17H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out</button>
+  </nav>
+  <div class="sb-foot">
+    <div class="sb-profile">
+      <div class="sb-avatar" id="sbAvatar">S</div>
+      <div><div class="sb-uname" id="sbName">Loading…</div><div class="sb-urole">Seller</div></div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="page-title">Analytics</div>
+    <div class="tb-right">
+      <button class="period-btn active" onclick="setPeriod(7,this)">7D</button>
+      <button class="period-btn" onclick="setPeriod(30,this)">30D</button>
+      <button class="period-btn" onclick="setPeriod(90,this)">90D</button>
+    </div>
+  </div>
+  <div class="content">
+    <div class="stats-grid fu">
+      <div class="stat-card">
+        <div class="stat-label">Revenue</div>
+        <div class="stat-val" id="aRev">—</div>
+        <div class="stat-sub">vs prev period <span class="stat-trend up" id="aRevTrend"></span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Orders</div>
+        <div class="stat-val" id="aOrders">—</div>
+        <div class="stat-sub">Completed orders</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Order Value</div>
+        <div class="stat-val" id="aAOV">—</div>
+        <div class="stat-sub">Per transaction</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Conversion</div>
+        <div class="stat-val" id="aConv">—</div>
+        <div class="stat-sub">Paid / total orders</div>
+      </div>
+    </div>
+
+    <!-- Revenue line chart -->
+    <div class="panel fu d1" style="margin-bottom:14px">
+      <div class="panel-head">
+        <div class="panel-title">Revenue Over Time</div>
+        <span style="font-size:11px;color:var(--gray-400)" id="chartPeriodLabel">Last 7 days</span>
+      </div>
+      <div class="chart-h260"><canvas id="lineChart"></canvas></div>
+    </div>
+
+    <div class="grid-3 fu d2">
+      <!-- Top products -->
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Top Products</div></div>
+        <div id="topProds"></div>
+      </div>
+      <!-- Order funnel -->
+      <div class="panel">
+        <div class="panel-head"><div class="panel-title">Order Funnel</div></div>
+        <div id="funnelEl"></div>
+      </div>
+    </div>
+
+    <!-- Bar: orders per day -->
+    <div class="panel fu d3" style="margin-bottom:14px">
+      <div class="panel-head"><div class="panel-title">Orders Per Day</div></div>
+      <div class="chart-h200"><canvas id="barChart"></canvas></div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+<script src="api.js"></script>
+<script src="products.js"></script>
+<script>
+let _period=7, _lineChart, _barChart, _allOrders=[];
+
+document.addEventListener('DOMContentLoaded', async()=>{
+  if(!Auth.isLoggedIn()){location.href='signin.html';return;}
+  try{
+    const {user}=await AuthAPI.me();
+    if(!['seller','admin'].includes(user.role)){location.href='index.html';return;}
+    document.getElementById('sbName').textContent=user.name||'Seller';
+    const av=document.getElementById('sbAvatar');
+    if(user.avatar){av.innerHTML=`<img src="${user.avatar}" alt="">`;} else {av.textContent=(user.name||'S')[0].toUpperCase();}
+  }catch(e){location.href='signin.html';return;}
+  loadAnalytics();
+});
+
+async function loadAnalytics(){
+  try{
+    const d=await apiFetch('/seller/orders?limit=500',{auth:true});
+    _allOrders=d.orders||[];
+    renderAll();
+  }catch(e){toast('Failed to load analytics');}
+}
+
+function setPeriod(days, btn){
+  _period=days;
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('chartPeriodLabel').textContent=`Last ${days} days`;
+  renderAll();
+}
+
+function renderAll(){
+  const now=Date.now();
+  const cutoff=now-_period*86400000;
+  const filtered=_allOrders.filter(o=>new Date(o.created_at).getTime()>=cutoff);
+  const paid=filtered.filter(o=>['paid','processing','shipped','delivered'].includes(o.status));
+
+  // Stats
+  const rev=paid.reduce((s,o)=>s+Number(o.total),0);
+  const aov=paid.length?rev/paid.length:0;
+  const conv=filtered.length?(paid.length/filtered.length*100):0;
+  document.getElementById('aRev').textContent='$'+rev.toFixed(2);
+  document.getElementById('aOrders').textContent=paid.length;
+  document.getElementById('aAOV').textContent='$'+aov.toFixed(2);
+  document.getElementById('aConv').textContent=conv.toFixed(1)+'%';
+
+  // Charts
+  buildLineChart(paid);
+  buildBarChart(filtered);
+  buildTopProds(paid);
+  buildFunnel(filtered);
+}
+
+function getDayLabels(){
+  const labels=[];
+  for(let i=_period-1;i>=0;i--){
+    const d=new Date(Date.now()-i*86400000);
+    labels.push(d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}));
+  }
+  return labels;
+}
+
+function groupByDay(orders,field='total'){
+  const map={};
+  getDayLabels().forEach(l=>map[l]=0);
+  orders.forEach(o=>{
+    const d=new Date(o.created_at);
+    const key=d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    if(map[key]!==undefined) map[key]+=(field==='count'?1:Number(o.total));
+  });
+  return Object.values(map);
+}
+
+function buildLineChart(orders){
+  const ctx=document.getElementById('lineChart');
+  const labels=getDayLabels();
+  const data=groupByDay(orders,'total');
+  if(_lineChart)_lineChart.destroy();
+  _lineChart=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[{
+      label:'Revenue',data,
+      borderColor:'#0A0A0A',borderWidth:2,
+      backgroundColor:'rgba(10,10,10,.06)',
+      fill:true,tension:.4,
+      pointRadius:3,pointBackgroundColor:'#0A0A0A',pointBorderColor:'#fff',pointBorderWidth:2,
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` $${c.raw.toFixed(2)}`},backgroundColor:'#0A0A0A',padding:10,cornerRadius:8,titleColor:'#fff',bodyColor:'#aaa'}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{family:'DM Mono',size:10},color:'#8A8A88',maxRotation:0}},
+        y:{grid:{color:'#F2F2F0'},ticks:{font:{family:'DM Mono',size:10},color:'#8A8A88',callback:v=>'$'+v}},
+      }
+    }
+  });
+}
+
+function buildBarChart(orders){
+  const ctx=document.getElementById('barChart');
+  const labels=getDayLabels();
+  const data=groupByDay(orders,'count');
+  if(_barChart)_barChart.destroy();
+  _barChart=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[{
+      label:'Orders',data,
+      backgroundColor:data.map((_,i)=>i===data.length-1?'#0A0A0A':'#E4E4E2'),
+      borderRadius:5,borderSkipped:false,
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw} orders`},backgroundColor:'#0A0A0A',padding:8,cornerRadius:6,titleColor:'#fff',bodyColor:'#aaa'}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{family:'DM Mono',size:10},color:'#8A8A88',maxRotation:0}},
+        y:{grid:{color:'#F2F2F0'},ticks:{font:{family:'DM Mono',size:10},color:'#8A8A88',precision:0}},
+      }
+    }
+  });
+}
+
+function buildTopProds(orders){
+  const map={};
+  orders.forEach(o=>{
+    const items=typeof o.items==='string'?JSON.parse(o.items):(o.items||[]);
+    items.forEach(it=>{
+      const k=it.name||it.id||'Unknown';
+      if(!map[k])map[k]={name:k,rev:0,units:0,category:it.category||''};
+      map[k].rev+=Number(it.price||0)*(it.quantity||1);
+      map[k].units+=(it.quantity||1);
+    });
+  });
+  const sorted=Object.values(map).sort((a,b)=>b.rev-a.rev).slice(0,6);
+  const max=sorted[0]?.rev||1;
+  document.getElementById('topProds').innerHTML=sorted.length
+    ?`<div class="tp-row" style="border-bottom:1.5px solid var(--gray-200)">
+        <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--gray-400)">#</span>
+        <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--gray-400)">PRODUCT</span>
+        <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--gray-400);text-align:right">REVENUE</span>
+        <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--gray-400);text-align:right">UNITS</span>
+        <span></span>
+      </div>`+sorted.map((p,i)=>`
+      <div class="tp-row">
+        <span class="tp-rank">${i+1}</span>
+        <div><div class="tp-name">${p.name}</div><div class="tp-bar"><div class="tp-fill" style="width:${(p.rev/max*100).toFixed(0)}%"></div></div></div>
+        <span class="tp-rev">$${p.rev.toFixed(0)}</span>
+        <span class="tp-units">${p.units}</span>
+        <span></span>
+      </div>`).join('')
+    :`<div style="padding:30px;text-align:center;color:var(--gray-400);font-size:12px">No sales data yet</div>`;
+}
+
+function buildFunnel(orders){
+  const counts={
+    'Total':{count:orders.length,color:'#E4E4E2'},
+    'Pending':{count:orders.filter(o=>o.status==='pending').length,color:'#FDE68A'},
+    'Reviewing':{count:orders.filter(o=>o.status==='pending_verification').length,color:'#BFDBFE'},
+    'Paid':{count:orders.filter(o=>['paid','processing','shipped','delivered'].includes(o.status)).length,color:'#BBF7D0'},
+    'Delivered':{count:orders.filter(o=>o.status==='delivered').length,color:'#6EE7B7'},
+    'Cancelled':{count:orders.filter(o=>o.status==='cancelled').length,color:'#FECACA'},
+  };
+  const total=counts['Total'].count||1;
+  document.getElementById('funnelEl').innerHTML=Object.entries(counts).map(([k,v])=>`
+    <div class="funnel-row">
+      <span class="funnel-label">${k}</span>
+      <div class="funnel-bar-wrap">
+        <div class="funnel-bar">
+          <div class="funnel-fill" style="width:${(v.count/total*100).toFixed(0)}%;background:${v.color}"></div>
+          <span class="funnel-count">${v.count}</span>
+        </div>
+      </div>
+      <span class="funnel-pct">${(v.count/total*100).toFixed(0)}%</span>
+    </div>`).join('');
+}
+
+let _tt;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('on'),2500);}
+</script>
+</body>
+</html>

@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pay — Bards</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#0A0A0A;--white:#FAFAFA;--orange:#FF4F00;--green:#16A34A;--red:#C8001A;--bakong:#0057A8;--gray-100:#F2F2F0;--gray-200:#E4E4E2;--gray-300:#C8C8C6;--gray-400:#8A8A88;--radius:14px;--radius-sm:10px;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var(--black);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 16px;}
+.card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);width:100%;max-width:400px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.08);}
+.card-top{background:var(--bakong);padding:20px 20px 16px;display:flex;align-items:center;justify-content:space-between;}
+.store-row{display:flex;align-items:center;gap:10px;}
+.store-logo{width:42px;height:42px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.store-name{font-family:'Bebas Neue';font-size:18px;letter-spacing:2.5px;color:#fff;}
+.store-sub{font-size:9px;color:rgba(255,255,255,.6);letter-spacing:.5px;margin-top:2px;}
+.amount-wrap{text-align:right;}
+.amount-lbl{font-size:9px;color:rgba(255,255,255,.6);letter-spacing:1px;text-transform:uppercase;}
+.amount-val{font-family:'DM Mono',monospace;font-size:26px;color:#fff;font-weight:500;line-height:1;}
+.amount-sub{font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,.5);}
+.card-body{padding:20px;display:flex;flex-direction:column;align-items:center;}
+.qr-wrap{position:relative;width:220px;height:220px;border-radius:12px;overflow:hidden;border:3px solid var(--gray-100);box-shadow:0 4px 16px rgba(0,0,0,.1);background:#fff;margin-bottom:14px;}
+#qrImg{width:220px;height:220px;display:block;}
+.qr-logo{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:42px;height:42px;background:#fff;border-radius:9px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+.expired-overlay{position:absolute;inset:0;background:rgba(255,255,255,.92);display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;}
+.expired-overlay.show{display:flex;}
+.meta{width:100%;text-align:center;margin-bottom:16px;}
+.order-ref{font-family:'DM Mono',monospace;font-size:10px;color:var(--gray-400);margin-bottom:4px;}
+.order-ref strong{color:var(--black);}
+.expire-row{display:flex;align-items:center;justify-content:center;gap:5px;font-size:11px;color:var(--gray-400);}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
+.dot.warn{background:var(--orange);}
+.dot.off{background:var(--gray-300);}
+.actions{display:flex;gap:8px;width:100%;margin-bottom:16px;}
+.act-btn{flex:1;height:38px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);background:var(--white);font-size:11px;font-weight:700;color:var(--gray-600);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Space Grotesk',sans-serif;transition:all .18s;}
+.act-btn:active{background:var(--gray-100);}
+.act-btn.primary{background:var(--black);border-color:var(--black);color:#fff;}
+.divider{width:100%;border:none;border-top:1px solid var(--gray-200);margin-bottom:14px;}
+.order-details{width:100%;}
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--gray-100);}
+.detail-row:last-child{border-bottom:none;}
+.detail-key{font-size:11px;color:var(--gray-400);font-weight:600;}
+.detail-val{font-size:12px;font-weight:600;}
+.steps{background:var(--gray-100);border-radius:var(--radius-sm);padding:14px;margin-top:14px;width:100%;}
+.steps-title{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-400);margin-bottom:8px;}
+.step{display:flex;gap:10px;align-items:flex-start;padding:5px 0;}
+.step-n{width:18px;height:18px;border-radius:50%;background:var(--white);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;font-family:'DM Mono',monospace;color:var(--gray-600);}
+.step-t{font-size:11px;color:var(--gray-600);line-height:1.5;}
+.step-t strong{color:var(--black);}
+.paid-banner{background:#DCFCE7;border:1.5px solid #86EFAC;border-radius:var(--radius-sm);padding:16px;text-align:center;display:none;}
+.paid-banner.show{display:block;}
+.paid-icon{font-size:32px;margin-bottom:6px;}
+.paid-title{font-family:'Bebas Neue';font-size:18px;letter-spacing:2px;color:var(--green);}
+.paid-sub{font-size:12px;color:var(--green);margin-top:3px;}
+.loading-state{padding:40px 20px;text-align:center;}
+.loading-icon{font-size:32px;margin-bottom:12px;}
+.loading-title{font-size:15px;font-weight:600;}
+.loading-sub{font-size:12px;color:var(--gray-400);margin-top:4px;}
+.err-state{padding:40px 20px;text-align:center;display:none;}
+.err-state.show{display:block;}
+.brand-footer{font-family:'Bebas Neue';font-size:14px;letter-spacing:2px;color:var(--gray-300);margin-top:16px;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(6px);background:var(--black);color:#fff;padding:11px 18px;border-radius:12px;font-size:13px;font-weight:500;z-index:9999;opacity:0;transition:opacity .28s,transform .28s;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.28);}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .38s ease both;}
+</style>
+</head>
+<body>
+
+<div class="card fu" id="mainCard">
+  <!-- Loading state -->
+  <div class="loading-state" id="loadingState">
+    <div class="loading-icon"><svg style="animation:spin 1s linear infinite" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8A8A88" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></div>
+    <div class="loading-title">Loading payment…</div>
+    <div class="loading-sub">Please wait</div>
+  </div>
+  <!-- Error state -->
+  <div class="err-state" id="errState">
+    <div style="font-size:36px;margin-bottom:12px;">❌</div>
+    <div style="font-size:15px;font-weight:600;">Order not found</div>
+    <div style="font-size:12px;color:#8A8A88;margin-top:4px;" id="errMsg">The payment link may be invalid or expired.</div>
+  </div>
+  <!-- Payment content (hidden until loaded) -->
+  <div id="payContent" style="display:none;">
+    <div class="card-top">
+      <div class="store-row">
+        <div class="store-logo">
+          <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" width="30" height="30">
+            <rect width="80" height="80" rx="12" fill="#0057A8"/>
+            <path d="M16 24h12l8 16 8-16h12v32H44V36l-8 16-8-16v20H16z" fill="#fff"/>
+          </svg>
+        </div>
+        <div>
+          <div class="store-name">BARDS Store</div>
+          <div class="store-sub">KHQR · Payment Request</div>
+        </div>
+      </div>
+      <div class="amount-wrap">
+        <div class="amount-lbl">AMOUNT</div>
+        <div class="amount-val" id="payAmount">$0.00</div>
+        <div class="amount-sub">USD</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <!-- Paid banner -->
+      <div class="paid-banner" id="paidBanner">
+        <div class="paid-icon">✅</div>
+        <div class="paid-title">Payment Complete</div>
+        <div class="paid-sub">This order has been paid. Thank you!</div>
+      </div>
+      <!-- QR section -->
+      <div id="qrSection">
+        <div class="qr-wrap">
+          <img id="qrImg" width="220" height="220" alt="KHQR">
+          <div class="qr-logo">
+            <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" width="32" height="32">
+              <rect width="80" height="80" rx="10" fill="#0057A8"/>
+              <path d="M16 24h12l8 16 8-16h12v32H44V36l-8 16-8-16v20H16z" fill="#fff"/>
+            </svg>
+          </div>
+          <div class="expired-overlay" id="expiredOverlay">
+            <div style="font-size:28px">⏱</div>
+            <div style="font-size:11px;font-weight:700;color:#8A8A88;letter-spacing:1px">EXPIRED</div>
+          </div>
+        </div>
+        <div class="meta">
+          <div class="order-ref">Order <strong id="payOrderId">—</strong></div>
+          <div class="expire-row"><div class="dot" id="expireDot"></div><span id="expireLabel">Valid · Scan now</span></div>
+        </div>
+        <div class="actions">
+          <button class="act-btn primary" onclick="saveQR()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Save QR
+          </button>
+          <button class="act-btn" onclick="shareLink()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            Share
+          </button>
+        </div>
+        <hr class="divider">
+        <div class="order-details" id="orderDetails"></div>
+        <div class="steps">
+          <div class="steps-title">How to Pay</div>
+          <div class="step"><div class="step-n">1</div><div class="step-t">Open <strong>ABA, Bakong, Wing</strong> or any KHQR app</div></div>
+          <div class="step"><div class="step-n">2</div><div class="step-t">Tap <strong>Scan QR</strong> and scan the code above</div></div>
+          <div class="step"><div class="step-n">3</div><div class="step-t">Confirm <strong id="stepAmt">$0.00</strong> and approve</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="brand-footer">BARDS · bardskh.com</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="products.js"></script><script src="api.js"></script>
+<script>
+const API = 'http://localhost:3000/api';
+let ORDER_DATA = null, EXPIRES_AT = null, TIMER_ID = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const p  = new URLSearchParams(location.search);
+  const id = p.get('id');
+  if (!id) { showErr('No order ID provided.'); return; }
+  try {
+    // Fetch order publicly (no auth needed for pay link)
+    const res  = await fetch(`${API}/payment/link/${id}`);
+    const data = await res.json();
+    if (!res.ok) { showErr(data.error || 'Order not found.'); return; }
+    ORDER_DATA = data;
+    renderPayment(data);
+  } catch(e) { showErr('Could not load payment. Check your connection.'); }
+});
+
+function renderPayment(d) {
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('payContent').style.display   = '';
+  document.getElementById('payAmount').textContent  = '$' + Number(d.total||0).toFixed(2);
+  document.getElementById('payOrderId').textContent = d.id;
+  document.getElementById('stepAmt').textContent    = '$' + Number(d.total||0).toFixed(2) + ' USD';
+
+  // Order details
+  const items = Array.isArray(d.items) ? d.items : JSON.parse(d.items||'[]');
+  document.getElementById('orderDetails').innerHTML = `
+    <div class="detail-row"><span class="detail-key">Items</span><span class="detail-val">${items.length} item${items.length!==1?'s':''}</span></div>
+    <div class="detail-row"><span class="detail-key">Total</span><span class="detail-val">$${Number(d.total||0).toFixed(2)} USD</span></div>
+    <div class="detail-row"><span class="detail-key">Order ID</span><span class="detail-val" style="font-family:'DM Mono',monospace;font-size:11px">${d.id}</span></div>
+  `;
+
+  if (d.status === 'paid' || d.status === 'delivered' || d.status === 'processing' || d.status === 'shipped') {
+    document.getElementById('paidBanner').classList.add('show');
+    document.getElementById('qrSection').style.display = 'none';
+    return;
+  }
+
+  // Show QR
+  if (d.qr_payload) {
+    const img = document.getElementById('qrImg');
+    img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=440x440&margin=2&color=0a0a0a&bgcolor=ffffff&data=' + encodeURIComponent(d.qr_payload);
+  }
+
+  EXPIRES_AT = d.expires_at ? new Date(d.expires_at) : new Date(Date.now() + 86400000);
+  startTimer();
+}
+
+function startTimer() {
+  clearInterval(TIMER_ID);
+  updateTimer();
+  TIMER_ID = setInterval(() => {
+    if (getRemainingMs() <= 0) { clearInterval(TIMER_ID); onExpired(); }
+    else updateTimer();
+  }, 1000);
+}
+function getRemainingMs() { return Math.max(0, EXPIRES_AT - Date.now()); }
+function updateTimer() {
+  const ms = getRemainingMs(), warn = ms < 3600000;
+  const h  = Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000), s=Math.floor((ms%60000)/1000);
+  const dot = document.getElementById('expireDot');
+  const lbl = document.getElementById('expireLabel');
+  if (dot) dot.className = 'dot' + (warn?' warn':'');
+  if (lbl) lbl.textContent = warn ? 'Expiring soon' : 'Valid · Scan now';
+}
+function onExpired() {
+  document.getElementById('expiredOverlay').classList.add('show');
+  document.getElementById('expireDot').className = 'dot off';
+  document.getElementById('expireLabel').textContent = 'QR Expired';
+  toast('QR has expired. Contact the store for a new link.');
+}
+
+async function saveQR() {
+  const img = document.getElementById('qrImg');
+  try {
+    const res = await fetch(img.src), blob = await res.blob();
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = 'bards-qr-'+(ORDER_DATA?.id||'pay')+'.png'; a.click();
+    URL.revokeObjectURL(url); toast('QR saved to downloads!');
+  } catch { window.open(img.src,'_blank'); toast('QR opened — save from browser'); }
+}
+
+function shareLink() {
+  const url = location.href;
+  if (navigator.share) { navigator.share({ title: 'Bards Payment', url }).catch(()=>{}); }
+  else { navigator.clipboard?.writeText(url).then(() => toast('Link copied!')); }
+}
+
+function showErr(msg) {
+  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('errState').classList.add('show');
+  document.getElementById('errMsg').textContent = msg;
+}
+
+let _tt;
+function toast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('on'), 3000);
+}
+</script>
+</body>
+</html>
