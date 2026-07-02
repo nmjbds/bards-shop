@@ -24,6 +24,9 @@ const allowed = [
   process.env.FRONTEND_URL||'http://localhost:5500',
   'http://127.0.0.1:5500','http://localhost:5500',
   'http://localhost:3000','http://127.0.0.1:3000',
+  'https://bards-shop.onrender.com',
+  'https://bardskh.com',
+  'https://www.bardskh.com',
 ];
 app.use(cors({
   origin:(o,cb)=>(!o||allowed.includes(o))?cb(null,true):cb(new Error('CORS blocked')),
