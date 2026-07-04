@@ -53,7 +53,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .social-btn{width:100%;height:46px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);background:var(--white);color:var(--black);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .18s;margin-bottom:10px;}
 .social-btn:active{background:var(--gray-100);}
 .social-btn.loading{pointer-events:none;opacity:.6;}
-.tg-wrap{width:100%;display:flex;justify-content:center;margin-bottom:10px;min-height:40px;}
+.social-btn.tg{border-color:#2AABEE;color:#2AABEE;}
 .switch-row{text-align:center;margin-top:22px;font-size:12px;color:var(--gray-400);}
 .switch-row a{color:var(--black);font-weight:700;text-decoration:none;}
 .err-banner{background:#FEF2F2;border:1.5px solid #FECACA;border-radius:var(--radius-sm);padding:11px 13px;font-size:12px;color:var(--red);margin-bottom:16px;display:none;align-items:center;gap:8px;}
@@ -154,14 +154,10 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
     <span>Continue with Google</span>
   </button>
 
-  <div class="tg-wrap" id="tgWrap">
-    <script async src="https://telegram.org/js/telegram-widget.js?22"
-      data-telegram-login="bardsofficial_bot"
-      data-size="large"
-      data-radius="10"
-      data-auth-url="/api/auth/telegram/callback"
-      data-request-access="write"></script>
-  </div>
+  <button class="social-btn tg" id="telegramBtn" onclick="handleTelegramLogin()">
+    <svg width="18" height="18" viewBox="0 0 240 240"><circle cx="120" cy="120" r="120" fill="#2AABEE"/><path fill="#fff" d="M180.5 72.3 158 179.2c-1.7 7.6-6.2 9.5-12.5 5.9l-34.6-25.5-16.7 16.1c-1.8 1.8-3.4 3.4-6.9 3.4l2.5-35.1 63.9-57.7c2.8-2.5-.6-3.9-4.3-1.4L69 138.6l-34.3-10.7c-7.5-2.3-7.6-7.5 1.6-11.1l134-51.7c6.2-2.3 11.7 1.5 9.7 11.2z"/></svg>
+    <span>Continue with Telegram</span>
+  </button>
 
   <div class="switch-row">
     Already have an account? <a href="signin.html">Sign in</a>
@@ -175,6 +171,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 
 <script src="products.js"></script>
 <script src="api.js"></script>
+<script src="https://telegram.org/js/telegram-widget.js?22"></script>
 <script>
 /* ── Auth guard ── */
 if (typeof Auth !== 'undefined' && typeof Auth.isLoggedIn === 'function' && Auth.isLoggedIn()) location.href = 'account.html';
@@ -245,6 +242,48 @@ function validate() {
 
 /* ── Spinner SVG shared ── */
 const _spinnerSvg = `<svg style="animation:spin .8s linear infinite;flex-shrink:0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>`;
+
+/* ── Telegram login (custom-styled button, Telegram's official popup API) ── */
+// bot_id is the numeric ID from BotFather (the number before the ':' in your bot token) — NOT the username.
+// Get it via: https://api.telegram.org/bot<YOUR_TOKEN>/getMe  (look for "id")
+const TELEGRAM_BOT_ID = '8701497967';
+
+function handleTelegramLogin() {
+  const btn = document.getElementById('telegramBtn');
+  if (!window.Telegram || !window.Telegram.Login) {
+    showErr('Telegram login is still loading — please try again in a second.');
+    return;
+  }
+  const originalHTML = btn.innerHTML;
+  btn.classList.add('loading');
+  btn.innerHTML = `${_spinnerSvg} <span>Connecting…</span>`;
+
+  window.Telegram.Login.auth(
+    { bot_id: TELEGRAM_BOT_ID, request_access: 'write' },
+    async (user) => {
+      if (!user) {
+        btn.classList.remove('loading');
+        btn.innerHTML = originalHTML;
+        showErr('Telegram login was cancelled.');
+        return;
+      }
+      try {
+        const res  = await fetch('/api/auth/telegram/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(user),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Telegram login failed.');
+        location.href = `signin.html?token=${encodeURIComponent(data.token)}`;
+      } catch(e) {
+        btn.classList.remove('loading');
+        btn.innerHTML = originalHTML;
+        showErr(e.message || 'Telegram login failed.');
+      }
+    }
+  );
+}
 
 /* ── Social login with loading state ── */
 async function handleSocialLogin(provider) {

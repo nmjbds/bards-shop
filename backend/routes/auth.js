@@ -333,29 +333,53 @@ router.get('/facebook/callback', passport.authenticate('facebook', { session: fa
   res.redirect(`${process.env.FRONTEND_URL}/signin?token=${sign(req.user)}`);
 });
 
-// Telegram Login Widget
+// Shared Telegram auth-data verification (same check for both the redirect
+// widget flow and the JSON/manual-popup flow below).
+function verifyTelegramAuth(raw) {
+  const data = { ...raw };
+  const hash = data.hash;
+  if (!hash) return { ok: false, reason: 'Telegram login failed' };
+  delete data.hash;
+  const secret   = crypto.createHash('sha256').update(process.env.TELEGRAM_BOT_TOKEN).digest();
+  const checkStr = Object.keys(data).sort().map(k => `${k}=${data[k]}`).join('\n');
+  const hmac     = crypto.createHmac('sha256', secret).update(checkStr).digest('hex');
+  if (hmac !== hash) return { ok: false, reason: 'Telegram verification failed' };
+  if (Date.now() / 1000 - parseInt(data.auth_date, 10) > 3600) return { ok: false, reason: 'Session expired' };
+  return { ok: true, data };
+}
+
+async function upsertTelegramUser(data) {
+  const telegramId = data.id.toString();
+  const name       = [data.first_name, data.last_name].filter(Boolean).join(' ');
+  const avatar     = data.photo_url || null;
+  let r = await query('SELECT * FROM users WHERE provider=$1 AND provider_id=$2', ['telegram', telegramId]);
+  if (!r.rows.length) {
+    r = await query(`INSERT INTO users(name,avatar,provider,provider_id) VALUES($1,$2,'telegram',$3) RETURNING *`, [name, avatar, telegramId]);
+  } else {
+    await query('UPDATE users SET name=$1,avatar=$2 WHERE id=$3', [name, avatar, r.rows[0].id]);
+  }
+  return r.rows[0];
+}
+
+// Legacy redirect flow (kept in case the drop-in <script data-telegram-login> widget is ever used again)
 router.get('/telegram/callback', async (req, res) => {
   try {
-    const data = { ...req.query };
-    const hash = data.hash;
-    if (!hash) return res.redirect(`${process.env.FRONTEND_URL}/signin.html?error=Telegram+login+failed`);
-    delete data.hash;
-    const secret   = crypto.createHash('sha256').update(process.env.TELEGRAM_BOT_TOKEN).digest();
-    const checkStr = Object.keys(data).sort().map(k => `${k}=${data[k]}`).join('\n');
-    const hmac     = crypto.createHmac('sha256', secret).update(checkStr).digest('hex');
-    if (hmac !== hash) return res.redirect(`${process.env.FRONTEND_URL}/signin.html?error=Telegram+verification+failed`);
-    if (Date.now() / 1000 - parseInt(data.auth_date) > 3600) return res.redirect(`${process.env.FRONTEND_URL}/signin.html?error=Session+expired`);
-    const telegramId = data.id.toString();
-    const name       = [data.first_name, data.last_name].filter(Boolean).join(' ');
-    const avatar     = data.photo_url || null;
-    let r = await query('SELECT * FROM users WHERE provider=$1 AND provider_id=$2', ['telegram', telegramId]);
-    if (!r.rows.length) {
-      r = await query(`INSERT INTO users(name,avatar,provider,provider_id) VALUES($1,$2,'telegram',$3) RETURNING *`, [name, avatar, telegramId]);
-    } else {
-      await query('UPDATE users SET name=$1,avatar=$2 WHERE id=$3', [name, avatar, r.rows[0].id]);
-    }
-    res.redirect(`${process.env.FRONTEND_URL}/signin?token=${sign(r.rows[0])}`);
+    const check = verifyTelegramAuth(req.query);
+    if (!check.ok) return res.redirect(`${process.env.FRONTEND_URL}/signin.html?error=${encodeURIComponent(check.reason)}`);
+    const user = await upsertTelegramUser(check.data);
+    res.redirect(`${process.env.FRONTEND_URL}/signin?token=${sign(user)}`);
   } catch(e) { console.error(e); res.redirect(`${process.env.FRONTEND_URL}/signin?error=Telegram+login+failed`); }
+});
+
+// JSON flow used by our custom-styled Telegram button (Telegram.Login.auth() popup).
+// Rate-limited the same way as signin, since it's an alternate login path.
+router.post('/telegram/verify', signinRateLimit, async (req, res) => {
+  try {
+    const check = verifyTelegramAuth(req.body || {});
+    if (!check.ok) return res.status(401).json({ error: check.reason });
+    const user = await upsertTelegramUser(check.data);
+    res.json({ token: sign(user), user: safe(user) });
+  } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
 
 function safe(u) {
