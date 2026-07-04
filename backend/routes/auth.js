@@ -10,23 +10,48 @@ const router = express.Router();
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
-// Rate limiter for forgot-password — max 5 requests per 15 min per IP
-const _otpAttempts = new Map();
-function otpRateLimit(req, res, next) {
-  const key = req.ip || 'unknown';
-  const now = Date.now();
-  const window = 15 * 60 * 1000; // 15 minutes
-  const max = 5;
-  const entry = _otpAttempts.get(key) || { count: 0, start: now };
-  if (now - entry.start > window) { entry.count = 0; entry.start = now; }
-  entry.count++;
-  _otpAttempts.set(key, entry);
-  if (entry.count > max) {
-    const retry = Math.ceil((window - (now - entry.start)) / 1000 / 60);
-    return res.status(429).json({ error: `Too many requests. Please try again in ${retry} minutes.` });
-  }
-  next();
+// Generic in-memory rate limiter factory — keyed by IP (+ optional field from body, e.g. email)
+function makeRateLimit({ windowMs, max, message, keyField }) {
+  const attempts = new Map();
+  return function rateLimit(req, res, next) {
+    const ip = req.ip || 'unknown';
+    const key = keyField && req.body && req.body[keyField]
+      ? `${ip}:${String(req.body[keyField]).toLowerCase()}`
+      : ip;
+    const now = Date.now();
+    const entry = attempts.get(key) || { count: 0, start: now };
+    if (now - entry.start > windowMs) { entry.count = 0; entry.start = now; }
+    entry.count++;
+    attempts.set(key, entry);
+    if (entry.count > max) {
+      const retry = Math.ceil((windowMs - (now - entry.start)) / 1000 / 60) || 1;
+      return res.status(429).json({ error: message(retry) });
+    }
+    next();
+  };
 }
+
+// Forgot-password — max 5 requests per 15 min per IP
+const otpRateLimit = makeRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: (retry) => `Too many requests. Please try again in ${retry} minutes.`,
+});
+
+// Sign-in — max 10 attempts per 15 min per IP+email (blocks brute-force password guessing)
+const signinRateLimit = makeRateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  keyField: 'email',
+  message: (retry) => `Too many sign-in attempts. Please try again in ${retry} minutes.`,
+});
+
+// Sign-up — max 8 accounts per hour per IP (blocks mass fake-account creation)
+const signupRateLimit = makeRateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 8,
+  message: (retry) => `Too many sign-up attempts from this network. Please try again in ${retry} minutes.`,
+});
 
 // Initialize nodemailer transporter
 // host/port instead of service:'gmail' to avoid self-signed certificate error
@@ -62,21 +87,33 @@ passport.use(new GoogleStrategy({
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     const email = profile.emails?.[0]?.value;
+    // Google marks whether it has actually verified ownership of this email.
+    // Only auto-link to an existing password/email account when verified —
+    // otherwise a malicious Google account with a spoofed/unverified email
+    // could take over someone else's account.
+    const emailVerified = profile.emails?.[0]?.verified === true;
     const avatar = profile.photos?.[0]?.value;
     let r = await query('SELECT * FROM users WHERE provider=$1 AND provider_id=$2', ['google', profile.id]);
-    if (!r.rows.length && email) r = await query('SELECT * FROM users WHERE email=$1', [email]);
+    if (!r.rows.length && email && emailVerified) r = await query('SELECT * FROM users WHERE email=$1', [email]);
     if (r.rows.length) {
       await query('UPDATE users SET provider=$1,provider_id=$2,avatar=$3 WHERE id=$4', ['google', profile.id, avatar, r.rows[0].id]);
       return done(null, r.rows[0]);
     }
+    // Don't store an unverified email against a brand-new account either,
+    // to avoid silently colliding with someone else's real account later.
     const ins = await query(
       'INSERT INTO users(name,email,avatar,provider,provider_id) VALUES($1,$2,$3,$4,$5) RETURNING *',
-      [profile.displayName, email, avatar, 'google', profile.id]
+      [profile.displayName, emailVerified ? email : null, avatar, 'google', profile.id]
     );
     done(null, ins.rows[0]);
   } catch(e) { done(e); }
 }));
 
+// NOTE: Facebook login button is currently hidden on the frontend (not
+// ready for launch) — Telegram Login has taken its place in the UI. This
+// backend route/strategy is left intact so it's a one-line UI change to
+// re-enable later, but /facebook and /facebook/callback are unreachable
+// from the storefront until the button is restored.
 passport.use(new FacebookStrategy({
   clientID:     process.env.FACEBOOK_APP_ID,
   clientSecret: process.env.FACEBOOK_APP_SECRET,
@@ -104,7 +141,7 @@ passport.use(new FacebookStrategy({
 }));
 
 // Email signup
-router.post('/signup', async (req, res) => {
+router.post('/signup', signupRateLimit, async (req, res) => {
   try {
     const { name, email, password } = req.body;
     if (!name || !email || !password) return res.status(400).json({ error: 'Name, email and password are required.' });
@@ -122,7 +159,7 @@ router.post('/signup', async (req, res) => {
 });
 
 // Email signin
-router.post('/signin', async (req, res) => {
+router.post('/signin', signinRateLimit, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password are required.' });
