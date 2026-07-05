@@ -568,6 +568,60 @@
     <div id="langOptions"></div>
 </div>
 
+<!-- CHANGE PASSWORD SHEET -->
+<div class="sheet" id="pwSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Change Password</div>
+
+    <div class="form-group">
+        <label class="form-label">Current Password <span class="f-req">*</span></label>
+        <div style="position:relative;">
+            <input type="password" class="form-input" id="pwCurrent" placeholder="••••••••" autocomplete="current-password" style="padding-right:44px;">
+            <button type="button" class="icon-btn" style="position:absolute;right:4px;top:4px;width:38px;height:38px;" onclick="togglePw('pwCurrent', this)" aria-label="Toggle password visibility">
+                <svg class="icon-eye" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s3-7 11-7 11 7 11 7-3 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="icon-eye-off" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label">New Password <span class="f-req">*</span></label>
+        <div style="position:relative;">
+            <input type="password" class="form-input" id="pwNew" placeholder="Min. 8 characters" autocomplete="new-password" style="padding-right:44px;">
+            <button type="button" class="icon-btn" style="position:absolute;right:4px;top:4px;width:38px;height:38px;" onclick="togglePw('pwNew', this)" aria-label="Toggle password visibility">
+                <svg class="icon-eye" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s3-7 11-7 11 7 11 7-3 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="icon-eye-off" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label class="form-label">Confirm New Password <span class="f-req">*</span></label>
+        <div style="position:relative;">
+            <input type="password" class="form-input" id="pwConfirm" placeholder="Repeat new password" autocomplete="new-password" style="padding-right:44px;">
+            <button type="button" class="icon-btn" style="position:absolute;right:4px;top:4px;width:38px;height:38px;" onclick="togglePw('pwConfirm', this)" aria-label="Toggle password visibility">
+                <svg class="icon-eye" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s3-7 11-7 11 7 11 7-3 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg class="icon-eye-off" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <div id="pwErr" style="display:none;font-size:11px;color:var(--red);margin:-4px 0 14px;font-weight:600;"></div>
+
+    <button class="confirm-btn idle" id="pwConfirmBtn" onclick="submitChangePassword()">UPDATE PASSWORD</button>
+</div>
+
+<!-- SIGN OUT CONFIRM SHEET -->
+<div class="sheet" id="signOutSheet" style="padding-bottom:30px;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Sign Out</div>
+    <div style="font-size:13px;color:var(--gray-600);line-height:1.6;margin-bottom:22px;">
+        Are you sure you want to sign out of your account?
+    </div>
+    <button class="confirm-btn idle" style="background:var(--red);margin-bottom:10px;" onclick="confirmSignOut()">SIGN OUT</button>
+    <button class="addr-btn" style="width:100%;height:44px;font-size:13px;" onclick="hideSheet()">Cancel</button>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast">
     <div class="toast-icon-wrap" id="toastIconWrap"></div>
@@ -599,6 +653,15 @@ const S = {
     settings:  JSON.parse(localStorage.getItem('BARDS_SETTINGS')||'null') || { notifications:true, language:'EN' }
 };
 let _editingAddrIdx = -1;
+
+/* ── Escape helper ─────────────────────────────────────────────
+   ทุกค่าที่มาจาก user input (ชื่อ, ที่อยู่, เบอร์โทร ฯลฯ) ต้องผ่านฟังก์ชันนี้
+   ก่อน insert เข้า innerHTML เสมอ กัน stored XSS (เช่น ตั้งชื่อเป็น <img onerror=...>) */
+function escapeHtml(str) {
+    return String(str ?? '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
 
 /* ── Boot ──────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async () => {
@@ -653,18 +716,20 @@ function renderAvatar() {
     const wrap = document.getElementById('avatarDisplay');
     if (!wrap) return;
     if (S.profile.avatar) {
-        wrap.innerHTML = `<img src="${S.profile.avatar}" class="profile-avatar" alt="">`;
+        wrap.innerHTML = `<img src="${escapeHtml(S.profile.avatar)}" class="profile-avatar" alt="">`;
     } else {
         const parts = (S.profile.name||'?').trim().split(' ');
         const ini   = ((parts[0]?.[0]||'')+(parts[1]?.[0]||'')).toUpperCase();
-        wrap.innerHTML = `<div class="profile-avatar-init">${ini}</div>`;
+        wrap.innerHTML = `<div class="profile-avatar-init">${escapeHtml(ini)}</div>`;
     }
 }
 
 function editName() {
     const wrap = document.getElementById('profileNameWrap');
-    wrap.innerHTML = `<input type="text" id="nameInput" value="${S.profile.name}" onblur="saveName()" onkeydown="if(event.key==='Enter')this.blur()" style="font-size:17px;font-weight:700;border:none;border-bottom:2px solid #111;background:transparent;outline:none;width:200px;">`;
-    document.getElementById('nameInput')?.focus();
+    wrap.innerHTML = `<input type="text" id="nameInput" onblur="saveName()" onkeydown="if(event.key==='Enter')this.blur()" style="font-size:17px;font-weight:700;border:none;border-bottom:2px solid #111;background:transparent;outline:none;width:200px;">`;
+    const input = document.getElementById('nameInput');
+    input.value = S.profile.name || ''; // set via property, not HTML attribute — safe against injection
+    input.focus();
 }
 
 async function saveName() {
@@ -678,7 +743,7 @@ async function saveName() {
         } catch(e) { showToast('warn','Save failed',e.message); }
     }
     document.getElementById('profileNameWrap').innerHTML =
-        `<span id="profileNameText">${S.profile.name}</span>
+        `<span id="profileNameText">${escapeHtml(S.profile.name)}</span>
          <button class="icon-btn" style="width:28px;height:28px;" onclick="editName()">
            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
              <path d="M11 4a2.5 2.5 0 0 0-3.5-3.5L3 5v3h3l4.5-4.5z"/><path d="M1 15v2a2 2 0 0 0 2 2h2"/>
@@ -692,13 +757,37 @@ function triggerAvatar() { document.getElementById('avatarInput')?.click(); }
 
 async function handleAvatar(input) {
     const file = input.files[0]; if (!file) return;
-    const r    = new FileReader();
-    r.onload = async e => {
-        try { const d = await AuthAPI.updateProfile({ avatar: e.target.result }); S.profile.avatar = d.user.avatar||e.target.result; }
-        catch(_) { S.profile.avatar = e.target.result; }
-        renderAvatar(); showToast('ok','Photo updated','');
-    };
-    r.readAsDataURL(file);
+
+    // Validate before uploading
+    if (!file.type.startsWith('image/')) {
+        showToast('warn','Please choose an image file','');
+        input.value = '';
+        return;
+    }
+    const MAX_BYTES = 3 * 1024 * 1024; // 3MB — matches server-side limit
+    if (file.size > MAX_BYTES) {
+        showToast('warn','Image too large','Please choose a photo under 3MB');
+        input.value = '';
+        return;
+    }
+
+    // Optimistic preview while the real upload runs in the background
+    const wrap = document.getElementById('avatarDisplay');
+    const previewUrl = URL.createObjectURL(file);
+    if (wrap) wrap.innerHTML = `<img src="${previewUrl}" class="profile-avatar" alt="" style="opacity:.6">`;
+
+    try {
+        const d = await AuthAPI.uploadAvatar(file);
+        S.profile.avatar = d.user.avatar;
+        renderAvatar();
+        showToast('ok','Photo updated','');
+    } catch(e) {
+        renderAvatar(); // revert preview back to the real (unchanged) avatar
+        showToast('warn','Could not save photo', e.message || '');
+    } finally {
+        URL.revokeObjectURL(previewUrl);
+        input.value = ''; // allow re-selecting the same file later
+    }
 }
 
 /* ── Stats ─────────────────────────────────────────────────────── */
@@ -731,12 +820,12 @@ function orderCardHTML(o) {
     const n     = items.length||1;
     const price = '$'+Number(o.total||0).toFixed(2);
     const date  = o.created_at ? new Date(o.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
-    return `<a class="order-card" href="order-detail.html?id=${o.id||o.orderId}">
-      <div class="order-top"><span class="order-id">#${o.id||o.orderId}</span><span class="order-status ${cls}">${label}</span></div>
+    return `<a class="order-card" href="order-detail.html?id=${encodeURIComponent(o.id||o.orderId)}">
+      <div class="order-top"><span class="order-id">#${escapeHtml(o.id||o.orderId)}</span><span class="order-status ${cls}">${label}</span></div>
       <div class="order-mid">
-        ${thumb?`<img src="${thumb}" class="order-thumb" alt="" onerror="this.style.display='none'">`:''}
+        ${thumb?`<img src="${escapeHtml(thumb)}" class="order-thumb" alt="" onerror="this.style.display='none'">`:''}
         <div class="order-details">
-          <div class="order-name">${items[0]?.name||'Order'}${n>1?` +${n-1} more`:''}</div>
+          <div class="order-name">${escapeHtml(items[0]?.name||'Order')}${n>1?` +${n-1} more`:''}</div>
           <div class="order-meta">${date} · ${n} item${n!==1?'s':''}</div>
         </div>
         <div class="order-price">${price}</div>
@@ -753,15 +842,15 @@ function renderWishlist() {
     empty?.classList.remove('show');
     row.innerHTML = S.favs.map(id => {
         const p = PRODUCTS[id]; if (!p) return '';
-        return `<div class="wish-card" onclick="location.href='product.html?id=${id}'">
+        return `<div class="wish-card" onclick="location.href='product.html?id=${encodeURIComponent(id)}'">
           <div class="wish-img">
-            <img src="${p.images[0]}" alt="${p.name}" loading="lazy">
+            <img src="${escapeHtml(p.images[0])}" alt="${escapeHtml(p.name)}" loading="lazy">
             <button class="wish-remove" onclick="event.stopPropagation();removeFav('${id}')">
               <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="1" y1="1" x2="10" y2="10"/><line x1="10" y1="1" x2="1" y2="10"/></svg>
             </button>
           </div>
           <div class="wish-body">
-            <div class="wish-name">${p.name}</div>
+            <div class="wish-name">${escapeHtml(p.name)}</div>
             <div class="wish-price">${fmtUSD(p.price)}</div>
           </div>
         </div>`;
@@ -804,9 +893,9 @@ function renderAddresses() {
     list.innerHTML = S.addresses.map((a,i) => `
       <div class="addr-card${a.isDefault?' default':''}">
         ${a.isDefault?'<span class="addr-tag">Default</span>':''}
-        <div class="addr-name">${a.name}</div>
-        <div class="addr-line">${a.line}${a.line2?', '+a.line2:''}<br>${a.province}</div>
-        <div class="addr-phone">${a.phone}</div>
+        <div class="addr-name">${escapeHtml(a.name)}</div>
+        <div class="addr-line">${escapeHtml(a.line)}${a.line2?', '+escapeHtml(a.line2):''}<br>${escapeHtml(a.province)}</div>
+        <div class="addr-phone">${escapeHtml(a.phone)}</div>
         <div class="addr-actions">
           <button class="addr-btn" onclick="openAddrSheet(${i})">Edit</button>
           <button class="addr-btn" style="color:var(--red);border-color:#FECACA;" onclick="deleteAddr(${i})">Delete</button>
@@ -920,12 +1009,48 @@ function renderSettings() {
 }
 
 function openChangePassword() {
-    const cur  = prompt('Current password:'); if (!cur) return;
-    const nw   = prompt('New password (min 8 chars):'); if (!nw || nw.length < 8) { showToast('warn','Password too short',''); return; }
-    const conf = prompt('Confirm new password:'); if (nw !== conf) { showToast('warn','Passwords do not match',''); return; }
-    AuthAPI.changePassword(cur, nw)
-        .then(() => showToast('ok','Password updated',''))
-        .catch(e  => showToast('warn', e.message || 'Failed',''));
+    document.getElementById('pwCurrent').value = '';
+    document.getElementById('pwNew').value = '';
+    document.getElementById('pwConfirm').value = '';
+    hidePwErr();
+    const btn = document.getElementById('pwConfirmBtn');
+    btn.className = 'confirm-btn idle';
+    btn.innerHTML = 'UPDATE PASSWORD';
+    openSheetById('pwSheet');
+}
+
+function showPwErr(msg) {
+    const el = document.getElementById('pwErr');
+    el.textContent = msg;
+    el.style.display = 'block';
+}
+function hidePwErr() { document.getElementById('pwErr').style.display = 'none'; }
+
+async function submitChangePassword() {
+    const cur  = document.getElementById('pwCurrent').value;
+    const nw   = document.getElementById('pwNew').value;
+    const conf = document.getElementById('pwConfirm').value;
+    hidePwErr();
+
+    if (!cur)              { showPwErr('Please enter your current password.'); return; }
+    if (nw.length < 8)     { showPwErr('New password must be at least 8 characters.'); return; }
+    if (nw === cur)        { showPwErr('New password must be different from the current one.'); return; }
+    if (nw !== conf)       { showPwErr('Passwords do not match.'); return; }
+
+    const btn = document.getElementById('pwConfirmBtn');
+    btn.className = 'confirm-btn loading';
+    btn.innerHTML = 'UPDATING…';
+
+    try {
+        await AuthAPI.changePassword(cur, nw);
+        btn.className = 'confirm-btn success';
+        btn.innerHTML = '✓ Updated';
+        setTimeout(() => { hideSheet(); showToast('ok','Password updated',''); }, 600);
+    } catch(e) {
+        btn.className = 'confirm-btn idle';
+        btn.innerHTML = 'UPDATE PASSWORD';
+        showPwErr(e.message || 'Could not update password. Please try again.');
+    }
 }
 
 function toggleSetting(key) {
@@ -953,7 +1078,9 @@ function selectLang(code) {
 
 /* ── Sign Out — ล้างทุกอย่าง → redirect signin ─────────────────── */
 function signOut() {
-    if (!confirm('Sign out of your account?')) return;
+    openSheetById('signOutSheet');
+}
+function confirmSignOut() {
     Auth.logout('signin.html');
 }
 

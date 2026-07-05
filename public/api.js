@@ -139,6 +139,25 @@ const AuthAPI = {
     return apiFetch('/auth/profile', { method: 'PATCH', body: fields, auth: true })
       .then(d => { if (d?.user) Auth.setUser(d.user); return d; });
   },
+  /* Avatar upload — goes to Cloudflare R2 via multipart form-data,
+     NOT through apiFetch() (which always sends JSON) */
+  uploadAvatar(file) {
+    const token = Auth.getToken();
+    const fd = new FormData();
+    fd.append('avatar', file);
+    return fetch(API_BASE + '/auth/avatar', {
+      method: 'POST',
+      headers: token ? { Authorization: 'Bearer ' + token } : {},
+      credentials: 'include',
+      body: fd,
+    })
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || `Upload failed (${res.status})`);
+        if (data?.user) Auth.setUser(data.user);
+        return data;
+      });
+  },
   changePassword(currentPassword, newPassword) {
     return apiFetch('/auth/change-password', { method: 'POST', body: { currentPassword, newPassword }, auth: true });
   },

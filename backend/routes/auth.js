@@ -10,14 +10,62 @@ const router = express.Router();
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
-// Generic in-memory rate limiter factory — keyed by IP (+ optional field from body, e.g. email)
-function makeRateLimit({ windowMs, max, message, keyField }) {
+// ── Cloudflare R2 upload for avatars ───────────────────────────
+// Mirrors the setup in routes/seller.js (same bucket/env vars/CDN), but
+// exposed to any logged-in user — avatars aren't seller-only, so this can't
+// reuse seller.js's requireSeller-gated /upload route.
+let _avatarUploadReady = false;
+let multer, S3Client, PutObjectCommand;
+try {
+  multer           = require('multer');
+  const s3mod      = require('@aws-sdk/client-s3');
+  S3Client         = s3mod.S3Client;
+  PutObjectCommand = s3mod.PutObjectCommand;
+  _avatarUploadReady = true;
+} catch(e) {
+  console.warn('[R2] Missing packages — avatar upload disabled. Run: npm install @aws-sdk/client-s3 multer');
+}
+
+function getR2Client() {
+  const https = require('https');
+  const { NodeHttpHandler } = require('@smithy/node-http-handler');
+  return new S3Client({
+    region: 'auto',
+    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId:     process.env.R2_ACCESS_KEY_ID,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+    },
+    requestHandler: new NodeHttpHandler({
+      httpsAgent: new https.Agent({ secureProtocol: 'TLSv1_2_method', rejectUnauthorized: true }),
+    }),
+  });
+}
+
+// Single-file, image-only, 3MB max (matches the client-side check in account.html)
+function makeAvatarUpload() {
+  return multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 3 * 1024 * 1024 },
+    fileFilter(req, file, cb) {
+      if (!file.mimetype.startsWith('image/')) return cb(new Error('Only image files are allowed'));
+      cb(null, true);
+    },
+  }).single('avatar');
+}
+
+// Generic in-memory rate limiter factory — keyed by IP (+ optional field from
+// body, e.g. email) OR by a custom keyFn(req) — e.g. authenticated user id,
+// which is fairer than IP for logged-in routes (doesn't penalize shared
+// office/campus networks) and harder to route around by switching IPs.
+function makeRateLimit({ windowMs, max, message, keyField, keyFn }) {
   const attempts = new Map();
   return function rateLimit(req, res, next) {
     const ip = req.ip || 'unknown';
-    const key = keyField && req.body && req.body[keyField]
-      ? `${ip}:${String(req.body[keyField]).toLowerCase()}`
-      : ip;
+    let key;
+    if (keyFn) key = keyFn(req);
+    else if (keyField && req.body && req.body[keyField]) key = `${ip}:${String(req.body[keyField]).toLowerCase()}`;
+    else key = ip;
     const now = Date.now();
     const entry = attempts.get(key) || { count: 0, start: now };
     if (now - entry.start > windowMs) { entry.count = 0; entry.start = now; }
@@ -51,6 +99,16 @@ const signupRateLimit = makeRateLimit({
   windowMs: 60 * 60 * 1000,
   max: 8,
   message: (retry) => `Too many sign-up attempts from this network. Please try again in ${retry} minutes.`,
+});
+
+// Profile updates (name/avatar) — max 20 per hour per authenticated user.
+// Keyed by user id (not IP), since this route requires auth already —
+// keeps the limit tied to the account regardless of network.
+const profileRateLimit = makeRateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  keyFn: (req) => (req.user?.id ? `user:${req.user.id}` : (req.ip || 'unknown')),
+  message: (retry) => `Too many profile updates. Please try again in ${retry} minutes.`,
 });
 
 // Initialize nodemailer transporter
@@ -181,16 +239,60 @@ router.get('/me', require('../middleware/auth').requireAuth, async (req, res) =>
   } catch(e) { res.status(500).json({ error: 'Server error.' }); }
 });
 
-// Update profile
-router.patch('/profile', require('../middleware/auth').requireAuth, async (req, res) => {
+// Update profile (name only now — avatar goes through POST /avatar below,
+// which uploads to R2 instead of storing a giant base64 string in the DB)
+router.patch('/profile', require('../middleware/auth').requireAuth, profileRateLimit, async (req, res) => {
   try {
     const { name, avatar } = req.body;
+    if (avatar && /^data:/.test(avatar)) {
+      return res.status(400).json({ error: 'Please use the photo upload button — inline image data is no longer accepted here.' });
+    }
     const r = await query(
       'UPDATE users SET name=COALESCE($1,name), avatar=COALESCE($2,avatar) WHERE id=$3 RETURNING *',
       [name||null, avatar||null, req.user.id]
     );
     res.json({ user: safe(r.rows[0]) });
   } catch(e) { res.status(500).json({ error: 'Server error.' }); }
+});
+
+// Upload avatar to Cloudflare R2 — replaces the old base64-into-DB approach.
+// Same rate limit as profile updates (they're the same "edit my profile" action).
+router.post('/avatar', require('../middleware/auth').requireAuth, profileRateLimit, (req, res) => {
+  if (!_avatarUploadReady) {
+    return res.status(503).json({ error: 'Upload not available. Run: npm install @aws-sdk/client-s3 multer' });
+  }
+  if (!process.env.R2_ACCOUNT_ID || !process.env.R2_ACCESS_KEY_ID) {
+    return res.status(503).json({ error: 'R2 environment variables not configured.' });
+  }
+
+  const upload = makeAvatarUpload();
+  upload(req, res, async (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+
+    const r2      = getR2Client();
+    const bucket  = process.env.R2_BUCKET_NAME || 'bards-media';
+    const cdnBase = (process.env.R2_PUBLIC_URL || '').replace(/\/$/, '');
+
+    try {
+      const ext = (req.file.originalname.split('.').pop() || 'jpg').toLowerCase();
+      const key = `avatars/${req.user.id}-${Date.now()}.${ext}`;
+      await r2.send(new PutObjectCommand({
+        Bucket:      bucket,
+        Key:         key,
+        Body:        req.file.buffer,
+        ContentType: req.file.mimetype,
+        ACL:         'public-read',
+      }));
+      const url = cdnBase ? `${cdnBase}/${key}` : `https://${bucket}.r2.dev/${key}`;
+
+      const r = await query('UPDATE users SET avatar=$1 WHERE id=$2 RETURNING *', [url, req.user.id]);
+      res.json({ user: safe(r.rows[0]) });
+    } catch(e) {
+      console.error('[AVATAR UPLOAD]', e.message);
+      res.status(500).json({ error: 'Upload failed: ' + e.message });
+    }
+  });
 });
 
 // Change password
