@@ -553,9 +553,9 @@ async function loadSavedAddresses() {
             ${a.isDefault?`<div style="width:7px;height:7px;border-radius:50%;background:var(--black);"></div>`:''}
           </div>
           <div>
-            <div style="font-size:13px;font-weight:600;">${a.name}${a.isDefault?' <span style="font-size:9px;font-weight:700;color:var(--orange);letter-spacing:.5px;">DEFAULT</span>':''}</div>
-            <div style="font-size:11px;color:var(--gray-400);margin-top:2px;">${a.line}${a.line2?', '+a.line2:''}, ${a.province}</div>
-            <div style="font-size:11px;color:var(--gray-400);">${a.phone}</div>
+            <div style="font-size:13px;font-weight:600;">${escapeHtml(a.name)}${a.isDefault?' <span style="font-size:9px;font-weight:700;color:var(--orange);letter-spacing:.5px;">DEFAULT</span>':''}</div>
+            <div style="font-size:11px;color:var(--gray-400);margin-top:2px;">${escapeHtml(a.line)}${a.line2?', '+escapeHtml(a.line2):''}, ${escapeHtml(a.province)}</div>
+            <div style="font-size:11px;color:var(--gray-400);">${escapeHtml(a.phone)}</div>
           </div>
         </div>
       </div>`).join('');
