@@ -196,8 +196,10 @@ const AuthAPI = {
     return apiFetch('/auth/change-password', { method: 'POST', body: { currentPassword, newPassword }, auth: true });
   },
 
-  /* ── OAuth — redirect-based flow ── */
-  loginWithGoogle()   { location.href = API_BASE + '/auth/google'; },
+  /* ── OAuth — redirect-based flow ──
+     redirect: optional same-site path (e.g. "checkout.html") to return to after
+     login — carried through Google's round trip via the `state` param. */
+  loginWithGoogle(redirect)   { location.href = API_BASE + '/auth/google' + (redirect ? ('?redirect=' + encodeURIComponent(redirect)) : ''); },
   loginWithFacebook() { location.href = API_BASE + '/auth/facebook'; },
 
   /* ── OAuth callback handler (เรียกใน DOMContentLoaded) ── */
@@ -506,29 +508,12 @@ function fmtDate(d) { return d ? new Date(d).toLocaleDateString('en-GB', { day: 
 /* ═══════════════════════════════════════════════════════════════
    Auto-init on DOMContentLoaded
    — updateBadge ทุกหน้า
-   — จัดการ OAuth callback (?token= หรือ ?error=) อัตโนมัติ
+   — OAuth callback (?token=/?error=) ไม่ได้จัดการที่นี่แล้ว: ทุก provider
+     (Google/Telegram) redirect กลับมาที่ signin.html เท่านั้นเสมอ ซึ่งมี
+     handler ของตัวเองครบอยู่แล้ว (loading state + error mapping + safe
+     redirect) — เคยมี logic ซ้ำกันตรงนี้ด้วย ทำให้ทั้งสองที่แข่งกันเรียก
+     handleOAuthCallback() พร้อมกันตอนอยู่หน้า signin.html
 ═══════════════════════════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
   updateBadge();
-
-  const p     = new URLSearchParams(location.search);
-  const token = p.get('token');
-  const error = p.get('error');
-
-  if (error) {
-    /* ปล่อยให้แต่ละหน้าจัดการ error เอง (signin.html มี handler แล้ว) */
-    return;
-  }
-
-  if (token) {
-    try {
-      await AuthAPI.handleOAuthCallback();
-      await WishlistAPI.syncOnLogin().catch(() => {});
-      await Cart.syncOnLogin().catch(() => {});
-      const redirect = p.get('redirect') || p.get('next') || '/account';
-      location.href  = redirect;
-    } catch(e) {
-      console.error('[OAuth callback]', e.message);
-    }
-  }
 });

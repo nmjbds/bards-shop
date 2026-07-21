@@ -116,6 +116,15 @@ function escapeHtml(str) {
   }[c]));
 }
 
+/* only allow same-site relative paths as a post-login redirect target —
+   blocks open-redirect via a crafted ?redirect=https://evil.com or //evil.com */
+function safeRedirect(path) {
+  if (!path || typeof path !== 'string') return null;
+  if (path.startsWith('//')) return null;
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(path)) return null;
+  return path;
+}
+
 /* ─── normalize: แปลง DB row → format เดียวกับ static PRODUCTS ─── */
 function _normProduct(p) {
   const parseColors = v => {
