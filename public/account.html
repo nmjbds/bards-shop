@@ -101,13 +101,29 @@
             font-size:20px; font-weight:700; letter-spacing:-.3px;
             display:flex; align-items:center; gap:8px;
         }
+        .profile-name-edit-row { display:flex; align-items:center; gap:7px; }
         .profile-name input {
-            font:inherit; font-size:20px; font-weight:700; letter-spacing:-.3px;
-            border:none; border-bottom:1.5px solid var(--gray-200);
-            background:transparent; width:100%; outline:none;
+            font:inherit; font-size:17px; font-weight:700; letter-spacing:-.3px;
+            border:none; border-bottom:2px solid var(--gray-200);
+            background:transparent; width:170px; outline:none;
             padding-bottom:2px; color:var(--black);
         }
         .profile-name input:focus { border-color:var(--black); }
+        .profile-edit-btn {
+            width:24px; height:24px; border-radius:50%;
+            background:transparent; border:none; color:var(--gray-400);
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; transition:background .15s,color .15s; flex-shrink:0;
+        }
+        .profile-edit-btn:hover, .profile-edit-btn:active { background:var(--gray-100); color:var(--black); }
+        .profile-name-confirm, .profile-name-cancel {
+            width:26px; height:26px; border-radius:50%; border:none; flex-shrink:0;
+            display:flex; align-items:center; justify-content:center; cursor:pointer; transition:transform .12s,opacity .15s;
+        }
+        .profile-name-confirm { background:var(--black); color:#fff; }
+        .profile-name-cancel  { background:var(--gray-100); color:var(--gray-600); }
+        .profile-name-confirm:active, .profile-name-cancel:active { transform:scale(.88); }
+        .profile-name-confirm.loading { opacity:.5; pointer-events:none; }
         .profile-email { font-size:12px; color:var(--gray-400); margin-top:4px; font-family:'DM Mono',monospace; letter-spacing:.3px; }
         .profile-meta-row { display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
         .profile-meta-chip {
@@ -185,12 +201,12 @@
         .wish-remove {
             position:absolute; top:7px; right:7px; z-index:2;
             width:26px; height:26px; border-radius:50%;
-            background:rgba(255,255,255,.9); border:none;
+            background:var(--black); color:#fff; border:none;
             display:flex; align-items:center; justify-content:center;
-            cursor:pointer; transition:transform .15s,background .15s;
-            box-shadow:0 2px 8px rgba(0,0,0,.08);
+            cursor:pointer; transition:transform .15s,opacity .15s;
         }
-        .wish-remove:active { transform:scale(.85); background:#FEE2E2; }
+        .wish-remove:active { transform:scale(.85); }
+        .wish-remove.loading { opacity:.5; pointer-events:none; }
         .wish-body { padding:9px 10px 11px; }
         .wish-name { font-size:11px; font-weight:600; line-height:1.35; letter-spacing:-.1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .wish-price { font-family:'DM Mono',monospace; font-size:12px; font-weight:500; color:var(--red); margin-top:4px; }
@@ -221,34 +237,58 @@
         .toggle-knob { width:20px; height:20px; border-radius:50%; background:#fff; position:absolute; top:2px; left:2px; transition:transform .25s cubic-bezier(.22,1,.36,1); box-shadow:0 1px 4px rgba(0,0,0,.15); }
         .toggle.on .toggle-knob { transform:translateX(20px); }
 
-        /* ── ADDRESS (minimal monochrome list) ── */
-        .addr-list { display:flex; flex-direction:column; border-top:1px solid var(--gray-200); }
-        .addr-row {
-            display:flex; align-items:flex-start; justify-content:space-between; gap:14px;
-            padding:15px 2px; border-bottom:1px solid var(--gray-200);
+        /* ── ADDRESS (Shopee/Lazada-style cards) ── */
+        .addr-list { display:flex; flex-direction:column; gap:10px; }
+        .addr-card {
+            background:var(--white); border:1.5px solid var(--gray-200);
+            border-radius:var(--radius); padding:14px 15px;
         }
-        .addr-main { flex:1; min-width:0; }
-        .addr-name-row { display:flex; align-items:center; gap:7px; }
-        .addr-name { font-size:13px; font-weight:700; }
-        .addr-tag { font-size:8px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--gray-600); border:1px solid var(--gray-300); border-radius:4px; padding:1px 6px; }
-        .addr-line { font-size:12px; color:var(--gray-600); margin-top:5px; line-height:1.55; }
-        .addr-phone { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray-400); margin-top:6px; }
-        .addr-actions { display:flex; flex-direction:column; align-items:flex-end; gap:9px; flex-shrink:0; padding-top:1px; }
-        .addr-btn {
-            font-size:11px; font-weight:600; letter-spacing:.2px;
-            background:none; border:none; padding:0; cursor:pointer;
-            color:var(--gray-400); transition:color .15s;
+        .addr-card.default { border-color:var(--black); }
+        .addr-top { display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+        .addr-name { font-size:14px; font-weight:700; }
+        .addr-phone { font-family:'DM Mono',monospace; font-size:11px; color:var(--gray-400); }
+        .addr-tag {
+            font-size:9px; font-weight:700; letter-spacing:.8px; text-transform:uppercase;
+            color:var(--orange); border:1.2px solid var(--orange); border-radius:4px; padding:2px 7px;
         }
-        .addr-btn:hover, .addr-btn:active { color:var(--black); }
-        .addr-btn.danger:hover, .addr-btn.danger:active { color:var(--red); }
+        .addr-line { font-size:12.5px; color:var(--gray-600); line-height:1.6; margin-top:8px; }
+        .addr-footer {
+            display:flex; align-items:center; justify-content:flex-end; gap:18px;
+            margin-top:13px; padding-top:12px; border-top:1px solid var(--gray-100);
+        }
+        .addr-link {
+            font-size:12px; font-weight:600; color:var(--gray-600);
+            background:none; border:none; cursor:pointer; padding:0;
+            display:flex; align-items:center; gap:5px; transition:color .15s;
+        }
+        .addr-link:hover, .addr-link:active { color:var(--black); }
+        .addr-link.danger:hover, .addr-link.danger:active { color:var(--red); }
+        .addr-link.btn-loading { pointer-events:none; opacity:.5; }
+        .addr-set-default {
+            font-size:11.5px; font-weight:700; letter-spacing:.2px;
+            padding:7px 14px; border-radius:20px;
+            border:1.5px solid var(--black); background:var(--white); color:var(--black);
+            cursor:pointer; transition:all .18s; display:flex; align-items:center; gap:6px;
+        }
+        .addr-set-default:active { background:var(--black); color:#fff; transform:scale(.96); }
+        .addr-set-default.btn-loading { pointer-events:none; opacity:.5; }
         .add-btn {
             width:100%; height:46px; border-radius:var(--radius-sm);
             border:1.5px solid var(--gray-200); background:transparent;
             color:var(--gray-600); font-size:12px; font-weight:600;
             cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;
-            transition:all .18s; margin-top:10px;
+            transition:all .18s; margin-top:2px;
         }
         .add-btn:active { border-color:var(--black); color:var(--black); background:var(--gray-50); transform:scale(.98); }
+
+        /* Generic secondary button (e.g. Cancel in sheets) */
+        .btn-secondary {
+            width:100%; height:44px; border-radius:var(--radius-sm);
+            border:1.5px solid var(--gray-200); background:var(--white);
+            color:var(--gray-600); font-size:13px; font-weight:600; cursor:pointer;
+            transition:all .18s;
+        }
+        .btn-secondary:active { background:var(--gray-100); transform:scale(.98); }
 
         /* ── SHEET ── */
         .mask {
@@ -396,8 +436,8 @@
     <div class="profile-info">
         <div class="profile-name" id="profileNameWrap">
             <span id="profileNameText">User</span>
-            <button class="icon-btn" style="width:28px;height:28px;" onclick="editName()" id="editNameBtn">
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a2.5 2.5 0 0 0-3.5-3.5L3 5v3h3l4.5-4.5z"/><path d="M1 15v2a2 2 0 0 0 2 2h2"/></svg>
+            <button class="profile-edit-btn" onclick="editName()" id="editNameBtn" aria-label="Edit name">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a2.5 2.5 0 0 0-3.5-3.5L3 5v3h3l4.5-4.5z"/><path d="M1 15v2a2 2 0 0 0 2 2h2"/></svg>
             </button>
         </div>
         <div class="profile-email" id="profileEmail">user@example.com</div>
@@ -416,7 +456,7 @@
     </div>
     <div class="stat-tile" onclick="scrollToSection('wishlistSection')">
         <div class="stat-val" id="statWishlist">0</div>
-        <div class="stat-label">Wishlist</div>
+        <div class="stat-label">Saved</div>
     </div>
     <div class="stat-tile" onclick="scrollToSection('addressesSection')">
         <div class="stat-val" id="statAddresses">0</div>
@@ -444,17 +484,17 @@
 <div id="wishlistSection" class="fu d2">
     <div class="section">
         <div class="sec-hd">
-            <span class="sec-hd-title">Wishlist</span>
-            <a href="index.html" class="see-all">Browse →</a>
+            <span class="sec-hd-title">Saved Items</span>
+            <a href="wishlist.html" class="see-all">See all →</a>
         </div>
     </div>
     <div class="wish-scroll">
         <div class="wish-row" id="wishRow"></div>
     </div>
     <div class="empty" id="emptyWishlist" style="padding:28px 20px;">
-        <div class="empty-icon">❤️</div>
-        <div class="empty-title">Wishlist is empty</div>
-        <div class="empty-sub">Tap ❤️ on any item to save it here.</div>
+        <svg width="30" height="30" fill="none" stroke="var(--gray-300)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-bottom:12px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <div class="empty-title">No saved items yet</div>
+        <div class="empty-sub">Tap the heart icon on any product to save it here.</div>
     </div>
 </div>
 
@@ -622,7 +662,7 @@
         Are you sure you want to sign out of your account?
     </div>
     <button class="confirm-btn idle" style="background:var(--red);margin-bottom:10px;" onclick="confirmSignOut()">SIGN OUT</button>
-    <button class="addr-btn" style="width:100%;height:44px;font-size:13px;" onclick="hideSheet()">Cancel</button>
+    <button class="btn-secondary" onclick="hideSheet()">Cancel</button>
 </div>
 
 <!-- TOAST -->
@@ -727,33 +767,51 @@ function renderAvatar() {
     }
 }
 
+function profileNameDefaultHTML() {
+    return `<span id="profileNameText">${escapeHtml(S.profile.name)}</span>
+        <button class="profile-edit-btn" onclick="editName()" id="editNameBtn" aria-label="Edit name">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a2.5 2.5 0 0 0-3.5-3.5L3 5v3h3l4.5-4.5z"/><path d="M1 15v2a2 2 0 0 0 2 2h2"/></svg>
+        </button>`;
+}
+
 function editName() {
     const wrap = document.getElementById('profileNameWrap');
-    wrap.innerHTML = `<input type="text" id="nameInput" onblur="saveName()" onkeydown="if(event.key==='Enter')this.blur()" style="font-size:17px;font-weight:700;border:none;border-bottom:2px solid #111;background:transparent;outline:none;width:200px;">`;
+    wrap.innerHTML = `
+        <div class="profile-name-edit-row">
+            <input type="text" id="nameInput" onkeydown="if(event.key==='Enter')saveName();if(event.key==='Escape')cancelEditName();">
+            <button class="profile-name-confirm" id="nameConfirmBtn" onclick="saveName()" aria-label="Save name">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button class="profile-name-cancel" onclick="cancelEditName()" aria-label="Cancel">
+                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg>
+            </button>
+        </div>`;
     const input = document.getElementById('nameInput');
     input.value = S.profile.name || ''; // set via property, not HTML attribute — safe against injection
     input.focus();
+}
+
+function cancelEditName() {
+    document.getElementById('profileNameWrap').innerHTML = profileNameDefaultHTML();
 }
 
 async function saveName() {
     const input = document.getElementById('nameInput');
     if (!input) return;
     const val = input.value.trim();
-    if (val && val !== S.profile.name) {
-        try {
-            const d = await AuthAPI.updateProfile({ name: val });
-            S.profile.name = d.user.name;
-        } catch(e) { showToast('warn','Save failed',e.message); }
+    if (!val) { showToast('warn','Name cannot be empty',''); return; }
+    if (val === S.profile.name) { cancelEditName(); return; }
+    const btn = document.getElementById('nameConfirmBtn');
+    if (btn) btn.classList.add('loading');
+    try {
+        const d = await AuthAPI.updateProfile({ name: val });
+        S.profile.name = d.user.name;
+        showToast('ok','Profile updated','');
+    } catch(e) {
+        showToast('warn','Save failed',e.message);
     }
-    document.getElementById('profileNameWrap').innerHTML =
-        `<span id="profileNameText">${escapeHtml(S.profile.name)}</span>
-         <button class="icon-btn" style="width:28px;height:28px;" onclick="editName()">
-           <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-             <path d="M11 4a2.5 2.5 0 0 0-3.5-3.5L3 5v3h3l4.5-4.5z"/><path d="M1 15v2a2 2 0 0 0 2 2h2"/>
-           </svg>
-         </button>`;
+    document.getElementById('profileNameWrap').innerHTML = profileNameDefaultHTML();
     renderAvatar();
-    showToast('ok','Profile updated','');
 }
 
 function triggerAvatar() { document.getElementById('avatarInput')?.click(); }
@@ -848,8 +906,8 @@ function renderWishlist() {
         return `<div class="wish-card" onclick="location.href='product.html?id=${encodeURIComponent(id)}'">
           <div class="wish-img">
             <img src="${escapeHtml(p.images[0])}" alt="${escapeHtml(p.name)}" loading="lazy">
-            <button class="wish-remove" onclick="event.stopPropagation();removeFav('${id}')">
-              <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="1" y1="1" x2="10" y2="10"/><line x1="10" y1="1" x2="1" y2="10"/></svg>
+            <button class="wish-remove" onclick="event.stopPropagation();removeFav('${id}',this)" aria-label="Remove from saved items">
+              <svg width="12" height="12" fill="currentColor" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
             </button>
           </div>
           <div class="wish-body">
@@ -860,13 +918,14 @@ function renderWishlist() {
     }).join('');
 }
 
-async function removeFav(id) {
+async function removeFav(id, btn) {
+    if (btn) btn.classList.add('loading');
     try {
         S.favs = await WishlistAPI.remove(id);
     } catch {
         S.favs = S.favs.filter(f => f !== id);
     }
-    renderWishlist(); updateStats(); showToast('ok','Removed from wishlist','');
+    renderWishlist(); updateStats(); showToast('ok','Removed from saved items','');
 }
 
 /* ── Addresses ─────────────────────────────────────────────────── */
@@ -894,22 +953,22 @@ function renderAddresses() {
     if (!S.addresses.length) { list.innerHTML=''; empty?.classList.add('show'); return; }
     empty?.classList.remove('show');
     list.innerHTML = S.addresses.map((a,i) => `
-      <div class="addr-row">
-        <div class="addr-main">
-          <div class="addr-name-row">
-            <span class="addr-name">${escapeHtml(a.name)}</span>
-            ${a.isDefault?'<span class="addr-tag">Default</span>':''}
-          </div>
-          <div class="addr-line">${escapeHtml(a.line)}${a.line2?', '+escapeHtml(a.line2):''}, ${escapeHtml(a.province)}</div>
-          <div class="addr-phone">${escapeHtml(a.phone)}</div>
+      <div class="addr-card${a.isDefault?' default':''}">
+        <div class="addr-top">
+          <span class="addr-name">${escapeHtml(a.name)}</span>
+          <span class="addr-phone">${escapeHtml(a.phone)}</span>
+          ${a.isDefault?'<span class="addr-tag">Default</span>':''}
         </div>
-        <div class="addr-actions">
-          <button class="addr-btn" onclick="openAddrSheet(${i})">Edit</button>
-          ${!a.isDefault?`<button class="addr-btn" onclick="setDefaultAddr(${i})">Set Default</button>`:''}
-          <button class="addr-btn danger" onclick="deleteAddr(${i})">Delete</button>
+        <div class="addr-line">${escapeHtml(a.line)}${a.line2?', '+escapeHtml(a.line2):''}, ${escapeHtml(a.province)}</div>
+        <div class="addr-footer">
+          <button class="addr-link" onclick="openAddrSheet(${i})">Edit</button>
+          <button class="addr-link danger" onclick="deleteAddr(${i},this)">Delete</button>
+          ${!a.isDefault?`<button class="addr-set-default" onclick="setDefaultAddr(${i},this)">Set as Default</button>`:''}
         </div>
       </div>`).join('');
 }
+
+const _btnSpinner = `<svg style="animation:spin .7s linear infinite" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>`;
 
 function openAddrSheet(idx) {
     _editingAddrIdx = idx!==undefined ? idx : -1;
@@ -944,6 +1003,9 @@ async function saveAddr() {
         province:   prov,
         is_default: _editingAddrIdx===-1 && !S.addresses.length,
     };
+    const btn = document.getElementById('addrConfirmBtn');
+    btn.className = 'confirm-btn loading';
+    btn.innerHTML = `${_btnSpinner} <span>Saving…</span>`;
     try {
         if (_editingAddrIdx>=0 && S.addresses[_editingAddrIdx]?.id) {
             payload.is_default = S.addresses[_editingAddrIdx].isDefault;
@@ -953,27 +1015,42 @@ async function saveAddr() {
         }
         await loadAddresses();
         hideSheet(); renderAddresses(); updateStats(); showToast('ok','Address saved','');
-    } catch(e) { showToast('warn','Save failed: '+e.message,''); }
+    } catch(e) {
+        showToast('warn','Save failed: '+e.message,'');
+    } finally {
+        btn.className = 'confirm-btn idle';
+        btn.innerHTML = 'SAVE ADDRESS';
+    }
 }
 
-async function deleteAddr(i) {
+async function deleteAddr(i, btn) {
     const a = S.addresses[i];
     if (!a) return;
+    const original = btn?.innerHTML;
+    if (btn) { btn.classList.add('btn-loading'); btn.innerHTML = _btnSpinner; }
     try {
         if (a.id) await apiFetch(`/addresses/${a.id}`, { method:'DELETE', auth:true });
         await loadAddresses();
         renderAddresses(); updateStats(); showToast('ok','Address deleted','');
-    } catch(e) { showToast('warn','Delete failed: '+e.message,''); }
+    } catch(e) {
+        showToast('warn','Delete failed: '+e.message,'');
+        if (btn) { btn.classList.remove('btn-loading'); btn.innerHTML = original; }
+    }
 }
 
-async function setDefaultAddr(i) {
+async function setDefaultAddr(i, btn) {
     const a = S.addresses[i];
     if (!a) return;
+    const original = btn?.innerHTML;
+    if (btn) { btn.classList.add('btn-loading'); btn.innerHTML = `${_btnSpinner} <span>Setting…</span>`; }
     try {
         if (a.id) await apiFetch(`/addresses/${a.id}/set-default`, { method:'POST', auth:true });
         await loadAddresses();
         renderAddresses(); showToast('ok','Default address set','');
-    } catch(e) { showToast('warn','Error: '+e.message,''); }
+    } catch(e) {
+        showToast('warn','Error: '+e.message,'');
+        if (btn) { btn.classList.remove('btn-loading'); btn.innerHTML = original; }
+    }
 }
 
 /* ── Settings ───────────────────────────────────────────────────── */
