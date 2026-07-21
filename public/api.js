@@ -59,6 +59,10 @@ const Auth = {
   },
 
   logout(to = '/signin') {
+    // Best-effort — revoke the refresh cookie server-side. Fire-and-forget
+    // so every existing onclick="Auth.logout(...)" call site keeps working
+    // without needing to become async.
+    fetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     this.clearSession();
     if (typeof location !== 'undefined') location.href = to;
   },
@@ -78,7 +82,27 @@ const Auth = {
      → ป้องกัน "Unexpected end of JSON" และ server ส่ง HTML error มา
    — เพิ่ม: auto-logout เมื่อ 401 (จากเวอร์ชันเก่า)
 ═══════════════════════════════════════════════════════════════ */
-async function apiFetch(path, { method = 'GET', body, auth = false } = {}) {
+/* Silent refresh — the access token is short-lived (15m) now, so a 401 on an
+   authed call usually just means it expired, not that the session is dead.
+   Concurrent 401s share one in-flight refresh instead of each rotating the
+   refresh cookie themselves (that would race and invalidate each other). */
+let _refreshPromise = null;
+function _refreshAccessToken() {
+  if (!_refreshPromise) {
+    _refreshPromise = fetch(API_BASE + '/auth/refresh', { method: 'POST', credentials: 'include' })
+      .then(async res => {
+        if (!res.ok) throw new Error('refresh failed');
+        const data = await res.json();
+        if (data?.token) Auth.setToken(data.token);
+        if (data?.user)  Auth.setUser(data.user);
+        return data.token;
+      })
+      .finally(() => { _refreshPromise = null; });
+  }
+  return _refreshPromise;
+}
+
+async function apiFetch(path, { method = 'GET', body, auth = false, _retried = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) {
     const token = Auth.getToken();
@@ -93,7 +117,17 @@ async function apiFetch(path, { method = 'GET', body, auth = false } = {}) {
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
-  /* auto-logout on 401 */
+  /* Expired access token → try one silent refresh-and-retry before giving up */
+  if (res.status === 401 && auth && !_retried) {
+    try {
+      const newToken = await _refreshAccessToken();
+      if (newToken) return apiFetch(path, { method, body, auth, _retried: true });
+    } catch { /* fall through to logout below */ }
+    Auth.logout();
+    return;
+  }
+
+  /* auto-logout on 401 (refresh already failed, or this is the retry itself) */
   if (res.status === 401 && auth) { Auth.logout(); return; }
 
   /* อ่าน text ก่อนเสมอ — ป้องกัน JSON parse crash */

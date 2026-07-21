@@ -129,7 +129,71 @@ const transporter = nodemailer.createTransport({
 });
 
 function sign(user) {
-  return jwt.sign({ id: user.id, email: user.email, name: user.name, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign({ id: user.id, email: user.email, name: user.name, role: user.role }, process.env.JWT_SECRET, { expiresIn: '15m' });
+}
+
+// ── Refresh tokens ──────────────────────────────────────────────
+// Access token (sign()) is short-lived (15m). A long-lived (30d) refresh
+// token lives in an httpOnly cookie scoped to /api/auth, hashed at rest in
+// refresh_tokens, and rotated on every use so a stolen access token can no
+// longer stay valid for up to 7 days like it used to — see CLAUDE.md §3/§8.
+const REFRESH_COOKIE   = 'bards_rt';
+const REFRESH_TTL_MS   = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+// No cookie-parser dependency — we only ever need to read this one cookie.
+function getCookie(req, name) {
+  const header = req.headers.cookie;
+  if (!header) return null;
+  for (const part of header.split(';')) {
+    const idx = part.indexOf('=');
+    if (idx === -1) continue;
+    if (part.slice(0, idx).trim() === name) return decodeURIComponent(part.slice(idx + 1).trim());
+  }
+  return null;
+}
+
+function hashToken(raw) {
+  return crypto.createHash('sha256').update(raw).digest('hex');
+}
+
+// Inserts a new (hashed) refresh token row. If replacesId is given, that row
+// is atomically marked revoked+replaced_by the new one (rotation).
+async function issueRefreshToken(userId, req, replacesId = null) {
+  const raw       = crypto.randomBytes(48).toString('hex');
+  const tokenHash = hashToken(raw);
+  const expiresAt = new Date(Date.now() + REFRESH_TTL_MS);
+  const userAgent = (req.headers['user-agent'] || '').slice(0, 255);
+  const ins = await query(
+    'INSERT INTO refresh_tokens(user_id, token_hash, expires_at, user_agent) VALUES($1,$2,$3,$4) RETURNING id',
+    [userId, tokenHash, expiresAt, userAgent || null]
+  );
+  if (replacesId) {
+    await query('UPDATE refresh_tokens SET revoked_at=NOW(), replaced_by=$1 WHERE id=$2', [ins.rows[0].id, replacesId]);
+  }
+  return raw;
+}
+
+function setRefreshCookie(res, raw) {
+  res.cookie(REFRESH_COOKIE, raw, {
+    httpOnly: true,
+    secure:   process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path:     '/api/auth',
+    maxAge:   REFRESH_TTL_MS,
+  });
+}
+
+function clearRefreshCookie(res) {
+  res.clearCookie(REFRESH_COOKIE, { path: '/api/auth' });
+}
+
+// Every login path (email, OAuth, Telegram) calls this instead of sign()
+// directly — issues the access token AND a fresh refresh-token cookie.
+async function issueSession(user, req, res) {
+  const accessToken = sign(user);
+  const refreshRaw  = await issueRefreshToken(user.id, req);
+  setRefreshCookie(res, refreshRaw);
+  return accessToken;
 }
 
 passport.serializeUser((user, done) => done(null, user.id));
@@ -212,7 +276,8 @@ router.post('/signup', signupRateLimit, async (req, res) => {
       [name.trim(), email.toLowerCase(), hash, 'email']
     );
     const user = r.rows[0];
-    res.status(201).json({ token: sign(user), user: safe(user) });
+    const token = await issueSession(user, req, res);
+    res.status(201).json({ token, user: safe(user) });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
 
@@ -226,8 +291,54 @@ router.post('/signin', signinRateLimit, async (req, res) => {
     if (!user || !user.password) return res.status(401).json({ error: 'Incorrect email or password.' });
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ error: 'Incorrect email or password.' });
+    const token = await issueSession(user, req, res);
+    res.json({ token, user: safe(user) });
+  } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
+});
+
+// Exchange the refresh cookie for a fresh access token, rotating the refresh
+// token in the process. Doesn't use requireAuth — the cookie IS the auth.
+router.post('/refresh', async (req, res) => {
+  try {
+    const raw = getCookie(req, REFRESH_COOKIE);
+    if (!raw) return res.status(401).json({ error: 'No session. Please sign in.' });
+
+    const tokenHash = hashToken(raw);
+    const r = await query('SELECT * FROM refresh_tokens WHERE token_hash=$1', [tokenHash]);
+    const row = r.rows[0];
+    if (!row) { clearRefreshCookie(res); return res.status(401).json({ error: 'Invalid session. Please sign in again.' }); }
+
+    if (row.revoked_at) {
+      // This token was already rotated away (or logged out) — presenting it
+      // again means it leaked. Kill every live session for this user.
+      await query('UPDATE refresh_tokens SET revoked_at=NOW() WHERE user_id=$1 AND revoked_at IS NULL', [row.user_id]);
+      clearRefreshCookie(res);
+      return res.status(401).json({ error: 'Session revoked. Please sign in again.' });
+    }
+    if (new Date(row.expires_at) < new Date()) {
+      clearRefreshCookie(res);
+      return res.status(401).json({ error: 'Session expired. Please sign in again.' });
+    }
+
+    const userRes = await query('SELECT * FROM users WHERE id=$1', [row.user_id]);
+    if (!userRes.rows.length) { clearRefreshCookie(res); return res.status(401).json({ error: 'User not found.' }); }
+    const user = userRes.rows[0];
+
+    const newRaw = await issueRefreshToken(user.id, req, row.id);
+    setRefreshCookie(res, newRaw);
     res.json({ token: sign(user), user: safe(user) });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
+});
+
+// Revoke the current refresh token (best-effort — a missing/already-invalid
+// cookie is not an error, logout should always "succeed" from the client's POV)
+router.post('/logout', async (req, res) => {
+  try {
+    const raw = getCookie(req, REFRESH_COOKIE);
+    if (raw) await query('UPDATE refresh_tokens SET revoked_at=NOW() WHERE token_hash=$1 AND revoked_at IS NULL', [hashToken(raw)]);
+  } catch(e) { console.error('[LOGOUT]', e.message); }
+  clearRefreshCookie(res);
+  res.json({ ok: true });
 });
 
 // Get current user
@@ -425,14 +536,16 @@ router.get('/google', passport.authenticate('google', {
   prompt: 'select_account',
   access_type: 'online',
 }));
-router.get('/google/callback', passport.authenticate('google', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/signin?error=Google+login+failed` }), (req, res) => {
-  res.redirect(`${process.env.FRONTEND_URL}/signin?token=${sign(req.user)}`);
+router.get('/google/callback', passport.authenticate('google', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/signin?error=Google+login+failed` }), async (req, res) => {
+  const token = await issueSession(req.user, req, res);
+  res.redirect(`${process.env.FRONTEND_URL}/signin?token=${token}`);
 });
 
 // Facebook OAuth
 router.get('/facebook', passport.authenticate('facebook', { scope: ['email', 'public_profile'] }));
-router.get('/facebook/callback', passport.authenticate('facebook', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/signin?error=Facebook+login+failed` }), (req, res) => {
-  res.redirect(`${process.env.FRONTEND_URL}/signin?token=${sign(req.user)}`);
+router.get('/facebook/callback', passport.authenticate('facebook', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/signin?error=Facebook+login+failed` }), async (req, res) => {
+  const token = await issueSession(req.user, req, res);
+  res.redirect(`${process.env.FRONTEND_URL}/signin?token=${token}`);
 });
 
 // Shared Telegram auth-data verification (same check for both the redirect
@@ -469,7 +582,8 @@ router.get('/telegram/callback', async (req, res) => {
     const check = verifyTelegramAuth(req.query);
     if (!check.ok) return res.redirect(`${process.env.FRONTEND_URL}/signin.html?error=${encodeURIComponent(check.reason)}`);
     const user = await upsertTelegramUser(check.data);
-    res.redirect(`${process.env.FRONTEND_URL}/signin?token=${sign(user)}`);
+    const token = await issueSession(user, req, res);
+    res.redirect(`${process.env.FRONTEND_URL}/signin?token=${token}`);
   } catch(e) { console.error(e); res.redirect(`${process.env.FRONTEND_URL}/signin?error=Telegram+login+failed`); }
 });
 
@@ -480,7 +594,8 @@ router.post('/telegram/verify', signinRateLimit, async (req, res) => {
     const check = verifyTelegramAuth(req.body || {});
     if (!check.ok) return res.status(401).json({ error: check.reason });
     const user = await upsertTelegramUser(check.data);
-    res.json({ token: sign(user), user: safe(user) });
+    const token = await issueSession(user, req, res);
+    res.json({ token, user: safe(user) });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
 

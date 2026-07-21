@@ -228,6 +228,21 @@ async function initDb() {
       ALTER TABLE products ADD COLUMN IF NOT EXISTS is_active   BOOLEAN NOT NULL DEFAULT true;
       ALTER TABLE products ADD COLUMN IF NOT EXISTS is_new      BOOLEAN DEFAULT false;
 
+      -- Refresh tokens — one row per issued/rotated session. token_hash is a
+      -- sha256 of the raw token; the raw value is never stored server-side.
+      CREATE TABLE IF NOT EXISTS refresh_tokens (
+        id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id      UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token_hash   TEXT        NOT NULL,
+        expires_at   TIMESTAMPTZ NOT NULL,
+        revoked_at   TIMESTAMPTZ,
+        replaced_by  UUID        REFERENCES refresh_tokens(id),
+        user_agent   TEXT,
+        created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);
+
       -- Indexes
       CREATE INDEX IF NOT EXISTS idx_orders_user     ON orders(user_id);
       CREATE INDEX IF NOT EXISTS idx_orders_status   ON orders(status);
@@ -240,6 +255,13 @@ async function initDb() {
       CREATE INDEX IF NOT EXISTS idx_carts_user ON carts(user_id);
     `);
     console.log('✅ Database ready');
+
+    // Best-effort cleanup — refresh_tokens grows one row per login and one
+    // per rotation, no cron/migration framework in this project to do it
+    // elsewhere, so sweep long-dead rows on every boot instead.
+    await query(
+      `DELETE FROM refresh_tokens WHERE revoked_at < NOW() - INTERVAL '60 days' OR expires_at < NOW() - INTERVAL '60 days'`
+    ).catch(e => console.warn('[DB] refresh_tokens cleanup skipped:', e.message));
   } catch(e) {
     console.error('❌ DB init error:', e.message);
     throw e;
