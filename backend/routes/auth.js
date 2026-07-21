@@ -12,6 +12,13 @@ const router = express.Router();
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
+// Only allow same-site relative paths as an OAuth post-login redirect target —
+// blocks open-redirect via a crafted ?redirect=https://evil.com or //evil.com.
+function isSafeRedirectPath(p) {
+  return typeof p === 'string' && p.length > 0 && p.length < 500
+    && !p.startsWith('//') && !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(p);
+}
+
 // ── Validation schemas ──────────────────────────────────────────
 // password max 72: bcrypt silently truncates/ignores bytes past 72 — capping
 // here means the rejection is explicit instead of a silent behavior surprise.
@@ -550,15 +557,22 @@ router.post('/reset-password', async (req, res) => {
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
 
-// Google OAuth
-router.get('/google', passport.authenticate('google', {
-  scope: ['profile', 'email'],
-  prompt: 'select_account',
-  access_type: 'online',
-}));
+// Google OAuth — the original ?redirect= (e.g. "checkout.html") is carried through
+// Google's round trip via the `state` param, since every other query param gets
+// stripped. It comes back on /google/callback as req.query.state.
+router.get('/google', (req, res, next) => {
+  const redirect = isSafeRedirectPath(req.query.redirect) ? req.query.redirect : '';
+  passport.authenticate('google', {
+    scope: ['profile', 'email'],
+    prompt: 'select_account',
+    access_type: 'online',
+    state: redirect,
+  })(req, res, next);
+});
 router.get('/google/callback', passport.authenticate('google', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/signin?error=Google+login+failed` }), async (req, res) => {
   const token = await issueSession(req.user, req, res);
-  res.redirect(`${process.env.FRONTEND_URL}/signin?token=${token}`);
+  const redirect = isSafeRedirectPath(req.query.state) ? `&redirect=${encodeURIComponent(req.query.state)}` : '';
+  res.redirect(`${process.env.FRONTEND_URL}/signin?token=${token}${redirect}`);
 });
 
 // Facebook OAuth
@@ -620,7 +634,7 @@ router.post('/telegram/verify', signinRateLimit, async (req, res) => {
 });
 
 function safe(u) {
-  return { id:u.id, name:u.name, email:u.email, avatar:u.avatar, provider:u.provider, joined:u.created_at, role:u.role };
+  return { id:u.id, name:u.name, email:u.email, avatar:u.avatar, provider:u.provider, joined:u.joined_at, role:u.role };
 }
 
 module.exports = { router, passport };
