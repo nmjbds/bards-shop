@@ -7,8 +7,7 @@ const router = express.Router();
 router.get('/', requireAuth, async (req, res) => {
   try {
   const r = await query(
-  `SELECT *, full_name AS name, address_line AS address 
-   FROM addresses WHERE user_id=$1 ORDER BY is_default DESC, created_at ASC`,
+  `SELECT * FROM addresses WHERE user_id=$1 ORDER BY is_default DESC, created_at ASC`,
   [req.user.id]
 );
     res.json({ addresses: r.rows });
@@ -17,8 +16,6 @@ router.get('/', requireAuth, async (req, res) => {
 
 // POST /api/addresses
 router.post('/', requireAuth, async (req, res) => {
-  console.log('[DEBUG] user =', req.user);        // เพิ่ม
-  console.log('[DEBUG] body =', req.body);         // เพิ่ม
   try {
     const { name, phone, address, city, province, postal_code, is_default } = req.body;
     if (!name || !address) return res.status(400).json({ error: 'Name and address are required.' });
@@ -27,7 +24,7 @@ router.post('/', requireAuth, async (req, res) => {
       await query('UPDATE addresses SET is_default=false WHERE user_id=$1', [req.user.id]);
     }
     const r = await query(
-  `INSERT INTO addresses(user_id, full_name, phone, address_line, city, province, postal_code, is_default)
+  `INSERT INTO addresses(user_id, name, phone, address, city, province, postal_code, is_default)
    VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
   [req.user.id, name, phone||null, address, city||null, province||null, postal_code||null, !!is_default]
 );
@@ -50,9 +47,9 @@ router.patch('/:id', requireAuth, async (req, res) => {
     const params = [];
     let idx = 1;
 
-    if (name    !== undefined) { updates.push(`full_name=$${idx++}`);    params.push(name); }
+    if (name    !== undefined) { updates.push(`name=$${idx++}`);    params.push(name); }
     if (phone    !== undefined) { updates.push(`phone=$${idx++}`);       params.push(phone || null); }
-    if (address !== undefined) { updates.push(`address_line=$${idx++}`); params.push(address); }
+    if (address !== undefined) { updates.push(`address=$${idx++}`); params.push(address); }
     if (city     !== undefined) { updates.push(`city=$${idx++}`);        params.push(city || null); }
     if (province !== undefined) { updates.push(`province=$${idx++}`);    params.push(province || null); }
     if (postal_code !== undefined) { updates.push(`postal_code=$${idx++}`); params.push(postal_code || null); }

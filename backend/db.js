@@ -127,6 +127,23 @@ async function initDb() {
       ALTER TABLE addresses ADD COLUMN IF NOT EXISTS is_default  BOOLEAN NOT NULL DEFAULT false;
       ALTER TABLE addresses ADD COLUMN IF NOT EXISTS created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
+      -- Migration: DB ที่มีอยู่ก่อนหน้านี้บางชุดถูกสร้างด้วย schema รุ่นเก่ากว่า ที่ใช้ชื่อคอลัมน์
+      -- full_name/address_line (NOT NULL, ไม่มี default) แทน name/address — ALTER ADD COLUMN IF NOT
+      -- EXISTS ด้านบนเลยแค่เพิ่ม name/address เข้าไปแบบว่างเปล่า ไม่ได้ย้ายข้อมูลเก่ามาให้ ทำให้ที่อยู่ที่
+      -- ผู้ใช้จริงเคยบันทึกไว้อยู่ในคอลัมน์เก่า (full_name/address_line) แต่โค้ดปัจจุบันอ่าน/เขียนที่คอลัมน์
+      -- ใหม่ (name/address) — backfill ข้อมูลเก่ามาลงคอลัมน์ใหม่ครั้งเดียว แล้วปลด NOT NULL ของคอลัมน์เก่า
+      -- ทิ้ง (ไม่ลบคอลัมน์/ข้อมูลเดิม แค่ไม่บังคับให้ INSERT ใหม่ต้องเติมมันอีกต่อไป)
+      DO $$ BEGIN
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='addresses' AND column_name='full_name') THEN
+          UPDATE addresses SET name = full_name WHERE name IS NULL AND full_name IS NOT NULL;
+          ALTER TABLE addresses ALTER COLUMN full_name DROP NOT NULL;
+        END IF;
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='addresses' AND column_name='address_line') THEN
+          UPDATE addresses SET address = address_line WHERE address IS NULL AND address_line IS NOT NULL;
+          ALTER TABLE addresses ALTER COLUMN address_line DROP NOT NULL;
+        END IF;
+      END $$;
+
       -- Coupons
       CREATE TABLE IF NOT EXISTS coupons (
         id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
