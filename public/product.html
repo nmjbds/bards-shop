@@ -93,6 +93,9 @@
         .btn-add { background:var(--gray-100); color:var(--black); }
         .btn-buy { background:var(--black); color:#fff; flex:1.35; }
         .btn-add:active, .btn-buy:active { opacity:.78; transform:scale(0.97); }
+        .btn-save { width:48px; height:48px; flex-shrink:0; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); background:var(--white); color:var(--gray-600); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .18s; }
+        .btn-save:active { transform:scale(0.9); }
+        .btn-save.liked { background:var(--black); border-color:var(--black); color:#fff; }
 
         /* SHEET */
         .mask { position:fixed; inset:0; z-index:300; background:rgba(10,10,10,.55); display:none; opacity:0; transition:opacity .32s ease; backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
@@ -181,6 +184,9 @@
         <img src="https://via.placeholder.com/80/0A0A0A?text=BD" class="seller-ava" id="sellerAva">
         <span class="seller-nm">BARDS</span>
     </div>
+    <button class="btn-save" id="saveBtn" onclick="toggleWish()" aria-label="Save to Wishlist">
+        <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </button>
     <button class="btn-add" onclick="openSheet('cart')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
@@ -267,6 +273,38 @@ async function init() {
     document.title = `${P.name} — Bards`;
     buildPage();
     updateBadge();
+    initWishlist();
+}
+
+/* ─── WISHLIST (Save button) ─── */
+let isFav = false;
+async function initWishlist() {
+    try {
+        const favs = await WishlistAPI.load();
+        isFav = favs.includes(PRODUCT_ID);
+    } catch(e) { isFav = false; }
+    renderSaveBtn();
+}
+function renderSaveBtn() {
+    const btn = document.getElementById('saveBtn');
+    if (!btn) return;
+    btn.classList.toggle('liked', isFav);
+    const svg = btn.querySelector('svg');
+    svg.setAttribute('fill', isFav ? 'currentColor' : 'none');
+}
+async function toggleWish() {
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    try {
+        const { added } = await WishlistAPI.toggle(PRODUCT_ID);
+        isFav = added;
+        renderSaveBtn();
+        showToast('ok', added ? 'Saved!' : 'Removed', added ? 'Added to Wishlist ❤️' : 'Removed from Wishlist');
+    } catch(e) {
+        showToast('warn', 'Error', e.message || 'Try again');
+    } finally {
+        btn.disabled = false;
+    }
 }
 
 /* normalize ข้อมูลจาก DB ให้ตรงกับ format ที่ buildPage() ใช้ */

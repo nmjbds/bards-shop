@@ -109,6 +109,13 @@ const CATEGORIES = [
 
 function fmtUSD(n){ return '$'+Number(n).toFixed(2); }
 
+/* escape user/seller-controlled text before it goes into innerHTML (product name, image URL, etc.) */
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
 /* ─── normalize: แปลง DB row → format เดียวกับ static PRODUCTS ─── */
 function _normProduct(p) {
   const parseColors = v => {

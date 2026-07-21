@@ -51,10 +51,6 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
 .p-tag{position:absolute;top:9px;left:9px;z-index:2;background:var(--black);color:#fff;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;padding:3px 9px;border-radius:20px;}
 .p-tag.light{background:var(--white);color:var(--black);}
 .p-tag.low-stock{background:var(--gray-600);color:#fff;top:auto;bottom:9px;}
-.p-fav{position:absolute;top:9px;right:9px;z-index:2;width:29px;height:29px;border-radius:50%;background:rgba(255,255,255,.88);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .18s,background .18s;}
-.p-fav:active{transform:scale(.85);}
-.p-fav.liked{background:var(--black);}
-.p-fav.liked svg{stroke:#fff;fill:#fff;}
 .p-card-body{padding:10px 11px 13px;flex:1;display:flex;flex-direction:column;gap:7px;}
 .p-name{font-size:12px;font-weight:600;line-height:1.35;letter-spacing:-.1px;}
 .p-card.wide .p-name{font-size:14px;}
@@ -144,7 +140,7 @@ const SORT_OPTS=[
   {label:'A → Z',  fn:([,a],[,b])=>a.name.localeCompare(b.name,'th')},
   {label:'Newest', fn:([,a],[,b])=>new Date(b.dateAdded)-new Date(a.dateAdded)},
 ];
-const S={sort:0,cat:'all',query:'',favs:JSON.parse(localStorage.getItem('NW_FAVS')||'[]')};
+const S={sort:0,cat:'all',query:''};
 
 function fmtUSD(num){ return '$'+Number(num).toFixed(2); }
 
@@ -188,28 +184,17 @@ function renderGrid(){
   grid.innerHTML=items.map(([id,p])=>cardHTML(id,p,false)).join('');
 }
 function cardHTML(id,p,wide){
-  const isFav=S.favs.includes(id);
   const dots=p.colors.map(c=>`<div class="p-dot" style="background:${c.hex}"></div>`).join('');
   const low=p.stock==='low-stock'?`<div class="p-tag low-stock">LOW STOCK</div>`:'';
   return`<a href="/product?id=${id}" class="p-card${wide?' wide':''}">
   <div class="p-card-img">
-    <img src="${p.images[0]}" alt="${p.name}" loading="lazy">
+    <img src="${escapeHtml(p.images[0])}" alt="${escapeHtml(p.name)}" loading="lazy">
     <div class="p-tag${p.tagLight?' light':''}">${p.tag}</div>${low}
-    <button class="p-fav${isFav?' liked':''}" onclick="toggleFav(event,'${id}',this)" aria-label="Wishlist">
-      <svg width="13" height="13" fill="${isFav?'currentColor':'none'}" stroke="${isFav?'#fff':'var(--gray-600)'}" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-    </button>
   </div>
   <div class="p-card-body">
-    <div class="p-name">${p.name}</div>
+    <div class="p-name">${escapeHtml(p.name)}</div>
     <div class="p-meta"><div class="p-price">${fmtUSD(p.price)}</div><div class="p-colors">${dots}</div></div>
   </div></a>`;
-}
-function toggleFav(e,id,btn){
-  e.preventDefault();e.stopPropagation();
-  const idx=S.favs.indexOf(id);const svg=btn.querySelector('svg');
-  if(idx>-1){S.favs.splice(idx,1);btn.classList.remove('liked');svg.setAttribute('fill','none');svg.setAttribute('stroke','var(--gray-600)');showToast('Removed','Removed from Wishlist');}
-  else{S.favs.push(id);btn.classList.add('liked');svg.setAttribute('fill','currentColor');svg.setAttribute('stroke','#fff');showToast('Saved!','Added to Wishlist ❤️');}
-  localStorage.setItem('NW_FAVS',JSON.stringify(S.favs));
 }
 function updateBadge(){
   const cart=JSON.parse(localStorage.getItem('BARDS_CART')||'[]');
