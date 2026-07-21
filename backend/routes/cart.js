@@ -1,7 +1,42 @@
 const express = require('express');
+const { z } = require('zod');
 const { query } = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { validate } = require('../middleware/validate');
 const router = express.Router();
+
+// price/quantity use .positive() (not nonnegative) to match the original
+// `!price`/`!quantity` truthy checks, which also rejected 0.
+const cartItemSchema = z.object({
+  id:       z.string().min(1, 'id, price and quantity are required.').max(200),
+  name:     z.string().trim().max(200).optional(),
+  price:    z.coerce.number({ error: 'id, price and quantity are required.' }).positive('id, price and quantity are required.').max(100000),
+  image:    z.string().trim().max(2000).optional().nullable(),
+  color:    z.string().trim().max(50).optional(),
+  size:     z.string().trim().max(50).optional(),
+  quantity: z.coerce.number({ error: 'id, price and quantity are required.' }).positive('id, price and quantity are required.'),
+});
+const cartPatchSchema = z.object({
+  color:    z.string().trim().max(50).optional(),
+  size:     z.string().trim().max(50).optional(),
+  quantity: z.coerce.number().finite().optional(),
+});
+// Loose per-item shape on purpose: the handler already does
+// `if (!item.id || !item.price) continue;` and skips bad entries rather
+// than failing the whole sync, so this only caps size/length — it doesn't
+// require price/quantity to be positive (that would turn one bad local-
+// storage entry into a full 400 instead of a silent skip).
+const cartSyncSchema = z.object({
+  items: z.array(z.object({
+    id:       z.string().max(200).optional(),
+    name:     z.string().trim().max(200).optional(),
+    price:    z.coerce.number().max(100000).optional(),
+    image:    z.string().trim().max(2000).optional().nullable(),
+    color:    z.string().trim().max(50).optional(),
+    size:     z.string().trim().max(50).optional(),
+    quantity: z.coerce.number().optional(),
+  })).max(50, 'Too many items to sync at once.').optional(),
+});
 
 // ══════════════════════════════════════════════
 // GET /api/cart — ดึง cart ของ user
@@ -23,12 +58,9 @@ router.get('/', requireAuth, async (req, res) => {
 // POST /api/cart — เพิ่ม / อัปเดต item
 // body: { id, name, price, image, color, size, quantity }
 // ══════════════════════════════════════════════
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, validate(cartItemSchema), async (req, res) => {
   try {
     const { id, name, price, image, color, size, quantity } = req.body;
-    if (!id || !price || !quantity) {
-      return res.status(400).json({ error: 'id, price and quantity are required.' });
-    }
     const qty = Math.min(Math.max(parseInt(quantity) || 1, 1), 10);
 
     // Upsert: ถ้ามี key เดียวกัน (user+product+color+size) → บวก qty, ไม่เกิน 10
@@ -57,7 +89,7 @@ router.post('/', requireAuth, async (req, res) => {
 // PATCH /api/cart/:product_id — อัปเดต qty
 // body: { color, size, quantity }
 // ══════════════════════════════════════════════
-router.patch('/:product_id', requireAuth, async (req, res) => {
+router.patch('/:product_id', requireAuth, validate(cartPatchSchema), async (req, res) => {
   try {
     const { color, size, quantity } = req.body;
     const qty = Math.min(Math.max(parseInt(quantity) || 1, 1), 10);
@@ -110,7 +142,7 @@ router.delete('/', requireAuth, async (req, res) => {
 // POST /api/cart/sync — sync local cart เข้า server (เรียกตอน login)
 // body: { items: [{id,name,price,image,color,size,quantity}] }
 // ══════════════════════════════════════════════
-router.post('/sync', requireAuth, async (req, res) => {
+router.post('/sync', requireAuth, validate(cartSyncSchema), async (req, res) => {
   try {
     const { items } = req.body;
     if (!Array.isArray(items) || !items.length) {

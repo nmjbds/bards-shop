@@ -1,13 +1,39 @@
 require('dotenv').config();
 const express  = require('express');
 const QRCode   = require('qrcode');
+const { z } = require('zod');
 const { query, pool } = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { validate } = require('../middleware/validate');
 const { expireIfNeeded } = require('../services/orderLifecycle');
 const { restoreStock } = require('../services/stock');
 const aba = require('../services/abaPayway');
 const { settleOrderPayment } = require('../services/paymentSettlement');
 const router = express.Router();
+
+// ── Validation ───────────────────────────────────────────────────
+// Caps *shape and size*, not the pricing/stock math below (which already
+// re-derives price/subtotal/discount from the DB and clamps quantity 1-10
+// per line — that logic is untouched). This just stops someone from sending
+// a 10,000-line order or a megabyte-long address field.
+const createOrderSchema = z.object({
+  items: z.array(z.object({
+    id:       z.string().min(1).max(200),
+    color:    z.string().max(50).optional(),
+    size:     z.string().max(50).optional(),
+    quantity: z.number(),
+  })).min(1, 'Invalid order data.').max(50, 'Too many items in one order.'),
+  shipping:   z.number().optional(),
+  couponCode: z.string().trim().max(32).optional().nullable(),
+  address: z.object({
+    name:     z.string().trim().max(100).optional(),
+    phone:    z.string().trim().max(30).optional(),
+    line:     z.string().trim().max(300).optional(),
+    line2:    z.string().trim().max(300).optional(),
+    province: z.string().trim().max(100).optional(),
+    note:     z.string().trim().max(500).optional(),
+  }).optional(),
+});
 
 /* ════════════════════════════════════════════════════════════════════
  * LEGACY — static KHQR builder (ABA_MERCHANT_PAYLOAD + CRC16)
@@ -109,11 +135,8 @@ function renderQrImage(qrString) {
 // marked 'failed') — we never leave a paid-looking order with no real ABA
 // transaction behind it.
 // ══════════════════════════════════════════════
-router.post('/create', requireAuth, async (req, res) => {
+router.post('/create', requireAuth, validate(createOrderSchema), async (req, res) => {
   const { items, shipping, address, couponCode } = req.body;
-  if (!Array.isArray(items) || !items.length) {
-    return res.status(400).json({ error: 'Invalid order data.' });
-  }
   const shippingCost = Math.max(0, Number(shipping) || 0);
 
   const client = await pool.connect();

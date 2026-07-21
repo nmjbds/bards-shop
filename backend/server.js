@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express   = require('express');
+const helmet    = require('helmet');
 const cors      = require('cors');
 const rateLimit = require('express-rate-limit');
 const session   = require('express-session');
@@ -18,6 +19,15 @@ const productsRouter = require('./routes/products');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, '../public');
+
+/* Helmet — sets the usual protective headers (X-Content-Type-Options,
+   X-Frame-Options, HSTS, removes X-Powered-By, etc).
+   contentSecurityPolicy is OFF: the frontend is plain static HTML full of
+   onclick="..." handlers and inline <style>/<script> (no build step, no
+   nonces/hashes anywhere) — Helmet's default CSP blocks all of that and
+   would break every page. Enabling a real CSP here needs a proper pass
+   over the frontend first, not a silent one-line flip. */
+app.use(helmet({ contentSecurityPolicy: false }));
 
 /* CORS */
 const allowed = [

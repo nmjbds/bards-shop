@@ -1,7 +1,52 @@
 const express = require('express');
+const { z } = require('zod');
 const { query } = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { validate } = require('../middleware/validate');
 const router = express.Router();
+
+// ── Validation schemas ──────────────────────────────────────────
+const dateField = z.coerce.date().optional().nullable().transform(d => d ? d.toISOString().slice(0, 10) : d);
+const couponTypeEnum = z.enum(['percent', 'fixed', 'freeship'], { error: 'Invalid type.' });
+
+// Create requires code+type (matches existing POST /seller behavior).
+const couponCreateSchema = z.object({
+  code:        z.string().trim().min(1, 'Coupon code is required.').max(32)
+                 .regex(/^[A-Za-z0-9_-]+$/, 'Coupon code can only contain letters, numbers, - and _.'),
+  description: z.string().trim().max(500).optional().nullable(),
+  type:        couponTypeEnum,
+  value:       z.coerce.number().finite().nonnegative().max(100000).optional(),
+  min_order:   z.coerce.number().finite().nonnegative().max(100000).optional(),
+  usage_limit: z.coerce.number().int().nonnegative().max(1000000).optional(),
+  start_date:  dateField,
+  expiry_date: dateField,
+  active:      z.boolean().optional(),
+})
+  .refine(d => d.type === 'freeship' || (d.value !== undefined && d.value > 0),
+    { message: 'Discount value must be greater than 0.', path: ['value'] })
+  .refine(d => d.type !== 'percent' || d.value === undefined || d.value <= 100,
+    { message: 'Percent discount cannot exceed 100.', path: ['value'] })
+  .refine(d => !(d.start_date && d.expiry_date) || d.expiry_date >= d.start_date,
+    { message: 'Expiry date must be on or after the start date.', path: ['expiry_date'] });
+
+// PATCH /seller/:id never reads `code` from the body (route only updates the
+// other fields) — this schema doesn't include it either. `type`, if
+// provided, is now re-validated against the same enum as create, closing
+// the gap where an update could set it to an arbitrary string.
+const couponUpdateSchema = z.object({
+  description: z.string().trim().max(500).optional().nullable(),
+  type:        couponTypeEnum.optional().nullable(),
+  value:       z.coerce.number().finite().nonnegative().max(100000).optional().nullable(),
+  min_order:   z.coerce.number().finite().nonnegative().max(100000).optional().nullable(),
+  usage_limit: z.coerce.number().int().nonnegative().max(1000000).optional().nullable(),
+  start_date:  dateField,
+  expiry_date: dateField,
+  active:      z.boolean().optional().nullable(),
+})
+  .refine(d => d.type !== 'percent' || d.value == null || d.value <= 100,
+    { message: 'Percent discount cannot exceed 100.', path: ['value'] })
+  .refine(d => !(d.start_date && d.expiry_date) || d.expiry_date >= d.start_date,
+    { message: 'Expiry date must be on or after the start date.', path: ['expiry_date'] });
 
 // ── Seller/admin middleware (copy pattern จาก seller.js) ──
 async function requireSeller(req, res, next) {
@@ -88,14 +133,9 @@ router.get('/seller', requireAuth, requireSeller, async (req, res) => {
 });
 
 // POST /api/coupons/seller — create coupon (seller only)
-router.post('/seller', requireAuth, requireSeller, async (req, res) => {
+router.post('/seller', requireAuth, requireSeller, validate(couponCreateSchema), async (req, res) => {
   try {
     const { code, description, type, value, min_order, usage_limit, start_date, expiry_date, active } = req.body;
-    if (!code) return res.status(400).json({ error: 'Coupon code is required.' });
-    if (!['percent','fixed','freeship'].includes(type)) return res.status(400).json({ error: 'Invalid type.' });
-    if (type !== 'freeship' && (!value || Number(value) <= 0)) {
-      return res.status(400).json({ error: 'Discount value must be greater than 0.' });
-    }
     // ตรวจ duplicate code
     const dup = await query('SELECT id FROM coupons WHERE UPPER(code)=UPPER($1)', [code.trim()]);
     if (dup.rows.length) return res.status(409).json({ error: 'Coupon code already exists.' });
@@ -120,7 +160,7 @@ router.post('/seller', requireAuth, requireSeller, async (req, res) => {
 });
 
 // PATCH /api/coupons/seller/:id — update coupon (seller only)
-router.patch('/seller/:id', requireAuth, requireSeller, async (req, res) => {
+router.patch('/seller/:id', requireAuth, requireSeller, validate(couponUpdateSchema), async (req, res) => {
   try {
     const { description, type, value, min_order, usage_limit, start_date, expiry_date, active } = req.body;
     const r = await query(

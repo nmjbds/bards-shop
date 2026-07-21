@@ -1,7 +1,29 @@
 const express = require('express');
+const { z } = require('zod');
 const { query } = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { validate } = require('../middleware/validate');
 const router = express.Router();
+
+const addressCreateSchema = z.object({
+  name:        z.string().trim().min(1, 'Name and address are required.').max(100),
+  phone:       z.string().trim().max(30).optional().nullable(),
+  address:     z.string().trim().min(1, 'Name and address are required.').max(300),
+  city:        z.string().trim().max(100).optional().nullable(),
+  province:    z.string().trim().max(100).optional().nullable(),
+  postal_code: z.string().trim().max(20).optional().nullable(),
+  is_default:  z.boolean().optional(),
+});
+// Same fields, all optional — PATCH only touches fields that are present.
+const addressUpdateSchema = z.object({
+  name:        z.string().trim().min(1).max(100).optional(),
+  phone:       z.string().trim().max(30).optional().nullable(),
+  address:     z.string().trim().min(1).max(300).optional(),
+  city:        z.string().trim().max(100).optional().nullable(),
+  province:    z.string().trim().max(100).optional().nullable(),
+  postal_code: z.string().trim().max(20).optional().nullable(),
+  is_default:  z.boolean().optional(),
+});
 
 // GET /api/addresses
 router.get('/', requireAuth, async (req, res) => {
@@ -15,10 +37,9 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 // POST /api/addresses
-router.post('/', requireAuth, async (req, res) => {
+router.post('/', requireAuth, validate(addressCreateSchema), async (req, res) => {
   try {
     const { name, phone, address, city, province, postal_code, is_default } = req.body;
-    if (!name || !address) return res.status(400).json({ error: 'Name and address are required.' });
     // If new address is default, unset others
     if (is_default) {
       await query('UPDATE addresses SET is_default=false WHERE user_id=$1', [req.user.id]);
@@ -33,7 +54,7 @@ router.post('/', requireAuth, async (req, res) => {
 });
 
 // PATCH /api/addresses/:id
-router.patch('/:id', requireAuth, async (req, res) => {
+router.patch('/:id', requireAuth, validate(addressUpdateSchema), async (req, res) => {
   try {
     const { name, phone, address, city, province, postal_code, is_default } = req.body;
 

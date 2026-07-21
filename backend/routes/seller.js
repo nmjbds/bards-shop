@@ -1,8 +1,66 @@
 const express = require('express');
+const crypto  = require('crypto');
+const { z } = require('zod');
 const { query, pool } = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { validate, MIME_EXT } = require('../middleware/validate');
 const { restoreStock } = require('../services/stock');
 const router = express.Router();
+
+// ── Validation schemas ──────────────────────────────────────────
+// images/colors/sizes arrive either as a real array or a JSON-encoded
+// string (see parseArr() below, unchanged) — accept both shapes here, just
+// cap size so a request can't smuggle an unbounded payload into JSONB.
+const stringArrayField = z.union([
+  z.array(z.string().max(500)).max(20),
+  z.string().max(20000),
+]).optional();
+
+const productCreateSchema = z.object({
+  name:        z.string().trim().min(1, 'Product name is required.').max(200),
+  description: z.string().trim().max(5000).optional().nullable(),
+  price:       z.coerce.number({ error: 'Price is required.' }).positive('Price is required.').max(100000),
+  sale_price:  z.coerce.number().finite().nonnegative().max(100000).optional().nullable(),
+  category:    z.string().trim().max(50).optional().nullable(),
+  images: stringArrayField, colors: stringArrayField, sizes: stringArrayField,
+  stock:     z.union([z.coerce.number().int().nonnegative().max(1000000), z.null()]).optional(),
+  is_new:    z.boolean().optional(),
+  is_active: z.boolean().optional(),
+});
+// Same fields, all optional — PATCH only touches fields that are present.
+const productUpdateSchema = z.object({
+  name:        z.string().trim().min(1).max(200).optional(),
+  description: z.string().trim().max(5000).optional().nullable(),
+  price:       z.coerce.number().finite().nonnegative().max(100000).optional(),
+  sale_price:  z.coerce.number().finite().nonnegative().max(100000).optional().nullable(),
+  category:    z.string().trim().max(50).optional().nullable(),
+  images: stringArrayField, colors: stringArrayField, sizes: stringArrayField,
+  stock:     z.union([z.coerce.number().int().nonnegative().max(1000000), z.null()]).optional(),
+  is_new:    z.boolean().optional(),
+  is_active: z.boolean().optional(),
+});
+const orderUpdateSchema = z.object({
+  status:          z.string().max(50).optional(),
+  seller_note:     z.string().trim().max(2000).optional().nullable(),
+  tracking_number: z.string().trim().max(100).optional().nullable(),
+});
+const orderNoteSchema = z.object({
+  seller_note: z.string().trim().max(2000).optional().nullable(),
+});
+const makeSellerSchema = z.object({
+  email:  z.string().trim().max(200).email('Please enter a valid email address.'),
+  secret: z.string().min(1).max(500),
+});
+
+// Constant-time comparison — the previous `secret !== process.env.ADMIN_SECRET`
+// leaks timing information proportional to how many leading characters match.
+function secretMatches(provided, expected) {
+  if (!expected) return false;
+  const a = Buffer.from(String(provided));
+  const b = Buffer.from(String(expected));
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
 
 // ── Cloudflare R2 Upload ──────────────────────────────────────
 // ต้องติดตั้ง:  npm install @aws-sdk/client-s3 multer multer-memfile
@@ -83,7 +141,10 @@ router.post('/upload', requireAuth, requireSeller, (req, res) => {
 
     try {
       const urls = await Promise.all(req.files.map(async (file) => {
-        const ext  = file.originalname.split('.').pop().toLowerCase() || 'jpg';
+        // Extension from the validated mimetype, not the client-controlled
+        // originalname — avoids injecting arbitrary characters/paths into
+        // the R2 object key via a crafted filename.
+        const ext  = MIME_EXT[file.mimetype] || 'jpg';
         const key  = `images/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
         await r2.send(new PutObjectCommand({
           Bucket:      bucket,
@@ -155,7 +216,7 @@ const ALLOWED_TRANSITIONS = {
 };
 
 // ── PATCH /api/seller/orders/:id ── update status + seller_note + tracking_number
-router.patch('/orders/:id', requireAuth, requireSeller, async (req, res) => {
+router.patch('/orders/:id', requireAuth, requireSeller, validate(orderUpdateSchema), async (req, res) => {
   const client = await pool.connect();
   try {
     const { status, seller_note, tracking_number } = req.body;
@@ -219,7 +280,7 @@ router.patch('/orders/:id', requireAuth, requireSeller, async (req, res) => {
 });
 
 // ── PATCH /api/seller/orders/:id/note ── update seller_note เท่านั้น (ไม่เปลี่ยน status)
-router.patch('/orders/:id/note', requireAuth, requireSeller, async (req, res) => {
+router.patch('/orders/:id/note', requireAuth, requireSeller, validate(orderNoteSchema), async (req, res) => {
   try {
     const { seller_note } = req.body;
     if (seller_note === undefined) return res.status(400).json({ error: 'seller_note is required.' });
@@ -336,14 +397,12 @@ router.get('/products', requireAuth, requireSeller, async (req, res) => {
 });
 
 // ── POST /api/seller/products ── create product
-router.post('/products', requireAuth, requireSeller, async (req, res) => {
+router.post('/products', requireAuth, requireSeller, validate(productCreateSchema), async (req, res) => {
   try {
     const {
       name, description, price, sale_price,
       category, images, colors, sizes, stock, is_new, is_active
     } = req.body;
-    if (!name)  return res.status(400).json({ error: 'Product name is required.' });
-    if (!price) return res.status(400).json({ error: 'Price is required.' });
 
     // parse ถ้า client ส่งมาเป็น JSON string แล้ว stringify กลับ
     // เพื่อให้ pg ส่งเป็น JSON string เข้า column json/jsonb ได้ถูกต้อง
@@ -382,7 +441,7 @@ router.post('/products', requireAuth, requireSeller, async (req, res) => {
 });
 
 // ── PATCH /api/seller/products/:id ── update product
-router.patch('/products/:id', requireAuth, requireSeller, async (req, res) => {
+router.patch('/products/:id', requireAuth, requireSeller, validate(productUpdateSchema), async (req, res) => {
   try {
     const {
       name, description, price, sale_price,
@@ -446,10 +505,10 @@ router.get('/customers', requireAuth, requireSeller, async (req, res) => {
 });
 
 // ── POST /api/seller/make-seller ── promote user to seller (admin secret required)
-router.post('/make-seller', async (req, res) => {
+router.post('/make-seller', validate(makeSellerSchema), async (req, res) => {
   try {
     const { email, secret } = req.body;
-    if (!secret || secret !== process.env.ADMIN_SECRET) {
+    if (!secretMatches(secret, process.env.ADMIN_SECRET)) {
       return res.status(403).json({ error: 'Wrong secret.' });
     }
     const r = await query(

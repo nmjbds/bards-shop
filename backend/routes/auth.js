@@ -3,12 +3,35 @@ const express  = require('express');
 const bcrypt   = require('bcryptjs');
 const jwt      = require('jsonwebtoken');
 const passport = require('passport');
+const { z } = require('zod');
 const GoogleStrategy   = require('passport-google-oauth20').Strategy;
 const FacebookStrategy = require('passport-facebook').Strategy;
 const { query } = require('../db');
+const { validate, MIME_EXT } = require('../middleware/validate');
 const router = express.Router();
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+
+// ── Validation schemas ──────────────────────────────────────────
+// password max 72: bcrypt silently truncates/ignores bytes past 72 — capping
+// here means the rejection is explicit instead of a silent behavior surprise.
+const signupSchema = z.object({
+  name:     z.string().trim().min(1, 'Name is required.').max(100),
+  email:    z.string().trim().min(1, 'Email is required.').max(200).email('Please enter a valid email address.'),
+  password: z.string().min(8, 'Password must be at least 8 characters.').max(72),
+});
+// avatar must be an http(s) URL — this already excludes data: URIs, so the
+// error message is phrased for that specific (most common) rejection case.
+const profileSchema = z.object({
+  name:   z.string().trim().min(1).max(100).optional(),
+  avatar: z.string().trim().max(2000)
+            .regex(/^https?:\/\//, 'Please use the photo upload button — inline image data is no longer accepted here.')
+            .optional(),
+});
+const changePasswordSchema = z.object({
+  currentPassword: z.string().max(200).optional(),
+  newPassword:     z.string().min(8, 'New password must be at least 8 characters.').max(72),
+});
 
 // ── Cloudflare R2 upload for avatars ───────────────────────────
 // Mirrors the setup in routes/seller.js (same bucket/env vars/CDN), but
@@ -263,11 +286,9 @@ passport.use(new FacebookStrategy({
 }));
 
 // Email signup
-router.post('/signup', signupRateLimit, async (req, res) => {
+router.post('/signup', signupRateLimit, validate(signupSchema), async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    if (!name || !email || !password) return res.status(400).json({ error: 'Name, email and password are required.' });
-    if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters.' });
     const exists = await query('SELECT id FROM users WHERE email=$1', [email.toLowerCase()]);
     if (exists.rows.length) return res.status(409).json({ error: 'Email already registered.' });
     const hash = await bcrypt.hash(password, 12);
@@ -352,12 +373,9 @@ router.get('/me', require('../middleware/auth').requireAuth, async (req, res) =>
 
 // Update profile (name only now — avatar goes through POST /avatar below,
 // which uploads to R2 instead of storing a giant base64 string in the DB)
-router.patch('/profile', require('../middleware/auth').requireAuth, profileRateLimit, async (req, res) => {
+router.patch('/profile', require('../middleware/auth').requireAuth, profileRateLimit, validate(profileSchema), async (req, res) => {
   try {
     const { name, avatar } = req.body;
-    if (avatar && /^data:/.test(avatar)) {
-      return res.status(400).json({ error: 'Please use the photo upload button — inline image data is no longer accepted here.' });
-    }
     const r = await query(
       'UPDATE users SET name=COALESCE($1,name), avatar=COALESCE($2,avatar) WHERE id=$3 RETURNING *',
       [name||null, avatar||null, req.user.id]
@@ -386,7 +404,10 @@ router.post('/avatar', require('../middleware/auth').requireAuth, profileRateLim
     const cdnBase = (process.env.R2_PUBLIC_URL || '').replace(/\/$/, '');
 
     try {
-      const ext = (req.file.originalname.split('.').pop() || 'jpg').toLowerCase();
+      // Extension from the validated mimetype, not the client-controlled
+      // originalname — avoids injecting arbitrary characters/paths into the
+      // R2 object key via a crafted filename.
+      const ext = MIME_EXT[req.file.mimetype] || 'jpg';
       const key = `avatars/${req.user.id}-${Date.now()}.${ext}`;
       await r2.send(new PutObjectCommand({
         Bucket:      bucket,
@@ -407,10 +428,9 @@ router.post('/avatar', require('../middleware/auth').requireAuth, profileRateLim
 });
 
 // Change password
-router.post('/change-password', require('../middleware/auth').requireAuth, async (req, res) => {
+router.post('/change-password', require('../middleware/auth').requireAuth, validate(changePasswordSchema), async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    if (!newPassword || newPassword.length < 8) return res.status(400).json({ error: 'New password must be at least 8 characters.' });
     const r = await query('SELECT * FROM users WHERE id=$1', [req.user.id]);
     const user = r.rows[0];
     if (user.password) {
