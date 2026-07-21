@@ -2,7 +2,7 @@ const express = require('express');
 const crypto  = require('crypto');
 const { z } = require('zod');
 const { query, pool } = require('../db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
 const { validate, MIME_EXT } = require('../middleware/validate');
 const { restoreStock } = require('../services/stock');
 const router = express.Router();
@@ -504,8 +504,11 @@ router.get('/customers', requireAuth, requireSeller, async (req, res) => {
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
 
-// ── POST /api/seller/make-seller ── promote user to seller (admin secret required)
-router.post('/make-seller', validate(makeSellerSchema), async (req, res) => {
+// ── POST /api/seller/make-seller ── promote user to seller
+// Requires BOTH an authenticated admin session AND the shared secret — previously
+// the shared secret alone was sufficient, so anyone who guessed/leaked
+// ADMIN_SECRET could promote any account to seller with no login at all.
+router.post('/make-seller', requireAuth, requireRole('admin'), validate(makeSellerSchema), async (req, res) => {
   try {
     const { email, secret } = req.body;
     if (!secretMatches(secret, process.env.ADMIN_SECRET)) {
