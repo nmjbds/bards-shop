@@ -47,9 +47,31 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .fu{animation:fadeUp .38s ease both;}
 .d1{animation-delay:.06s;}
+
+/* OAuth callback loading state — shown instead of the form while we finish
+   signing you in after Google/Telegram redirects back, so the page never
+   flashes the blank sign-in form. Toggled via a class on <html> set by an
+   inline script before first paint, so there's no flicker either way. */
+.oauth-loading-state{display:none;flex-direction:column;align-items:center;gap:16px;color:var(--gray-400);font-size:13px;font-weight:600;}
+html.oauth-loading .oauth-loading-state{display:flex;}
+html.oauth-loading .logo-wrap,
+html.oauth-loading .card{display:none;}
+.oauth-spinner{width:30px;height:30px;border:3px solid var(--gray-200);border-top-color:var(--black);border-radius:50%;animation:spin .8s linear infinite;}
 </style>
 </head>
 <body>
+<script>
+/* Runs before first paint — if this load is an OAuth/Telegram callback (has
+   ?token=), hide the form immediately instead of flashing it before the
+   redirect happens. */
+if (new URLSearchParams(location.search).has('token')) {
+  document.documentElement.classList.add('oauth-loading');
+}
+</script>
+<div class="oauth-loading-state">
+  <div class="oauth-spinner"></div>
+  <div>Signing you in…</div>
+</div>
 <div class="logo-wrap fu"><a href="index.html" class="brand">BARDS</a><div class="brand-sub">Streetwear</div></div>
 <div class="card fu d1">
   <div class="card-title">Welcome Back</div>
@@ -89,7 +111,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
     <span>Continue with Telegram</span>
   </button>
 
-  <div class="switch">Don't have an account? <a href="signup.html">Sign up</a></div>
+  <div class="switch">Don't have an account? <a href="signup.html" id="signupLink">Sign up</a></div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -100,16 +122,27 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 /* ── Auth guard — skip ถ้าเป็น OAuth callback ── */
 const _qs = new URLSearchParams(location.search);
 if (typeof Auth !== 'undefined' && Auth.isLoggedIn() && !_qs.has('token') && !_qs.has('error')) {
-  location.href = _qs.get('redirect') || 'account.html';
+  location.href = safeRedirect(_qs.get('redirect')) || 'account.html';
+}
+/* Preserve ?redirect= across the "Sign up" link too */
+if (_qs.get('redirect')) {
+  const link = document.getElementById('signupLink');
+  if (link) link.href = 'signup.html?redirect=' + encodeURIComponent(_qs.get('redirect'));
 }
 
-/* ── OAuth callback handler ── */
+/* ── OAuth callback handler — this is the single place that processes
+   ?token=/?error= after Google/Telegram redirect back here (api.js's generic
+   handler was removed to avoid a race where both ran handleOAuthCallback()
+   at once). The <html class="oauth-loading"> set before paint keeps the form
+   hidden until this finishes. ── */
 document.addEventListener('DOMContentLoaded', async () => {
-  const p = new URLSearchParams(location.search);
-  const token = p.get('token');
-  const error = p.get('error');
+  const p       = new URLSearchParams(location.search);
+  const token   = p.get('token');
+  const error   = p.get('error');
+  const redirect = safeRedirect(p.get('redirect'));
 
   if (error) {
+    document.documentElement.classList.remove('oauth-loading');
     // p.get() already URL-decodes the value (and converts '+' to spaces),
     // so no extra decodeURIComponent() is needed here.
     if (error.includes('Google') || error.includes('google')) {
@@ -127,9 +160,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       await AuthAPI.handleOAuthCallback();
       await WishlistAPI.syncOnLogin().catch(() => {});
-      const redirect = p.get('redirect') || 'account.html';
-      location.href = redirect;
+      await Cart.syncOnLogin().catch(() => {});
+      location.href = redirect || 'account.html';
+      /* keep the loading state up — we're navigating away */
     } catch(e) {
+      document.documentElement.classList.remove('oauth-loading');
       showErr(e.message || 'Login failed. Please try again.');
       history.replaceState({}, '', location.pathname);
     }
@@ -148,7 +183,7 @@ function togglePw(fieldId, btn) {
 /* ── Telegram login (custom-styled button, Telegram's official popup API) ── */
 // bot_id is the numeric ID from BotFather (the number before the ':' in your bot token) — NOT the username.
 // Get it via: https://api.telegram.org/bot<YOUR_TOKEN>/getMe  (look for "id")
-const TELEGRAM_BOT_ID = '8701497967';
+const TELEGRAM_BOT_ID = '8174154915';
 
 function handleTelegramLogin() {
   const btn = document.getElementById('telegramBtn');
@@ -177,7 +212,8 @@ function handleTelegramLogin() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Telegram login failed.');
-        location.href = `signin.html?token=${encodeURIComponent(data.token)}`;
+        const redirect = safeRedirect(new URLSearchParams(location.search).get('redirect'));
+        location.href = `signin.html?token=${encodeURIComponent(data.token)}` + (redirect ? `&redirect=${encodeURIComponent(redirect)}` : '');
       } catch(e) {
         btn.classList.remove('loading');
         btn.innerHTML = originalHTML;
@@ -198,7 +234,8 @@ async function handleSocialLogin(provider) {
   btn.innerHTML = `${_spinnerSvg} <span>Connecting…</span>`;
 
   try {
-    await AuthAPI.loginWithGoogle();
+    const redirect = safeRedirect(new URLSearchParams(location.search).get('redirect'));
+    await AuthAPI.loginWithGoogle(redirect);
     /* If loginWithGoogle redirects, the rest of this code won't run */
   } catch(e) {
     /* Restore button on error (popup blocked, network fail, etc.) */
@@ -224,7 +261,7 @@ async function handleSignIn() {
     WishlistAPI.syncOnLogin().catch(() => {});
     setLoading(false, 'success');
     toast('Signed in! 👋');
-    setTimeout(() => { const p = new URLSearchParams(location.search); location.href = p.get('redirect') || 'account.html'; }, 700);
+    setTimeout(() => { const p = new URLSearchParams(location.search); location.href = safeRedirect(p.get('redirect')) || 'account.html'; }, 700);
   } catch(e) {
     setLoading(false);
     showErr(e.message || 'Incorrect email or password.');

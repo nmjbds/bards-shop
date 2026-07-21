@@ -160,7 +160,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
   </button>
 
   <div class="switch-row">
-    Already have an account? <a href="signin.html">Sign in</a>
+    Already have an account? <a href="signin.html" id="signinLink">Sign in</a>
   </div>
 </div>
 
@@ -174,7 +174,15 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 <script src="https://telegram.org/js/telegram-widget.js?22"></script>
 <script>
 /* ── Auth guard ── */
-if (typeof Auth !== 'undefined' && typeof Auth.isLoggedIn === 'function' && Auth.isLoggedIn()) location.href = 'account.html';
+const _qs = new URLSearchParams(location.search);
+if (typeof Auth !== 'undefined' && typeof Auth.isLoggedIn === 'function' && Auth.isLoggedIn()) {
+  location.href = safeRedirect(_qs.get('redirect')) || 'account.html';
+}
+/* Preserve ?redirect= across the "Sign in" link too */
+if (_qs.get('redirect')) {
+  const link = document.getElementById('signinLink');
+  if (link) link.href = 'signin.html?redirect=' + encodeURIComponent(_qs.get('redirect'));
+}
 
 let _loading = false;
 let _termsAccepted = false;
@@ -246,7 +254,7 @@ const _spinnerSvg = `<svg style="animation:spin .8s linear infinite;flex-shrink:
 /* ── Telegram login (custom-styled button, Telegram's official popup API) ── */
 // bot_id is the numeric ID from BotFather (the number before the ':' in your bot token) — NOT the username.
 // Get it via: https://api.telegram.org/bot<YOUR_TOKEN>/getMe  (look for "id")
-const TELEGRAM_BOT_ID = '8701497967';
+const TELEGRAM_BOT_ID = '8174154915';
 
 function handleTelegramLogin() {
   const btn = document.getElementById('telegramBtn');
@@ -275,7 +283,8 @@ function handleTelegramLogin() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Telegram login failed.');
-        location.href = `signin.html?token=${encodeURIComponent(data.token)}`;
+        const redirect = safeRedirect(_qs.get('redirect'));
+        location.href = `signin.html?token=${encodeURIComponent(data.token)}` + (redirect ? `&redirect=${encodeURIComponent(redirect)}` : '');
       } catch(e) {
         btn.classList.remove('loading');
         btn.innerHTML = originalHTML;
@@ -294,7 +303,8 @@ async function handleSocialLogin(provider) {
   btn.innerHTML = `${_spinnerSvg} <span>Connecting…</span>`;
 
   try {
-    await AuthAPI.loginWithGoogle();
+    const redirect = safeRedirect(_qs.get('redirect'));
+    await AuthAPI.loginWithGoogle(redirect);
   } catch(e) {
     btn.classList.remove('loading');
     btn.innerHTML = originalHTML;
@@ -313,7 +323,7 @@ async function handleSignUp() {
   try {
     await AuthAPI.signup((fname + ' ' + lname).trim(), email, pw);
     setLoading(false, 'success');
-    setTimeout(() => { location.href = 'account.html'; }, 800);
+    setTimeout(() => { location.href = safeRedirect(_qs.get('redirect')) || 'account.html'; }, 800);
   } catch(err) {
     setLoading(false);
     showErr(err.message || 'Could not create account. Please try again.');
