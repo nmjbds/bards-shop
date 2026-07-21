@@ -71,6 +71,22 @@ async function initDb() {
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancelled_by      TEXT; -- 'customer' | 'seller' | 'system'
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancel_reason     TEXT;
 
+      -- Payments (ABA PayWay) — order_id is TEXT to match orders.id (not UUID)
+      CREATE TABLE IF NOT EXISTS payments (
+        id            UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+        order_id      TEXT          NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        provider      TEXT          NOT NULL DEFAULT 'aba_payway',
+        provider_ref  TEXT,         -- ABA tran_id (== orders.id in this app)
+        amount        NUMERIC(10,2) NOT NULL,
+        status        TEXT          NOT NULL DEFAULT 'pending'
+                      CHECK (status IN ('pending','success','failed')),
+        raw_response  JSONB,        -- last ABA API response, kept for debugging/audit
+        paid_at       TIMESTAMPTZ,
+        created_at    TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(order_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_provider_ref ON payments(provider_ref) WHERE provider_ref IS NOT NULL;
+
       -- Wishlists
       CREATE TABLE IF NOT EXISTS wishlists (
         user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

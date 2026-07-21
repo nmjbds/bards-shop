@@ -1,6 +1,7 @@
 const express = require('express');
-const { query }       = require('../db');
+const { query, pool } = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { restoreStock } = require('../services/stock');
 const router = express.Router();
 
 // ── Cloudflare R2 Upload ──────────────────────────────────────
@@ -155,18 +156,21 @@ const ALLOWED_TRANSITIONS = {
 
 // ── PATCH /api/seller/orders/:id ── update status + seller_note + tracking_number
 router.patch('/orders/:id', requireAuth, requireSeller, async (req, res) => {
+  const client = await pool.connect();
   try {
     const { status, seller_note, tracking_number } = req.body;
+    await client.query('BEGIN');
 
     // 1. ดึง order ปัจจุบันก่อน เพื่อตรวจ transition
-    const cur = await query('SELECT status FROM orders WHERE id=$1', [req.params.id]);
-    if (!cur.rows.length) return res.status(404).json({ error: 'Order not found.' });
+    const cur = await client.query('SELECT status FROM orders WHERE id=$1', [req.params.id]);
+    if (!cur.rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Order not found.' }); }
     const currentStatus = cur.rows[0].status;
 
     // 2. ตรวจว่า status ที่ขอมีอยู่ใน allowedTransitions หรือไม่
     const allowed = ALLOWED_TRANSITIONS[currentStatus];
-    if (!allowed) return res.status(400).json({ error: `Unknown current status: ${currentStatus}` });
+    if (!allowed) { await client.query('ROLLBACK'); return res.status(400).json({ error: `Unknown current status: ${currentStatus}` }); }
     if (!allowed.includes(status)) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         error: `Cannot change status from "${currentStatus}" to "${status}".`,
         allowedNext: allowed,
@@ -193,13 +197,25 @@ router.patch('/orders/:id', requireAuth, requireSeller, async (req, res) => {
     }
 
     params.push(req.params.id);
-    const r = await query(
+    const r = await client.query(
       `UPDATE orders SET ${sets.join(', ')} WHERE id=$${idx} RETURNING *`,
       params
     );
-    if (!r.rows.length) return res.status(404).json({ error: 'Order not found.' });
+    if (!r.rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Order not found.' }); }
+
+    // Cancelling at any stage returns the stock that was reserved at checkout
+    // (stock is only ever decremented once, at order creation).
+    if (isCancelled) await restoreStock(client, r.rows[0].items);
+
+    await client.query('COMMIT');
     res.json({ ok: true, order: r.rows[0] });
-  } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
+  } catch(e) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error(e);
+    res.status(500).json({ error: 'Server error.' });
+  } finally {
+    client.release();
+  }
 });
 
 // ── PATCH /api/seller/orders/:id/note ── update seller_note เท่านั้น (ไม่เปลี่ยน status)

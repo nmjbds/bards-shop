@@ -35,6 +35,7 @@ app.use(cors({
 
 /* Body + Session */
 app.use(express.json({limit:'2mb'}));
+app.use(express.urlencoded({extended:true, limit:'2mb'})); // ABA PayWay webhook may POST form-encoded, not JSON
 app.use(session({
   secret:process.env.SESSION_SECRET||process.env.JWT_SECRET||'bards-secret',
   resave:false, saveUninitialized:false,
