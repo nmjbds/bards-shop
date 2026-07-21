@@ -44,6 +44,26 @@
         .g-dot { width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.45); transition:all .28s ease; }
         .g-dot.on { width:18px; border-radius:3px; background:#fff; }
         .g-counter { position:absolute; bottom:14px; right:14px; z-index:5; font-family:'DM Mono',monospace; font-size:10px; color:rgba(255,255,255,.7); background:rgba(0,0,0,.3); padding:3px 8px; border-radius:10px; }
+        .g-fav { position:absolute; top:14px; right:14px; z-index:6; width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.9); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:transform .15s,background .18s; color:var(--gray-600); box-shadow:0 2px 8px rgba(0,0,0,.1); }
+        .g-fav:active { transform:scale(.88); }
+        .g-fav.liked { background:var(--black); color:#fff; }
+
+        /* Desktop gallery nav (hidden on touch/small screens — swipe still works there) */
+        .g-arrow { display:none; }
+        @media (hover:hover) and (pointer:fine) {
+            .g-slide img { cursor:pointer; }
+            .g-arrow {
+                display:flex; position:absolute; top:50%; transform:translateY(-50%); z-index:6;
+                width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,.9); border:none;
+                align-items:center; justify-content:center; cursor:pointer; color:var(--black);
+                opacity:0; transition:opacity .18s,background .18s; box-shadow:0 2px 10px rgba(0,0,0,.12);
+            }
+            .gallery-viewport:hover .g-arrow { opacity:1; }
+            .g-arrow:hover { background:#fff; }
+            .g-arrow.prev { left:14px; }
+            .g-arrow.next { right:14px; }
+            .g-arrow:disabled { opacity:0!important; pointer-events:none; }
+        }
 
         /* BODY */
         .p-body { padding:20px 18px 0; max-width:800px; margin:0 auto; }
@@ -93,9 +113,6 @@
         .btn-add { background:var(--gray-100); color:var(--black); }
         .btn-buy { background:var(--black); color:#fff; flex:1.35; }
         .btn-add:active, .btn-buy:active { opacity:.78; transform:scale(0.97); }
-        .btn-save { width:48px; height:48px; flex-shrink:0; border:1.5px solid var(--gray-200); border-radius:var(--radius-sm); background:var(--white); color:var(--gray-600); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .18s; }
-        .btn-save:active { transform:scale(0.9); }
-        .btn-save.liked { background:var(--black); border-color:var(--black); color:#fff; }
 
         /* SHEET */
         .mask { position:fixed; inset:0; z-index:300; background:rgba(10,10,10,.55); display:none; opacity:0; transition:opacity .32s ease; backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
@@ -184,9 +201,6 @@
         <img src="https://via.placeholder.com/80/0A0A0A?text=BD" class="seller-ava" id="sellerAva">
         <span class="seller-nm">BARDS</span>
     </div>
-    <button class="btn-save" id="saveBtn" onclick="toggleWish()" aria-label="Save to Wishlist">
-        <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-    </button>
     <button class="btn-add" onclick="openSheet('cart')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
@@ -342,19 +356,29 @@ function buildPage() {
     /* price เป็น USD ตรงๆ แล้ว — ไม่หาร 33 */
     const priceDisplay = fmtUSD(P.price);
 
-    const slidesHtml = P.images.map((s,i) => `<div class="g-slide"><img src="${s}" onclick="openFg(${i})" loading="${i?'lazy':'eager'}"></div>`).join('');
-    const fgHtml     = P.images.map(s => `<div class="fg-slide"><img src="${s}"></div>`).join('');
+    const slidesHtml = P.images.map((s,i) => `<div class="g-slide"><img src="${escapeHtml(s)}" onclick="openFg(${i})" loading="${i?'lazy':'eager'}"></div>`).join('');
+    const fgHtml     = P.images.map(s => `<div class="fg-slide"><img src="${escapeHtml(s)}"></div>`).join('');
     const dotsHtml   = multiImg ? P.images.map((_,i) => `<div class="g-dot${i?'':' on'}"></div>`).join('') : '';
-    const colorHtml  = P.colors.map((c,i) => `<div class="c-swatch" style="background:${c.hex}" title="${c.name}" data-idx="${i}" onclick="pickColor(this,${i})"></div>`).join('');
+    const colorHtml  = P.colors.map((c,i) => `<div class="c-swatch" style="background:${c.hex}" title="${escapeHtml(c.name)}" data-idx="${i}" onclick="pickColor(this,${i})"></div>`).join('');
     const sizeHtml   = P.sizes.map(s  => `<div class="s-pill" data-size="${s}" onclick="pickSize(this,'${s}')">${s}</div>`).join('');
-    const specsHtml  = P.specs ? Object.entries(P.specs).map(([k,v]) => `<div class="spec-tile"><div class="spec-tile-label">${k}</div><div class="spec-tile-val">${v}</div></div>`).join('') : '';
+    const specsHtml  = P.specs ? Object.entries(P.specs).map(([k,v]) => `<div class="spec-tile"><div class="spec-tile-label">${escapeHtml(k)}</div><div class="spec-tile-val">${escapeHtml(v)}</div></div>`).join('') : '';
 
     document.getElementById('productWrap').innerHTML = `
         <div class="gallery-wrap fu">
             <div class="gallery-viewport" id="gvp">
                 <div class="gallery-track" id="gtrack">${slidesHtml}</div>
                 <div class="g-tag${P.tagOrange?' orange':''}">${P.tag}</div>
-                ${multiImg ? `<div class="g-dots" id="gdots">${dotsHtml}</div><div class="g-counter" id="gctr">1 / ${P.images.length}</div>` : ''}
+                <button class="g-fav" id="saveBtn" onclick="event.stopPropagation();toggleWish()" aria-label="Save to Wishlist">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </button>
+                ${multiImg ? `
+                <button class="g-arrow prev" id="gPrev" onclick="event.stopPropagation();navGallery(-1)" aria-label="Previous image">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 3L5 9.5L11.5 16"/></svg>
+                </button>
+                <button class="g-arrow next" id="gNext" onclick="event.stopPropagation();navGallery(1)" aria-label="Next image">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 3L14 9.5L7.5 16"/></svg>
+                </button>
+                <div class="g-dots" id="gdots">${dotsHtml}</div><div class="g-counter" id="gctr">1 / ${P.images.length}</div>` : ''}
             </div>
         </div>
         <div class="p-body fu d1">
@@ -362,7 +386,7 @@ function buildPage() {
                 <div class="price">${priceDisplay}</div>
                 <div class="price-currency">USD</div>
             </div>
-            <h1 class="p-name">${P.name}</h1>
+            <h1 class="p-name">${escapeHtml(P.name)}</h1>
             <div class="meta-line">
                 <span class="meta-chip ${stockCls}">${stockLabel}</span>
             </div>
@@ -381,7 +405,7 @@ function buildPage() {
         <hr class="divider">
         <div class="desc-section fu d3">
             <p class="sec-title">Details</p>
-            <p class="desc-text">${P.desc}</p>
+            <p class="desc-text">${escapeHtml(P.desc)}</p>
             ${specsHtml ? `<div class="specs">${specsHtml}</div>` : ''}
         </div>
         <div style="height:14px"></div>`;
@@ -390,7 +414,7 @@ function buildPage() {
     document.getElementById('sheetThumb').src = P.images[0];
     document.getElementById('sheetPrice').innerText = `${fmtUSD(P.price)} USD`;
     document.getElementById('colorChips').innerHTML = P.colors.map((c,i) =>
-        `<div class="sh-chip" data-idx="${i}" onclick="pickColorSheet(this,${i})">${c.name}</div>`).join('');
+        `<div class="sh-chip" data-idx="${i}" onclick="pickColorSheet(this,${i})">${escapeHtml(c.name)}</div>`).join('');
     document.getElementById('sizeChips').innerHTML  = P.sizes.map(s =>
         `<div class="sh-chip" data-size="${s}" onclick="pickSizeSheet(this,'${s}')">${s}</div>`).join('');
 
@@ -494,6 +518,16 @@ function updateSlider() {
     document.querySelectorAll('#gdots .g-dot').forEach((d,i) => d.classList.toggle('on', i===imgIdx));
     const ft=document.getElementById('fgTrack'); if(ft) ft.style.transform=`translateX(${-imgIdx*100}%)`;
     const fc=document.getElementById('fgCount'); if(fc) fc.innerText=`${imgIdx+1} / ${P.images.length}`;
+    const prevBtn=document.getElementById('gPrev'); if(prevBtn) prevBtn.disabled = imgIdx<=0;
+    const nextBtn=document.getElementById('gNext'); if(nextBtn) nextBtn.disabled = imgIdx>=P.images.length-1;
+}
+
+/* Desktop arrow-click navigation (swipe still handles touch — see setupSwipe) */
+function navGallery(dir) {
+    const next = imgIdx + dir;
+    if (next < 0 || next > P.images.length - 1) return;
+    imgIdx = next;
+    updateSlider();
 }
 function setupSwipe() {
     let sx=0,sy=0;
