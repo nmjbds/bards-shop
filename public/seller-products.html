@@ -316,7 +316,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!['seller','admin'].includes(user.role)) { location.href='/'; return; }
     document.getElementById('sbName').textContent = user.name||'Seller';
     const av=document.getElementById('sbAvatar');
-    if(user.avatar){av.innerHTML=`<img src="${user.avatar}" alt="">`;} else {av.textContent=(user.name||'S')[0].toUpperCase();}
+    if(user.avatar){av.innerHTML=`<img src="${escapeHtml(user.avatar)}" alt="">`;} else {av.textContent=(user.name||'S')[0].toUpperCase();}
   } catch(e){location.href='/signin';return;}
   await loadProducts();
 });
@@ -349,15 +349,15 @@ function renderGrid() {
     return `
     <div class="prod-card${!isActive?' prod-inactive':''}" onclick="openModal('${p.id}')">
       ${imgSrc
-        ? `<img class="prod-img" src="${imgSrc}" alt="${p.name}" onerror="this.style.display='none'">`
+        ? `<img class="prod-img" src="${escapeHtml(imgSrc)}" alt="${escapeHtml(p.name)}" onerror="this.style.display='none'">`
         : `<div class="prod-img-ph"><svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`}
       <div class="prod-body">
         <div class="prod-name">
-          ${p.name}
+          ${escapeHtml(p.name)}
           ${p.is_new||p.isNew?'<span class="badge-new">NEW</span>':''}
           ${salePrice?'<span class="badge-sale">SALE</span>':''}
         </div>
-        <div class="prod-cat">${p.category||'Product'}</div>
+        <div class="prod-cat">${escapeHtml(p.category||'Product')}</div>
         <div>
           <span class="prod-price">$${Number(p.price||0).toFixed(2)}</span>
           ${salePrice?`<span class="prod-sale">$${Number(salePrice).toFixed(2)}</span>`:''}
@@ -555,8 +555,8 @@ function addImageUrl() {
 function renderColorTags() {
   document.getElementById('colorTags').innerHTML = _colors.map((c, i) => `
     <span class="color-tag" onclick="removeColor(${i})" title="คลิกเพื่อลบ">
-      <span class="swatch" style="background:${c.hex}"></span>
-      ${c.name||c.hex}
+      <span class="swatch" style="background:${escapeHtml(c.hex)}"></span>
+      ${escapeHtml(c.name||c.hex)}
       <span class="del-x">✕</span>
     </span>`).join('');
 }

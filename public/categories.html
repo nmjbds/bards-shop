@@ -218,7 +218,7 @@ function renderProducts() {
     return `
     <div class="prod-card" onclick="goProduct('${p.id}')">
       <div class="prod-img-wrap">
-        ${img ? `<img class="prod-img" src="${img}" alt="${p.name}" loading="lazy">` : ''}
+        ${img ? `<img class="prod-img" src="${escapeHtml(img)}" alt="${escapeHtml(p.name)}" loading="lazy">` : ''}
         <div class="prod-badge">
           ${p.isNew ? '<span class="badge badge-new">New</span>' : ''}
           ${p.salePrice ? '<span class="badge badge-sale">Sale</span>' : ''}
@@ -228,8 +228,8 @@ function renderProducts() {
         </button>
       </div>
       <div class="prod-body">
-        <div class="prod-name">${p.name}</div>
-        <div class="prod-cat">${p.category||''}</div>
+        <div class="prod-name">${escapeHtml(p.name)}</div>
+        <div class="prod-cat">${escapeHtml(p.category||'')}</div>
         <div class="prod-price-row">
           <div>
             <span class="prod-price">$${Number(price).toFixed(2)}</span>

@@ -247,6 +247,13 @@
 <div class="toast" id="toast"></div>
 <script src="api.js"></script>
 <script>
+/* escape user/seller-controlled text before it goes into innerHTML (seller_note, address, etc.) */
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
 /* ── helpers ── */
 const STATUS_LBL = {
   pending:'Pending Payment', pending_verification:'Awaiting Review',
@@ -303,11 +310,11 @@ function renderItems(items){
     const meta  = [it.color,it.size].filter(Boolean);
     return `
     <div class="item-row">
-      <img class="item-img" src="${it.image||''}" alt="${it.name||''}" loading="lazy" onerror="this.style.background='var(--gray-200)';this.src=''">
+      <img class="item-img" src="${escapeHtml(it.image||'')}" alt="${escapeHtml(it.name||'')}" loading="lazy" onerror="this.style.background='var(--gray-200)';this.src=''">
       <div class="item-info">
-        <div class="item-name">${it.name||'Item'}</div>
+        <div class="item-name">${escapeHtml(it.name||'Item')}</div>
         <div class="item-meta">
-          ${meta.map(m=>`<span>${m}</span>`).join('<span class="item-meta-dot"></span>')}
+          ${meta.map(m=>`<span>${escapeHtml(m)}</span>`).join('<span class="item-meta-dot"></span>')}
           ${meta.length?'<span class="item-meta-dot"></span>':''}
           <span class="item-qty">×${qty}</span>
         </div>
@@ -338,11 +345,11 @@ function renderAddress(addr){
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
     </div>
     <div style="flex:1;min-width:0;">
-      ${name?`<div class="addr-name">${name}</div>`:''}
-      ${phone?`<div class="addr-phone">${phone}</div>`:''}
-      ${street?`<div class="addr-line">${street}</div>`:''}
-      ${cityLine?`<div class="addr-line">${cityLine}</div>`:''}
-      ${note?`<div style="font-size:10.5px;color:var(--gray-400);margin-top:4px;display:flex;align-items:center;gap:4px;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${note}</div>`:''}
+      ${name?`<div class="addr-name">${escapeHtml(name)}</div>`:''}
+      ${phone?`<div class="addr-phone">${escapeHtml(phone)}</div>`:''}
+      ${street?`<div class="addr-line">${escapeHtml(street)}</div>`:''}
+      ${cityLine?`<div class="addr-line">${escapeHtml(cityLine)}</div>`:''}
+      ${note?`<div style="font-size:10.5px;color:var(--gray-400);margin-top:4px;display:flex;align-items:center;gap:4px;"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>${escapeHtml(note)}</div>`:''}
     </div>
   </div>`;
 }
@@ -433,9 +440,9 @@ function renderPage(o){
     </div>
     <div>
       <div class="tb-label">Tracking Number</div>
-      <div class="tb-number">${o.tracking_number}</div>
+      <div class="tb-number">${escapeHtml(o.tracking_number)}</div>
     </div>
-    <button class="tb-copy" onclick="copyTracking('${o.tracking_number}')" title="Copy">
+    <button class="tb-copy" onclick="copyTracking('${escapeHtml(o.tracking_number)}')" title="Copy">
       <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
     </button>
   </div>`:'';
@@ -446,14 +453,14 @@ function renderPage(o){
     <div class="note-icon">
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     </div>
-    <div class="note-text">${o.seller_note}</div>
+    <div class="note-text">${escapeHtml(o.seller_note)}</div>
   </div>`:'';
 
   /* ── Coupon block ── */
   const couponBlock = (discount>0||coupon)?`
   <div style="background:linear-gradient(90deg,#F0FDF4,#DCFCE7);border:1.5px dashed #86EFAC;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-top:4px;">
     <svg width="14" height="14" fill="none" stroke="#16A34A" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-    ${coupon?`<span style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:#15803D;background:#DCFCE7;padding:2px 8px;border-radius:10px;border:1px solid #86EFAC;letter-spacing:.5px;">${coupon}</span>`:''}
+    ${coupon?`<span style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;color:#15803D;background:#DCFCE7;padding:2px 8px;border-radius:10px;border:1px solid #86EFAC;letter-spacing:.5px;">${escapeHtml(coupon)}</span>`:''}
     <span style="font-size:11px;color:#16803A;flex:1;">Discount applied</span>
     <span style="font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:#15803D;">-${fmtMoney(discount)}</span>
   </div>`:'';

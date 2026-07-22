@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', async()=>{
     if(!['seller','admin'].includes(user.role)){location.href='index.html';return;}
     document.getElementById('sbName').textContent=user.name||'Seller';
     const av=document.getElementById('sbAvatar');
-    if(user.avatar){av.innerHTML=`<img src="${user.avatar}" alt="">`;} else {av.textContent=(user.name||'S')[0].toUpperCase();}
+    if(user.avatar){av.innerHTML=`<img src="${escapeHtml(user.avatar)}" alt="">`;} else {av.textContent=(user.name||'S')[0].toUpperCase();}
   }catch(e){location.href='signin.html';return;}
   await loadCoupons();
 });
@@ -272,8 +272,8 @@ function renderGrid(){
     <div class="coupon-card${expired?' expired-card':!c.active?' inactive-card':''}">
       <div class="coupon-tape" style="background:${color}"></div>
       <div class="coupon-body">
-        <div class="coupon-code">${c.code}</div>
-        <div class="coupon-desc">${c.description||typeLabel}</div>
+        <div class="coupon-code">${escapeHtml(c.code)}</div>
+        <div class="coupon-desc">${escapeHtml(c.description||typeLabel)}</div>
         <div class="coupon-value">
           <div class="coupon-amount" style="color:${color}">${valueLabel}</div>
           <div class="coupon-type">${typeLabel}</div>
@@ -292,7 +292,7 @@ function renderGrid(){
           <span class="status-text">${expired?'Expired':active?'Active':'Inactive'}</span>
         </div>
         <div class="coupon-actions">
-          <button class="ic-btn" title="Copy code" onclick="copyCode('${c.code}')">
+          <button class="ic-btn" title="Copy code" onclick="copyCode('${escapeHtml(c.code)}')">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           </button>
           <button class="ic-btn" title="Edit" onclick="openModal('${c.id}')">

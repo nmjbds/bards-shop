@@ -238,7 +238,7 @@ function cardHTML(o,idx){
     const items=o.items||[];
 
     const thumbs=items.slice(0,3).map(it=>
-        `<img class="oc-thumb" src="${it.image||''}" alt="" loading="lazy" onerror="this.style.opacity=0">`
+        `<img class="oc-thumb" src="${escapeHtml(it.image||'')}" alt="" loading="lazy" onerror="this.style.opacity=0">`
     ).join('');
     const more=items.length>3?`<div class="oc-more">+${items.length-3}</div>`:'';
 

@@ -598,10 +598,10 @@ function renderSummary() {
     document.getElementById('orderItemsList').innerHTML = ITEMS.map(item => {
         const p = PRODUCTS[item.id];
         return `<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray-100);">
-            <img src="${p?.images[0]||item.image||''}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;" alt="">
+            <img src="${escapeHtml(p?.images[0]||item.image||'')}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;" alt="">
             <div style="flex:1;min-width:0;">
-                <div style="font-size:12px;font-weight:600;">${item.name}</div>
-                <div style="font-size:10px;color:var(--gray-400);">${item.color} · ${item.size} · Qty ${item.quantity}</div>
+                <div style="font-size:12px;font-weight:600;">${escapeHtml(item.name)}</div>
+                <div style="font-size:10px;color:var(--gray-400);">${escapeHtml(item.color)} · ${escapeHtml(item.size)} · Qty ${item.quantity}</div>
             </div>
             <div style="font-size:12px;font-weight:700;white-space:nowrap;">${fmtUSD(item.price*item.quantity)}</div>
         </div>`;

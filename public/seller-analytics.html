@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', async()=>{
     if(!['seller','admin'].includes(user.role)){location.href='index.html';return;}
     document.getElementById('sbName').textContent=user.name||'Seller';
     const av=document.getElementById('sbAvatar');
-    if(user.avatar){av.innerHTML=`<img src="${user.avatar}" alt="">`;} else {av.textContent=(user.name||'S')[0].toUpperCase();}
+    if(user.avatar){av.innerHTML=`<img src="${escapeHtml(user.avatar)}" alt="">`;} else {av.textContent=(user.name||'S')[0].toUpperCase();}
   }catch(e){location.href='signin.html';return;}
   loadAnalytics();
 });
@@ -309,7 +309,7 @@ function buildTopProds(orders){
       </div>`+sorted.map((p,i)=>`
       <div class="tp-row">
         <span class="tp-rank">${i+1}</span>
-        <div><div class="tp-name">${p.name}</div><div class="tp-bar"><div class="tp-fill" style="width:${(p.rev/max*100).toFixed(0)}%"></div></div></div>
+        <div><div class="tp-name">${escapeHtml(p.name)}</div><div class="tp-bar"><div class="tp-fill" style="width:${(p.rev/max*100).toFixed(0)}%"></div></div></div>
         <span class="tp-rev">$${p.rev.toFixed(0)}</span>
         <span class="tp-units">${p.units}</span>
         <span></span>

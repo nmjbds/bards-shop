@@ -269,7 +269,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!['seller','admin'].includes(user.role)) { location.href='index.html'; return; }
     document.getElementById('sbName').textContent = user.name||'Seller';
     const av=document.getElementById('sbAvatar');
-    if(user.avatar){av.innerHTML=`<img src="${user.avatar}" alt="">`;} else {av.textContent=(user.name||'S')[0].toUpperCase();}
+    if(user.avatar){av.innerHTML=`<img src="${escapeHtml(user.avatar)}" alt="">`;} else {av.textContent=(user.name||'S')[0].toUpperCase();}
   } catch(e){location.href='signin.html';return;}
 
   // check ?status= in URL
@@ -338,7 +338,7 @@ function renderTable() {
     el.innerHTML = slice.map(o=>`
       <div class="order-row" onclick="openOrder('${o.id}')">
         <span class="ord-id">${o.id}</span>
-        <div><div class="cust-name">${o.customer_name||'Guest'}</div><div class="cust-email">${o.customer_email||'—'}</div></div>
+        <div><div class="cust-name">${escapeHtml(o.customer_name||'Guest')}</div><div class="cust-email">${escapeHtml(o.customer_email||'—')}</div></div>
         <span class="ord-amt">$${Number(o.total).toFixed(2)}</span>
         <span class="ord-date">${fmtDate(o.created_at)}</span>
         <span class="badge b-${o.status}">${fmtStatus(o.status)}</span>
@@ -470,7 +470,7 @@ function renderActionButtons(order) {
   if (next.includes('shipped')) {
     html += `
       <label class="f-label" style="margin-top:4px;">Tracking Number</label>
-      <input class="f-input" id="trackingInput" placeholder="e.g. KH1234567890, JT1234567890" value="${order.tracking_number||''}"
+      <input class="f-input" id="trackingInput" placeholder="e.g. KH1234567890, JT1234567890" value="${escapeHtml(order.tracking_number||'')}"
         oninput="onTrackingInput(this.value)" style="margin-bottom:4px;">
       <div style="font-size:10px;margin-bottom:8px;min-height:16px;">
         <span id="carrierHint" style="font-weight:700;display:none;"></span>
@@ -529,30 +529,30 @@ function openOrder(id) {
           ${payMethodLabel}
         </span>
       </div>
-      <div class="info-row"><span class="info-key">Customer</span><span class="info-val">${o.customer_name||'Guest'}</span></div>
-      <div class="info-row"><span class="info-key">Email</span><span class="info-val">${o.customer_email||'—'}</span></div>
+      <div class="info-row"><span class="info-key">Customer</span><span class="info-val">${escapeHtml(o.customer_name||'Guest')}</span></div>
+      <div class="info-row"><span class="info-key">Email</span><span class="info-val">${escapeHtml(o.customer_email||'—')}</span></div>
       <div class="info-row"><span class="info-key">Total</span><span class="info-val" style="font-family:'DM Mono',monospace;">$${Number(o.total).toFixed(2)}</span></div>
       <div class="info-row"><span class="info-key">Date</span><span class="info-val">${fmtDate(o.created_at)}</span></div>
-      ${addr.name?`<div class="info-row"><span class="info-key">Ship To</span><span class="info-val">${[addr.name,addr.address,addr.city].filter(Boolean).join(', ')}</span></div>`:''}
-      ${o.tracking_number?`<div class="info-row"><span class="info-key">Tracking</span><span class="info-val" style="font-family:'DM Mono',monospace;">${o.tracking_number}</span></div>`:''}
-      ${o.coupon_code?`<div class="info-row"><span class="info-key">Coupon</span><span class="info-val" style="font-family:'DM Mono',monospace;font-size:10px;background:#DCFCE7;color:#15803D;padding:2px 8px;border-radius:10px;font-weight:700;">${o.coupon_code}</span></div>`:''}
+      ${addr.name?`<div class="info-row"><span class="info-key">Ship To</span><span class="info-val">${escapeHtml([addr.name,addr.address,addr.city].filter(Boolean).join(', '))}</span></div>`:''}
+      ${o.tracking_number?`<div class="info-row"><span class="info-key">Tracking</span><span class="info-val" style="font-family:'DM Mono',monospace;">${escapeHtml(o.tracking_number)}</span></div>`:''}
+      ${o.coupon_code?`<div class="info-row"><span class="info-key">Coupon</span><span class="info-val" style="font-family:'DM Mono',monospace;font-size:10px;background:#DCFCE7;color:#15803D;padding:2px 8px;border-radius:10px;font-weight:700;">${escapeHtml(o.coupon_code)}</span></div>`:''}
       ${o.discount>0?`<div class="info-row"><span class="info-key">Discount</span><span class="info-val" style="color:#15803D;">-$${Number(o.discount).toFixed(2)}</span></div>`:''}
-      ${o.seller_note?`<div class="info-row"><span class="info-key">Note</span><span class="info-val">${o.seller_note}</span></div>`:''}
-      ${o.cancelled_by?`<div class="info-row"><span class="info-key">Cancelled By</span><span class="info-val" style="color:#B91C1C;">${{customer:'Customer',seller:'Store',system:'System (Auto-expired)'}[o.cancelled_by]||o.cancelled_by}</span></div>`:''}
-      ${o.cancel_reason?`<div class="info-row"><span class="info-key">Reason</span><span class="info-val" style="font-size:11px;color:var(--gray-400);">${o.cancel_reason}</span></div>`:''}
+      ${o.seller_note?`<div class="info-row"><span class="info-key">Note</span><span class="info-val">${escapeHtml(o.seller_note)}</span></div>`:''}
+      ${o.cancelled_by?`<div class="info-row"><span class="info-key">Cancelled By</span><span class="info-val" style="color:#B91C1C;">${escapeHtml({customer:'Customer',seller:'Store',system:'System (Auto-expired)'}[o.cancelled_by]||o.cancelled_by)}</span></div>`:''}
+      ${o.cancel_reason?`<div class="info-row"><span class="info-key">Reason</span><span class="info-val" style="font-size:11px;color:var(--gray-400);">${escapeHtml(o.cancel_reason)}</span></div>`:''}
     </div>
     ${items.length?`
     <div class="items-scroll">
       ${items.map(it=>`
         <div class="item-row">
-          <img class="item-img" src="${it.image||''}" onerror="this.style.display='none'">
-          <div class="item-name">${it.name||it.id}<div class="item-meta">${[it.color,it.size].filter(Boolean).join(' · ')} × ${it.quantity||1}</div></div>
+          <img class="item-img" src="${escapeHtml(it.image||'')}" onerror="this.style.display='none'">
+          <div class="item-name">${escapeHtml(it.name||it.id)}<div class="item-meta">${escapeHtml([it.color,it.size].filter(Boolean).join(' · '))} × ${it.quantity||1}</div></div>
           <span class="item-price">$${((it.price||0)*(it.quantity||1)).toFixed(2)}</span>
         </div>`).join('')}
     </div>`:''}
     ${renderActionButtons(o)}
     ${isFinal?'':`<label class="f-label">Seller Note (optional)</label>
-    <textarea class="f-textarea" id="noteInput" placeholder="Internal note, message to customer…">${o.seller_note||''}</textarea>`}
+    <textarea class="f-textarea" id="noteInput" placeholder="Internal note, message to customer…">${escapeHtml(o.seller_note||'')}</textarea>`}
     ${isFinal?`<div style="padding:10px 12px;background:var(--gray-50);border-radius:var(--radius-sm);border:1px solid var(--gray-200);font-size:11px;color:var(--gray-400);display:flex;align-items:center;gap:6px;">
       <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       This order is closed — no further changes allowed.

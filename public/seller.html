@@ -293,7 +293,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Profile
     document.getElementById('sbName').textContent = user.name || 'Seller';
     const av = document.getElementById('sbAvatar');
-    if (user.avatar) { av.innerHTML = `<img src="${user.avatar}" alt="">`; }
+    if (user.avatar) { av.innerHTML = `<img src="${escapeHtml(user.avatar)}" alt="">`; }
     else { av.textContent = (user.name||'S')[0].toUpperCase(); }
   } catch(e) { location.href = 'signin.html'; return; }
   loadAll();
@@ -400,7 +400,7 @@ function buildTopProducts(data) {
       <div class="prod-row">
         <span class="prod-rank">${i+1}</span>
         <div class="prod-bar-wrap">
-          <div class="prod-name">${p.name}</div>
+          <div class="prod-name">${escapeHtml(p.name)}</div>
           <div class="prod-bar"><div class="prod-fill" style="width:${(p.revenue/max*100).toFixed(0)}%"></div></div>
         </div>
         <span class="prod-amt">$${p.revenue.toFixed(0)}</span>
@@ -418,7 +418,7 @@ async function loadRecentOrders() {
     el.innerHTML = orders.map(o => `
       <div class="order-row">
         <span class="ord-id">${o.id.slice(0,12)}…</span>
-        <span class="ord-name">${o.customer_name || 'Guest'}</span>
+        <span class="ord-name">${escapeHtml(o.customer_name || 'Guest')}</span>
         <span class="ord-amt">$${Number(o.total).toFixed(2)}</span>
         <span class="badge b-${o.status}">${fmtStatus(o.status)}</span>
       </div>`).join('');

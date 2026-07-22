@@ -355,10 +355,10 @@ function _renderItems(items) {
         const img = i.image || PRODUCTS[i.id]?.images[0] || '';
         const sub = (Number(i.price) * Number(i.quantity || 1)).toFixed(2);
         return `<div class="item-row">
-            <div class="item-img"><img src="${img}" alt="" loading="lazy"></div>
+            <div class="item-img"><img src="${_esc(img)}" alt="" loading="lazy"></div>
             <div class="item-info">
                 <div class="item-name">${_esc(i.name || i.id)}</div>
-                <div class="item-meta">${[i.color, i.size, '×'+(i.quantity||1)].filter(Boolean).join(' · ')}</div>
+                <div class="item-meta">${_esc([i.color, i.size, '×'+(i.quantity||1)].filter(Boolean).join(' · '))}</div>
             </div>
             <div class="item-price">$${sub}</div>
         </div>`;
@@ -410,8 +410,10 @@ function _addrLines(a) {
     return parts;
 }
 
+// Was a local, incomplete escaper (only &<> — missing "/') duplicating
+// products.js's escapeHtml(); now just delegates to the complete one.
 function _esc(s) {
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return escapeHtml(s);
 }
 
 /* ══════════════════════════════════════════════════════
