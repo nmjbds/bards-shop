@@ -158,16 +158,16 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 
 <script src="products.js"></script><script src="api.js"></script>
 <script>
-const API = 'http://localhost:3000/api';
-let ORDER_DATA = null, EXPIRES_AT = null, TIMER_ID = null;
+let ORDER_DATA = null, EXPIRES_AT = null, TIMER_ID = null, POLL_ID = null, ORDER_ID = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   const p  = new URLSearchParams(location.search);
   const id = p.get('id');
   if (!id) { showErr('No order ID provided.'); return; }
+  ORDER_ID = id;
   try {
     // Fetch order publicly (no auth needed for pay link)
-    const res  = await fetch(`${API}/payment/link/${id}`);
+    const res  = await fetch(`${API_BASE}/payment/link/${id}`);
     const data = await res.json();
     if (!res.ok) { showErr(data.error || 'Order not found.'); return; }
     ORDER_DATA = data;
@@ -204,15 +204,32 @@ function renderPayment(d) {
 
   EXPIRES_AT = d.expires_at ? new Date(d.expires_at) : new Date(Date.now() + 86400000);
   startTimer();
+  startAutoPoll();
 }
 
 function startTimer() {
   clearInterval(TIMER_ID);
   updateTimer();
   TIMER_ID = setInterval(() => {
-    if (getRemainingMs() <= 0) { clearInterval(TIMER_ID); onExpired(); }
+    if (getRemainingMs() <= 0) { clearInterval(TIMER_ID); clearInterval(POLL_ID); onExpired(); }
     else updateTimer();
   }, 1000);
+}
+function startAutoPoll() {
+  clearInterval(POLL_ID);
+  POLL_ID = setInterval(async () => {
+    if (!ORDER_ID) return;
+    try {
+      const res  = await fetch(`${API_BASE}/payment/link/${ORDER_ID}`);
+      const data = await res.json();
+      if (!res.ok) return;
+      if (['paid','processing','shipped','delivered'].includes(data.status)) {
+        clearInterval(POLL_ID); clearInterval(TIMER_ID);
+        ORDER_DATA = data;
+        renderPayment(data);
+      }
+    } catch (_) {}
+  }, 10000);
 }
 function getRemainingMs() { return Math.max(0, EXPIRES_AT - Date.now()); }
 function updateTimer() {
