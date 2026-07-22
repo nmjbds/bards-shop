@@ -593,7 +593,7 @@ async function saveProduct() {
     category:    document.getElementById('fCategory').value,
     stock:       parseInt(document.getElementById('fStock').value)||null,
     images:      _images.filter(img=>img.url).map(img=>img.url),
-    colors:      _colors,
+    colors:      _colors.map(c=>c.name),
     sizes,
     description: document.getElementById('fDesc').value.trim(),
     is_new:      document.getElementById('togNew').classList.contains('on'),

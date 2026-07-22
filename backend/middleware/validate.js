@@ -5,8 +5,10 @@ function validate(schema, source = 'body') {
   return (req, res, next) => {
     const result = schema.safeParse(req[source]);
     if (!result.success) {
+      const issue = result.error.issues[0];
+      const field = issue?.path?.length ? issue.path.join('.') : null;
       return res.status(400).json({
-        error: result.error.issues[0]?.message || 'Invalid request.',
+        error: field ? `${field}: ${issue.message}` : (issue?.message || 'Invalid request.'),
         code: 'VALIDATION_ERROR',
       });
     }
