@@ -469,12 +469,12 @@ function hideSheet() {
 
 /* ─── CONFIRM ─── */
 function handleConfirm() {
-    if (!selColor) { showToast('warn','Select a color','Choose one of the options above'); return; }
-    if (!selSize)  { showToast('warn','Select a size','Choose your preferred size'); return; }
+    if (P.colors.length && !selColor) { showToast('warn','Select a color','Choose one of the options above'); return; }
+    if (P.sizes.length  && !selSize)  { showToast('warn','Select a size','Choose your preferred size'); return; }
     setConfirm('loading');
     setTimeout(() => {
         /* price เป็น USD แล้ว — เก็บตรงๆ */
-        saveCart({ id:PRODUCT_ID, name:P.name, price:P.price, image:P.images[0], color:selColor, size:selSize, quantity:qty });
+        saveCart({ id:PRODUCT_ID, name:P.name, price:P.price, image:P.images[0], color:selColor||'', size:selSize||'', quantity:qty });
         updateBadge();
         if (sheetMode === 'buy') {
             sessionStorage.setItem('BUY_NOW_ID', PRODUCT_ID);
