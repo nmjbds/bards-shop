@@ -549,7 +549,7 @@ async function loadSavedAddresses() {
       <div class="saved-addr-card${a.isDefault?' selected':''}" id="sac-${i}" onclick="selectSavedAddr(${i})"
            style="border:1.5px solid ${a.isDefault?'var(--black)':'var(--gray-200)'};border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;background:${a.isDefault?'var(--gray-50)':'#fff'};">
         <div style="display:flex;align-items:flex-start;gap:10px;">
-          <div style="width:16px;height:16px;border-radius:50%;border:2px solid ${a.isDefault?'var(--black)':'var(--gray-300)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+          <div class="addr-radio" style="width:16px;height:16px;border-radius:50%;border:2px solid ${a.isDefault?'var(--black)':'var(--gray-300)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
             ${a.isDefault?`<div style="width:7px;height:7px;border-radius:50%;background:var(--black);"></div>`:''}
           </div>
           <div>
@@ -574,8 +574,8 @@ function selectSavedAddr(idx) {
         if (!el) return;
         el.style.borderColor = i===idx ? 'var(--black)' : 'var(--gray-200)';
         el.style.background  = i===idx ? 'var(--gray-50)' : '#fff';
-        el.querySelector('div>div>div').style.borderColor = i===idx ? 'var(--black)' : 'var(--gray-300)';
-        el.querySelector('div>div>div').innerHTML = i===idx ? `<div style="width:7px;height:7px;border-radius:50%;background:var(--black);"></div>` : '';
+        el.querySelector('.addr-radio').style.borderColor = i===idx ? 'var(--black)' : 'var(--gray-300)';
+        el.querySelector('.addr-radio').innerHTML = i===idx ? `<div style="width:7px;height:7px;border-radius:50%;background:var(--black);"></div>` : '';
     });
     /* ตั้งค่า province เพื่อคำนวณ shipping */
     document.getElementById('province').value = _usingAddr.province;
