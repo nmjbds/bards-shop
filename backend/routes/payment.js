@@ -3,7 +3,7 @@ const express  = require('express');
 const QRCode   = require('qrcode');
 const { z } = require('zod');
 const { query, pool } = require('../db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, getUserRole } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const { expireIfNeeded } = require('../services/orderLifecycle');
 const { restoreStock } = require('../services/stock');
@@ -380,8 +380,12 @@ router.post('/confirm/:orderId', requireAuth, async (req, res) => {
     if (!orderRes.rows.length) return res.status(404).json({ error: 'Order not found.' });
 
     if (orderRes.rows[0].user_id !== req.user.id) {
-      const roleRes = await query('SELECT role FROM users WHERE id=$1', [req.user.id]);
-      if (!['seller', 'admin'].includes(roleRes.rows[0]?.role)) {
+      // Consolidated 2026-07-22: shares the same role lookup as
+      // requireRole() in middleware/auth.js, just called conditionally here
+      // since this route allows the order's owner OR a seller/admin (not a
+      // blanket role gate on the whole handler).
+      const role = await getUserRole(req.user.id);
+      if (!['seller', 'admin'].includes(role)) {
         return res.status(403).json({ error: 'Access denied.' });
       }
     }

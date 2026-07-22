@@ -7,6 +7,12 @@ const { validate, MIME_EXT } = require('../middleware/validate');
 const { restoreStock } = require('../services/stock');
 const router = express.Router();
 
+// Seller/admin gate — was a locally copy-pasted requireSeller() (same logic
+// duplicated in coupons.js, and a third variant inline in payment.js);
+// consolidated 2026-07-22 into the central requireRole() in middleware/auth.js,
+// which stamps req.userRole the same way this local version used to.
+const requireSeller = requireRole('seller', 'admin');
+
 // ── Validation schemas ──────────────────────────────────────────
 // images/colors/sizes arrive either as a real array or a JSON-encoded
 // string (see parseArr() below, unchanged) — accept both shapes here, just
@@ -163,19 +169,6 @@ router.post('/upload', requireAuth, requireSeller, (req, res) => {
     }
   });
 });
-
-// Seller/admin only middleware — also stamps req.userRole so downstream
-// handlers (product shop-scoping) don't need a second role lookup.
-async function requireSeller(req, res, next) {
-  try {
-    const r = await query('SELECT role FROM users WHERE id=$1', [req.user.id]);
-    if (!r.rows.length || !['seller','admin'].includes(r.rows[0].role)) {
-      return res.status(403).json({ error: 'Access denied.' });
-    }
-    req.userRole = r.rows[0].role;
-    next();
-  } catch(e) { res.status(500).json({ error: 'Server error.' }); }
-}
 
 // Phase 4: the caller's own approved shop id, or null if they don't have
 // one yet (never applied, still pending, or rejected/suspended).

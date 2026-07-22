@@ -21,6 +21,8 @@ function requireAuth(req, res, next) {
 // requireRole(...roles) — must run after requireAuth. Re-queries users.role from
 // DB rather than trusting the JWT claim, since role can change (e.g. revoked)
 // after a token was issued and access tokens live for 15 minutes either way.
+// Stamps req.userRole so handlers that branch on admin-vs-seller (e.g. shop
+// scoping in routes/seller.js) don't need a second lookup.
 function requireRole(...roles) {
   return async (req, res, next) => {
     try {
@@ -28,9 +30,18 @@ function requireRole(...roles) {
       if (!r.rows.length || !roles.includes(r.rows[0].role)) {
         return res.status(403).json({ error: 'Access denied.' });
       }
+      req.userRole = r.rows[0].role;
       next();
     } catch(e) { res.status(500).json({ error: 'Server error.' }); }
   };
 }
 
-module.exports = { requireAuth, requireRole };
+// Plain (non-middleware) role lookup, for routes that only need to check role
+// conditionally rather than gate the whole handler — e.g.
+// payment.js's /confirm, which allows the order's owner OR a seller/admin.
+async function getUserRole(userId) {
+  const r = await query('SELECT role FROM users WHERE id=$1', [userId]);
+  return r.rows[0]?.role || null;
+}
+
+module.exports = { requireAuth, requireRole, getUserRole };

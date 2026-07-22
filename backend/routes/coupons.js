@@ -1,7 +1,7 @@
 const express = require('express');
 const { z } = require('zod');
 const { query } = require('../db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const router = express.Router();
 
@@ -48,16 +48,9 @@ const couponUpdateSchema = z.object({
   .refine(d => !(d.start_date && d.expiry_date) || d.expiry_date >= d.start_date,
     { message: 'Expiry date must be on or after the start date.', path: ['expiry_date'] });
 
-// ── Seller/admin middleware (copy pattern จาก seller.js) ──
-async function requireSeller(req, res, next) {
-  try {
-    const r = await query('SELECT role FROM users WHERE id=$1', [req.user.id]);
-    if (!r.rows.length || !['seller','admin'].includes(r.rows[0].role)) {
-      return res.status(403).json({ error: 'Access denied.' });
-    }
-    next();
-  } catch(e) { res.status(500).json({ error: 'Server error.' }); }
-}
+// Seller/admin gate — consolidated 2026-07-22 into the central requireRole()
+// in middleware/auth.js (was a copy-pasted duplicate of seller.js's version).
+const requireSeller = requireRole('seller', 'admin');
 
 // ════════════════════════════════════════
 // PUBLIC / CHECKOUT ROUTES
