@@ -158,16 +158,18 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 
 <script src="products.js"></script><script src="api.js"></script>
 <script>
-let ORDER_DATA = null, EXPIRES_AT = null, TIMER_ID = null, POLL_ID = null, ORDER_ID = null;
+let ORDER_DATA = null, EXPIRES_AT = null, TIMER_ID = null, POLL_ID = null, ORDER_ID = null, PAY_TOKEN = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   const p  = new URLSearchParams(location.search);
   const id = p.get('id');
   if (!id) { showErr('No order ID provided.'); return; }
-  ORDER_ID = id;
+  ORDER_ID  = id;
+  PAY_TOKEN = p.get('token') || '';
   try {
-    // Fetch order publicly (no auth needed for pay link)
-    const res  = await fetch(`${API_BASE}/payment/link/${id}`);
+    // Fetch order publicly (no auth — token in the URL is what proves the
+    // caller is allowed to see this order's address/QR, see routes/payment.js)
+    const res  = await fetch(`${API_BASE}/payment/link/${id}?token=${encodeURIComponent(PAY_TOKEN)}`);
     const data = await res.json();
     if (!res.ok) { showErr(data.error || 'Order not found.'); return; }
     ORDER_DATA = data;
@@ -220,7 +222,7 @@ function startAutoPoll() {
   POLL_ID = setInterval(async () => {
     if (!ORDER_ID) return;
     try {
-      const res  = await fetch(`${API_BASE}/payment/link/${ORDER_ID}`);
+      const res  = await fetch(`${API_BASE}/payment/link/${ORDER_ID}?token=${encodeURIComponent(PAY_TOKEN)}`);
       const data = await res.json();
       if (!res.ok) return;
       if (['paid','processing','shipped','delivered'].includes(data.status)) {

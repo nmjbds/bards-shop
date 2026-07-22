@@ -660,7 +660,8 @@ function renderFooter(o, orderId, status, items){
 
 /* ── actions ── */
 function goToPay(orderId){
-  location.href='pay.html?id='+encodeURIComponent(orderId);
+  const token=_order&&_order.id===orderId?(_order.pay_token||''):'';
+  location.href='pay.html?id='+encodeURIComponent(orderId)+'&token='+encodeURIComponent(token);
 }
 
 async function markIvePaid(orderId){

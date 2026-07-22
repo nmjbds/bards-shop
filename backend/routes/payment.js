@@ -1,4 +1,5 @@
 require('dotenv').config();
+const crypto   = require('crypto');
 const express  = require('express');
 const QRCode   = require('qrcode');
 const { z } = require('zod');
@@ -235,10 +236,11 @@ router.post('/create', requireAuth, validate(createOrderSchema), async (req, res
     orderId       = makeOrderId();
     expirySeconds = parseInt(process.env.QR_EXPIRY_SECONDS || '86400');
     expiresAt     = new Date(Date.now() + expirySeconds * 1000);
+    const payToken = crypto.randomBytes(32).toString('hex');
 
     await client.query(
-      `INSERT INTO orders(id,user_id,items,subtotal,shipping,discount,coupon_code,total,address,status,expires_at)
-       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending',$10)`,
+      `INSERT INTO orders(id,user_id,items,subtotal,shipping,discount,coupon_code,total,address,status,expires_at,pay_token)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending',$10,$11)`,
       [
         orderId, req.user.id,
         JSON.stringify(orderItems),
@@ -249,6 +251,7 @@ router.post('/create', requireAuth, validate(createOrderSchema), async (req, res
         total,
         JSON.stringify(address || {}),
         expiresAt,
+        payToken,
       ]
     );
 
@@ -316,14 +319,28 @@ router.post('/create', requireAuth, validate(createOrderSchema), async (req, res
 // ══════════════════════════════════════════════
 // GET /api/payment/link/:orderId — public, for pay.html
 // ══════════════════════════════════════════════
+function tokenMatches(given, real) {
+  if (typeof given !== 'string' || typeof real !== 'string') return false;
+  const a = Buffer.from(given), b = Buffer.from(real);
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
 router.get('/link/:orderId', async (req, res) => {
   try {
     const r = await query(
-      'SELECT id,status,subtotal,shipping,discount,coupon_code,total,items,address,qr_payload,expires_at,cancelled_by,cancel_reason FROM orders WHERE id=$1',
+      'SELECT id,status,subtotal,shipping,discount,coupon_code,total,items,address,qr_payload,expires_at,cancelled_by,cancel_reason,pay_token FROM orders WHERE id=$1',
       [req.params.orderId]
     );
     const o = r.rows[0];
-    if (!o) return res.status(404).json({ error: 'Order not found.' });
+    // Same 404 whether the order doesn't exist or the token is wrong — this
+    // link carries the customer's address/phone/QR, so a wrong/missing
+    // token must not confirm an order id is real (see CLAUDE.md security
+    // note on pay_token, added 2026-07-22).
+    if (!o || !tokenMatches(req.query.token, o.pay_token)) {
+      return res.status(404).json({ error: 'Order not found.' });
+    }
+    delete o.pay_token;
 
     // Auto-expire: ถ้าหมดเวลา 24h → expired + cancelled_by=system + คืน stock
     // (endpoint นี้ public ไม่มี auth — เอาแค่ status/cancelled_by/cancel_reason
@@ -354,12 +371,12 @@ router.get('/link/:orderId', async (req, res) => {
 router.post('/send-link/:orderId', requireAuth, async (req, res) => {
   try {
     const r = await query(
-      "SELECT id,status,total,expires_at FROM orders WHERE id=$1 AND status IN ('pending','pending_verification')",
+      "SELECT id,status,total,expires_at,pay_token FROM orders WHERE id=$1 AND status IN ('pending','pending_verification')",
       [req.params.orderId]
     );
     const o = r.rows[0];
     if (!o) return res.status(400).json({ error: 'Order not found or already paid.' });
-    const link = `${process.env.FRONTEND_URL || ''}/pay.html?id=${o.id}`;
+    const link = `${process.env.FRONTEND_URL || ''}/pay.html?id=${o.id}&token=${o.pay_token}`;
     res.json({ ok: true, link, orderId: o.id, total: o.total });
   } catch(e) {
     res.status(500).json({ error: 'Server error.' });

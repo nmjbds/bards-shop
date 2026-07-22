@@ -1,4 +1,5 @@
 require('dotenv').config();
+const crypto = require('crypto');
 const { Pool } = require('pg');
 
 const pool = new Pool({
@@ -70,6 +71,12 @@ async function initDb() {
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code       TEXT;
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancelled_by      TEXT; -- 'customer' | 'seller' | 'system'
       ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancel_reason     TEXT;
+      -- pay_token: required to view GET /api/payment/link/:orderId (public
+      -- endpoint, returns address/phone/QR). Without it, the order id alone
+      -- (only ~4 base36 random chars) is guessable. Backfilled below in JS
+      -- since it needs real per-row randomness that plain SQL can't do
+      -- without pgcrypto.
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS pay_token         TEXT;
 
       -- Payments (ABA PayWay) — order_id is TEXT to match orders.id (not UUID)
       CREATE TABLE IF NOT EXISTS payments (
@@ -313,7 +320,17 @@ async function initDb() {
       CREATE INDEX IF NOT EXISTS idx_coupons_code    ON coupons(UPPER(code));
       CREATE INDEX IF NOT EXISTS idx_users_email     ON users(email);
       CREATE INDEX IF NOT EXISTS idx_carts_user ON carts(user_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_pay_token ON orders(pay_token) WHERE pay_token IS NOT NULL;
     `);
+
+    // One-time backfill: orders created before pay_token existed don't have
+    // one yet. Generated per-row in JS (crypto.randomBytes) rather than SQL
+    // since that needs pgcrypto, which isn't guaranteed to be installed.
+    const untokenized = await query('SELECT id FROM orders WHERE pay_token IS NULL');
+    for (const row of untokenized.rows) {
+      await query('UPDATE orders SET pay_token=$1 WHERE id=$2', [crypto.randomBytes(32).toString('hex'), row.id]);
+    }
+
     console.log('✅ Database ready');
 
     // Best-effort cleanup — refresh_tokens grows one row per login and one
