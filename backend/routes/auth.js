@@ -571,6 +571,7 @@ router.get('/google', (req, res, next) => {
 });
 router.get('/google/callback', passport.authenticate('google', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/signin?error=Google+login+failed` }), async (req, res) => {
   const token = await issueSession(req.user, req, res);
+  console.log('[GOOGLE CALLBACK DEBUG] Set-Cookie queued:', !!res.getHeader('Set-Cookie')); // TEMPORARY — remove after diagnosing missing bards_rt cookie
   const redirect = isSafeRedirectPath(req.query.state) ? `&redirect=${encodeURIComponent(req.query.state)}` : '';
   res.redirect(`${process.env.FRONTEND_URL}/signin?token=${token}${redirect}`);
 });
