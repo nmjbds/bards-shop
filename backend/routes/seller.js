@@ -184,30 +184,55 @@ async function getOwnApprovedShop(userId) {
   return r.rows[0]?.id || null;
 }
 
-// ── GET /api/seller/orders ── all orders with customer info
+// ── GET /api/seller/orders ── admin: all orders, full items, unchanged.
+// Seller: only orders containing at least one of their own shop's items —
+// and within each of those, `items` is filtered down to just their own
+// lines (a shared multi-shop order still shows to both sellers, but each
+// only sees their own slice + an `own_subtotal` for convenience). This is
+// visibility scoping only — order status/payment/total still describe the
+// whole order (no real per-shop split), per the Phase 4 scope decision.
 router.get('/orders', requireAuth, requireSeller, async (req, res) => {
   try {
     const limit  = Math.min(parseInt(req.query.limit) || 200, 500);
     const offset = parseInt(req.query.offset) || 0;
     const status = req.query.status || null;
-    let r;
-    if (status) {
-      r = await query(
-        `SELECT o.*, u.name as customer_name, u.email as customer_email
-         FROM orders o LEFT JOIN users u ON o.user_id=u.id
-         WHERE o.status=$1
-         ORDER BY o.created_at DESC LIMIT $2 OFFSET $3`,
-        [status, limit, offset]
-      );
-    } else {
-      r = await query(
-        `SELECT o.*, u.name as customer_name, u.email as customer_email
-         FROM orders o LEFT JOIN users u ON o.user_id=u.id
-         ORDER BY o.created_at DESC LIMIT $1 OFFSET $2`,
-        [limit, offset]
-      );
+    const isAdmin = req.userRole === 'admin';
+
+    let shopId = null;
+    if (!isAdmin) {
+      shopId = await getOwnApprovedShop(req.user.id);
+      if (!shopId) return res.json({ orders: [] });
     }
-    res.json({ orders: r.rows });
+
+    const conditions = [];
+    const params = [];
+    let idx = 1;
+    if (status) { conditions.push(`o.status=$${idx++}`); params.push(status); }
+    if (!isAdmin) {
+      conditions.push(`EXISTS (SELECT 1 FROM jsonb_array_elements(o.items) it WHERE (it->>'shop_id')=$${idx++})`);
+      params.push(shopId);
+    }
+    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    params.push(limit, offset);
+
+    const r = await query(
+      `SELECT o.*, u.name as customer_name, u.email as customer_email
+       FROM orders o LEFT JOIN users u ON o.user_id=u.id
+       ${whereClause}
+       ORDER BY o.created_at DESC LIMIT $${idx++} OFFSET $${idx}`,
+      params
+    );
+
+    let orders = r.rows;
+    if (!isAdmin) {
+      orders = orders.map(o => {
+        const ownItems = (o.items || []).filter(it => it.shop_id === shopId);
+        const ownSubtotal = Math.round(ownItems.reduce((sum, it) => sum + Number(it.price) * it.quantity, 0) * 100) / 100;
+        return { ...o, items: ownItems, own_subtotal: ownSubtotal };
+      });
+    }
+
+    res.json({ orders });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
 
@@ -232,9 +257,17 @@ router.patch('/orders/:id', requireAuth, requireSeller, validate(orderUpdateSche
     await client.query('BEGIN');
 
     // 1. ดึง order ปัจจุบันก่อน เพื่อตรวจ transition
-    const cur = await client.query('SELECT status FROM orders WHERE id=$1', [req.params.id]);
+    const cur = await client.query('SELECT status, items FROM orders WHERE id=$1', [req.params.id]);
     if (!cur.rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Order not found.' }); }
     const currentStatus = cur.rows[0].status;
+
+    // Non-admin sellers may only act on orders that contain at least one of
+    // their own shop's items — same "don't leak existence" 404 as products.
+    if (req.userRole !== 'admin') {
+      const shopId = await getOwnApprovedShop(req.user.id);
+      const hasOwnItem = shopId && (cur.rows[0].items || []).some(it => it.shop_id === shopId);
+      if (!hasOwnItem) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Order not found.' }); }
+    }
 
     // 2. ตรวจว่า status ที่ขอมีอยู่ใน allowedTransitions หรือไม่
     const allowed = ALLOWED_TRANSITIONS[currentStatus];
@@ -293,6 +326,15 @@ router.patch('/orders/:id/note', requireAuth, requireSeller, validate(orderNoteS
   try {
     const { seller_note } = req.body;
     if (seller_note === undefined) return res.status(400).json({ error: 'seller_note is required.' });
+
+    if (req.userRole !== 'admin') {
+      const shopId = await getOwnApprovedShop(req.user.id);
+      const cur = await query('SELECT items FROM orders WHERE id=$1', [req.params.id]);
+      if (!cur.rows.length) return res.status(404).json({ error: 'Order not found.' });
+      const hasOwnItem = shopId && (cur.rows[0].items || []).some(it => it.shop_id === shopId);
+      if (!hasOwnItem) return res.status(404).json({ error: 'Order not found.' });
+    }
+
     const r = await query(
       `UPDATE orders SET seller_note=$1 WHERE id=$2 RETURNING id, seller_note`,
       [seller_note || null, req.params.id]

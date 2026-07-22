@@ -162,7 +162,7 @@ router.post('/create', requireAuth, validate(createOrderSchema), async (req, res
 
     for (const line of merged.values()) {
       const pr = await client.query(
-        'SELECT id, name, price, sale_price, stock, is_active, images FROM products WHERE id=$1 FOR UPDATE',
+        'SELECT id, name, price, sale_price, stock, is_active, images, shop_id FROM products WHERE id=$1 FOR UPDATE',
         [line.id]
       );
       const product = pr.rows[0];
@@ -191,6 +191,7 @@ router.post('/create', requireAuth, validate(createOrderSchema), async (req, res
         color: line.color,
         size: line.size,
         quantity: line.quantity,
+        shop_id: product.shop_id || null,
       });
     }
     subtotal = Math.round(subtotal * 100) / 100;
