@@ -17,6 +17,10 @@ const cartRouter     = require('./routes/cart');
 const productsRouter = require('./routes/products');
 
 const app  = express();
+// Render puts exactly one reverse proxy in front of this app — trust its
+// X-Forwarded-For so req.ip (used as the default rate-limit key) reflects the
+// real client IP instead of Render's proxy address for every request.
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, '../public');
 
