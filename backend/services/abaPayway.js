@@ -109,12 +109,11 @@ function isPurchaseSuccess(data) {
   return Number(statusCode(data)) === 0;
 }
 
-// CONFIRMED shape from a live sandbox check-transaction-2 call on an unpaid
-// order: { data: { payment_status: "PENDING", payment_status_code: 2, ... },
-// status: { code: "00", ... } }. "APPROVED" for the paid case is inferred
-// (PENDING/DECLINED being the obvious siblings) but not yet observed —
-// confirm against payments.raw_response the first time a sandbox QR is
-// actually paid, and adjust here if the real value differs.
+// CONFIRMED shape from live sandbox check-transaction-2 calls:
+//   unpaid: { data: { payment_status: "PENDING", payment_status_code: 2, ... }, status: { code: "00", ... } }
+//   paid:   { data: { payment_status: "APPROVED", payment_status_code: 0, apv: "<approval code>", ... }, status: { code: "00", ... } }
+// (verified 2026-07-21 against a real paid sandbox transaction, order
+// BRD-MRUHLN22-6XTZ — the APPROVED string guessed below was correct.)
 function paymentStatus(data) {
   return (data?.data?.payment_status || '').toString().toUpperCase();
 }
