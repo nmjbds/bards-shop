@@ -260,6 +260,32 @@ async function initDb() {
       CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
       CREATE UNIQUE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);
 
+      -- Shops (multi-vendor, Phase 4) — one shop per seller for now
+      -- (owner_user_id UNIQUE). status: pending | approved | rejected | suspended
+      CREATE TABLE IF NOT EXISTS shops (
+        id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+        owner_user_id UUID        NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        name          TEXT        NOT NULL,
+        description   TEXT,
+        logo          TEXT,
+        status        TEXT        NOT NULL DEFAULT 'pending',
+        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at    TIMESTAMPTZ
+      );
+      CREATE INDEX IF NOT EXISTS idx_shops_owner  ON shops(owner_user_id);
+      CREATE INDEX IF NOT EXISTS idx_shops_status ON shops(status);
+
+      -- Migration (one-time grandfather-in): accounts that were already
+      -- seller/admin before the shops system existed get an auto-approved
+      -- shop so they aren't locked out of product management. This does NOT
+      -- apply going forward — new sellers go through apply -> admin approve.
+      INSERT INTO shops (owner_user_id, name, status)
+      SELECT id, COALESCE(NULLIF(TRIM(name), ''), 'My Shop'), 'approved'
+      FROM users
+      WHERE role IN ('seller','admin')
+        AND id NOT IN (SELECT owner_user_id FROM shops)
+      ON CONFLICT (owner_user_id) DO NOTHING;
+
       -- Indexes
       CREATE INDEX IF NOT EXISTS idx_orders_user     ON orders(user_id);
       CREATE INDEX IF NOT EXISTS idx_orders_status   ON orders(status);

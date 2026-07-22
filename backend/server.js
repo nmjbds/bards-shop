@@ -15,6 +15,7 @@ const addressesRouter= require('./routes/addresses');
 const couponsRouter  = require('./routes/coupons');
 const cartRouter     = require('./routes/cart');
 const productsRouter = require('./routes/products');
+const shopsRouter    = require('./routes/shops');
 
 const app  = express();
 // Render puts exactly one reverse proxy in front of this app — trust its
@@ -79,6 +80,7 @@ app.use('/api/addresses', addressesRouter);
 app.use('/api/coupons',   couponsRouter);
 app.use('/api/cart',     cartRouter);
 app.use('/api/products', productsRouter);
+app.use('/api/shops',    shopsRouter);
 
 /* /api/products — handled by routes/products.js */
 
