@@ -164,15 +164,24 @@ router.post('/upload', requireAuth, requireSeller, (req, res) => {
   });
 });
 
-// Seller/admin only middleware
+// Seller/admin only middleware — also stamps req.userRole so downstream
+// handlers (product shop-scoping) don't need a second role lookup.
 async function requireSeller(req, res, next) {
   try {
     const r = await query('SELECT role FROM users WHERE id=$1', [req.user.id]);
     if (!r.rows.length || !['seller','admin'].includes(r.rows[0].role)) {
       return res.status(403).json({ error: 'Access denied.' });
     }
+    req.userRole = r.rows[0].role;
     next();
   } catch(e) { res.status(500).json({ error: 'Server error.' }); }
+}
+
+// Phase 4: the caller's own approved shop id, or null if they don't have
+// one yet (never applied, still pending, or rejected/suspended).
+async function getOwnApprovedShop(userId) {
+  const r = await query("SELECT id FROM shops WHERE owner_user_id=$1 AND status='approved'", [userId]);
+  return r.rows[0]?.id || null;
 }
 
 // ── GET /api/seller/orders ── all orders with customer info
@@ -386,19 +395,31 @@ router.get('/public/products/:id', async (req, res) => {
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
 
-// ── GET /api/seller/products ── list all products
+// ── GET /api/seller/products ── list products — admin sees everything
+// (platform oversight), seller sees only their own shop's products. A
+// seller with no approved shop yet just sees an empty list, not an error.
 router.get('/products', requireAuth, requireSeller, async (req, res) => {
   try {
-    const r = await query(
-      `SELECT * FROM products ORDER BY created_at DESC`
-    );
+    if (req.userRole === 'admin') {
+      const r = await query(`SELECT * FROM products ORDER BY created_at DESC`);
+      return res.json({ products: r.rows });
+    }
+    const shopId = await getOwnApprovedShop(req.user.id);
+    if (!shopId) return res.json({ products: [] });
+    const r = await query(`SELECT * FROM products WHERE shop_id=$1 ORDER BY created_at DESC`, [shopId]);
     res.json({ products: r.rows });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
 
-// ── POST /api/seller/products ── create product
+// ── POST /api/seller/products ── create product — always under the
+// caller's own approved shop (never a client-supplied shop_id). Applies to
+// admins too, since every product needs a shop; admins get one via the
+// Phase-4-Step-1 backfill so this doesn't block existing usage.
 router.post('/products', requireAuth, requireSeller, validate(productCreateSchema), async (req, res) => {
   try {
+    const shopId = await getOwnApprovedShop(req.user.id);
+    if (!shopId) return res.status(403).json({ error: 'You need an approved shop before adding products.' });
+
     const {
       name, description, price, sale_price,
       category, images, colors, sizes, stock, is_new, is_active
@@ -418,8 +439,8 @@ router.post('/products', requireAuth, requireSeller, validate(productCreateSchem
 
     const r = await query(
       `INSERT INTO products
-         (id, name, description, price, sale_price, category, images, colors, sizes, stock, is_new, is_active)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+         (id, name, description, price, sale_price, category, images, colors, sizes, stock, is_new, is_active, shop_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
        RETURNING *`,
       [
         newId,
@@ -434,13 +455,17 @@ router.post('/products', requireAuth, requireSeller, validate(productCreateSchem
         stock != null ? parseInt(stock) : null,
         is_new === true,
         is_active !== false,
+        shopId,
       ]
     );
     res.status(201).json({ product: r.rows[0] });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
 
-// ── PATCH /api/seller/products/:id ── update product
+// ── PATCH /api/seller/products/:id ── update product — admin can edit any
+// product, seller only their own shop's (WHERE shop_id=own scopes it; a
+// mismatch just falls through to the existing 404, same as "not found" —
+// doesn't leak whether the product exists under another shop).
 router.patch('/products/:id', requireAuth, requireSeller, validate(productUpdateSchema), async (req, res) => {
   try {
     const {
@@ -468,19 +493,28 @@ router.patch('/products/:id', requireAuth, requireSeller, validate(productUpdate
     if (!updates.length) return res.status(400).json({ error: 'No fields to update.' });
 
     params.push(req.params.id);
-    const r = await query(
-      `UPDATE products SET ${updates.join(',')} WHERE id=$${idx} RETURNING *`,
-      params
-    );
+    let sql = `UPDATE products SET ${updates.join(',')} WHERE id=$${idx}`;
+    if (req.userRole !== 'admin') {
+      const shopId = await getOwnApprovedShop(req.user.id);
+      params.push(shopId);
+      sql += ` AND shop_id=$${idx + 1}`;
+    }
+    const r = await query(`${sql} RETURNING *`, params);
     if (!r.rows.length) return res.status(404).json({ error: 'Product not found.' });
     res.json({ product: r.rows[0] });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
 
-// ── DELETE /api/seller/products/:id ── delete product
+// ── DELETE /api/seller/products/:id ── delete product — same admin/own-shop
+// scoping as PATCH above.
 router.delete('/products/:id', requireAuth, requireSeller, async (req, res) => {
   try {
-    await query('DELETE FROM products WHERE id=$1', [req.params.id]);
+    if (req.userRole === 'admin') {
+      await query('DELETE FROM products WHERE id=$1', [req.params.id]);
+    } else {
+      const shopId = await getOwnApprovedShop(req.user.id);
+      await query('DELETE FROM products WHERE id=$1 AND shop_id=$2', [req.params.id, shopId]);
+    }
     res.json({ ok: true });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });

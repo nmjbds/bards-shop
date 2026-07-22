@@ -286,6 +286,23 @@ async function initDb() {
         AND id NOT IN (SELECT owner_user_id FROM shops)
       ON CONFLICT (owner_user_id) DO NOTHING;
 
+      -- Phase 4 Step 3: products belong to a shop. Nullable (not every
+      -- product is guaranteed a shop the instant this column appears) —
+      -- app code (routes/seller.js) enforces "must have an approved shop"
+      -- at create-time; this column just needs to exist first.
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS shop_id UUID REFERENCES shops(id);
+      CREATE INDEX IF NOT EXISTS idx_products_shop ON products(shop_id);
+
+      -- Backfill (unambiguous case only): if exactly one shop exists at
+      -- migration time, every orphan product obviously belongs to it. If
+      -- more than one shop already exists, don't guess — leave shop_id
+      -- NULL and let it be fixed manually (ambiguous which seller owns it).
+      DO $$ BEGIN
+        IF (SELECT COUNT(*) FROM shops) = 1 THEN
+          UPDATE products SET shop_id = (SELECT id FROM shops LIMIT 1) WHERE shop_id IS NULL;
+        END IF;
+      END $$;
+
       -- Indexes
       CREATE INDEX IF NOT EXISTS idx_orders_user     ON orders(user_id);
       CREATE INDEX IF NOT EXISTS idx_orders_status   ON orders(status);
