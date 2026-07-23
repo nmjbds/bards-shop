@@ -109,10 +109,8 @@
         .seller-col { display:flex; flex-direction:column; align-items:center; min-width:46px; gap:3px; }
         .seller-ava { width:36px; height:36px; border-radius:50%; border:1.5px solid var(--gray-200); object-fit:cover; }
         .seller-nm { font-size:8px; font-weight:700; letter-spacing:.5px; color:var(--gray-400); text-transform:uppercase; }
-        .btn-add, .btn-buy { flex:1; height:48px; border:none; border-radius:var(--radius-sm); font-family:'Bebas Neue'; font-size:16px; letter-spacing:2px; cursor:pointer; transition:opacity .18s,transform .12s; display:flex; align-items:center; justify-content:center; gap:6px; }
-        .btn-add { background:var(--gray-100); color:var(--black); }
-        .btn-buy { background:var(--black); color:#fff; flex:1.35; }
-        .btn-add:active, .btn-buy:active { opacity:.78; transform:scale(0.97); }
+        .btn-add { flex:1; height:48px; border:none; border-radius:var(--radius-sm); font-family:'Bebas Neue'; font-size:16px; letter-spacing:2px; cursor:pointer; transition:opacity .18s,transform .12s; display:flex; align-items:center; justify-content:center; gap:6px; background:var(--black); color:#fff; }
+        .btn-add:active { opacity:.78; transform:scale(0.97); }
 
         /* SHEET */
         .mask { position:fixed; inset:0; z-index:300; background:rgba(10,10,10,.55); display:none; opacity:0; transition:opacity .32s ease; backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
@@ -201,13 +199,12 @@
         <img src="https://via.placeholder.com/80/0A0A0A?text=BD" class="seller-ava" id="sellerAva">
         <span class="seller-nm">BARDS</span>
     </div>
-    <button class="btn-add" onclick="openSheet('cart')">
+    <button class="btn-add" onclick="openSheet()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
             <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-        </svg> ADD
+        </svg> ADD TO CART
     </button>
-    <button class="btn-buy" onclick="openSheet('buy')">BUY NOW</button>
 </div>
 
 <div class="mask" id="mask" onclick="hideSheet()"></div>
@@ -257,7 +254,7 @@
 /* product.html — สินค้าจาก products.js */
 
 /* ─── STATE ─── */
-let P = null, imgIdx = 0, selColor = null, selSize = null, qty = 1, sheetMode = 'cart';
+let P = null, imgIdx = 0, selColor = null, selSize = null, qty = 1;
 
 const PRODUCT_ID = new URLSearchParams(window.location.search).get('id') || '';
 
@@ -453,8 +450,8 @@ function pickSizeSheet(el, val) {
 function changeQty(d) { qty = Math.max(1, Math.min(10, qty+d)); document.getElementById('qtyVal').innerText = qty; }
 
 /* ─── SHEET ─── */
-function openSheet(mode) {
-    sheetMode = mode; setConfirm('idle');
+function openSheet() {
+    setConfirm('idle');
     document.getElementById('mask').style.display = 'block';
     requestAnimationFrame(() => {
         document.getElementById('mask').classList.add('on');
@@ -476,14 +473,9 @@ function handleConfirm() {
         /* price เป็น USD แล้ว — เก็บตรงๆ */
         saveCart({ id:PRODUCT_ID, name:P.name, price:P.price, image:P.images[0], color:selColor||'', size:selSize||'', quantity:qty });
         updateBadge();
-        if (sheetMode === 'buy') {
-            sessionStorage.setItem('BUY_NOW_ID', PRODUCT_ID);
-            window.location.href = 'cart.html';
-        } else {
-            hideSheet();
-            setTimeout(() => setConfirm('idle'), 400);
-            showToast('ok','Added to cart', P.name.split(' ').slice(0,3).join(' ') + ' · Qty ' + qty);
-        }
+        hideSheet();
+        setTimeout(() => setConfirm('idle'), 400);
+        showToast('ok','Added to cart', P.name.split(' ').slice(0,3).join(' ') + ' · Qty ' + qty);
     }, 680);
 }
 

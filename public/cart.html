@@ -427,13 +427,6 @@ window.onload = async function () {
     // Step 1: แสดง localStorage ทันที ไม่รอ network
     cart = Cart.get().map(item => ({ ...item, price: Number(item.price) }));
 
-    const buyNowId = sessionStorage.getItem('BUY_NOW_ID');
-    if (buyNowId) {
-        const idx = cart.findIndex(c => c.id === buyNowId);
-        if (idx !== -1) selected.add(idx);
-        sessionStorage.removeItem('BUY_NOW_ID');
-    }
-
     render();
     buildRec();
 
