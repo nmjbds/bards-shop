@@ -32,7 +32,17 @@ const PUBLIC = path.join(__dirname, '../public');
    nonces/hashes anywhere) — Helmet's default CSP blocks all of that and
    would break every page. Enabling a real CSP here needs a proper pass
    over the frontend first, not a silent one-line flip. */
-app.use(helmet({ contentSecurityPolicy: false }));
+/* crossOriginOpenerPolicy: Helmet's default is 'same-origin', which severs
+   window.opener between this site and any popup we open to a different
+   origin (e.g. Telegram's login widget popping open oauth.telegram.org) —
+   the popup can no longer report its result back to the window that opened
+   it. 'same-origin-allow-popups' keeps the same-origin isolation for this
+   site's own pages while still allowing that one specific cross-origin
+   popup pattern to communicate back (2026-07-23). */
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+}));
 
 /* CORS */
 const allowed = [
