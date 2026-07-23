@@ -59,6 +59,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .confirm-btn.success{background:var(--green);color:#fff;pointer-events:none;}
 .confirm-sub{margin-top:10px;font-size:10px;color:var(--gray-400);text-align:center;}
 .confirm-sub a{color:var(--black);font-weight:700;text-decoration:none;}
+.pay-later-btn{width:100%;background:none;border:none;margin-top:10px;padding:8px;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;color:var(--gray-600);text-decoration:underline;cursor:pointer;}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(6px);background:var(--black);color:#fff;padding:12px 18px 12px 14px;border-radius:14px;font-size:13px;font-weight:500;z-index:9999;opacity:0;transition:opacity .28s,transform .28s;white-space:nowrap;display:flex;align-items:center;gap:10px;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.28);min-width:200px;}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 .t-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
@@ -143,6 +144,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 
   <div class="fu d1">
     <button class="confirm-btn idle" id="confirmBtn" onclick="confirmPayment()">CHECK PAYMENT STATUS</button>
+    <button class="pay-later-btn" onclick="payLater()">I'll pay later</button>
     <div class="confirm-sub">Need help? <a href="https://t.me/barrrds" target="_blank">Contact Support →</a></div>
   </div>
   <div style="height:20px"></div>
@@ -275,6 +277,13 @@ async function downloadQRCard(){
     btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Save QR';
     window.open(qrImg.src,'_blank');
   }
+}
+
+// เดิมหน้านี้ไม่มีทางออกเลยนอกจากปุ่มหลัก — ลูกค้าที่ยังไม่พร้อมจ่ายตอนนี้ไม่มีทางไปต่อที่ชัดเจน
+// (มีแค่ลิงก์ "BARDS" เล็กๆ ที่ nav บนซึ่งไม่มีใครสังเกตว่ากดแล้วออกได้) เพิ่มปุ่มนี้ให้ชัดเจนว่าจ่ายทีหลัง
+// ได้ ไม่ต้องรอ/ไม่ต้องกดอะไรตอนนี้ — order ยังอยู่ ระบบตรวจจับการจ่ายอัตโนมัติอยู่แล้วไม่ว่าจะปิดหน้านี้ไป
+function payLater(){
+  location.href = 'order-detail.html?id=' + encodeURIComponent(ORDER.orderId);
 }
 
 async function confirmPayment(){
