@@ -58,6 +58,9 @@
         .st-pending{background:#FEF3C7;color:#B45309;}
         .st-cancelled{background:#FEE2E2;color:var(--red);}
         .st-paid{background:#DCFCE7;color:var(--green);}
+        .st-processing{background:#EDE9FE;color:#6D28D9;}
+        .st-pending_verification{background:#DBEAFE;color:#1D4ED8;}
+        .st-failed{background:#FEE2E2;color:var(--red);}
 
         .oc-items{display:flex;padding:12px 14px 0;align-items:center;}
         .oc-thumbs{display:flex;}
@@ -185,10 +188,18 @@ const FILTERS=[
     {id:'all',label:'All'},{id:'pending',label:'Pending'},{id:'paid',label:'Paid'},
     {id:'shipped',label:'Shipped'},{id:'delivered',label:'Delivered'},{id:'cancelled',label:'Cancelled'}
 ];
-const STATUS_CSS={delivered:'st-delivered',shipped:'st-shipped',pending:'st-pending',cancelled:'st-cancelled',paid:'st-paid',expired:'st-cancelled'};
-const STATUS_LBL={delivered:'Delivered',shipped:'Shipped',pending:'Pending',cancelled:'Cancelled',paid:'Paid ✓',expired:'Expired'};
+// ครบทั้ง 9 status ที่ orders.status เป็นไปได้จริง (เช็คจาก routes/seller.js's ALLOWED_TRANSITIONS +
+// routes/payment.js's ABA-purchase-failure compensation — ไม่ใช่แค่ 6 ตัวที่เคยมี) ก่อนหน้านี้ processing/
+// pending_verification/failed ไม่มี entry เลย ตกไปใช้ fallback ('Pending'/'st-pending'/step 0) ทำให้ order
+// ที่จ่ายเงินแล้วจริง (processing) ดูเหมือนยังไม่จ่าย — แก้ตรงนี้
+const STATUS_CSS={delivered:'st-delivered',shipped:'st-shipped',pending:'st-pending',cancelled:'st-cancelled',paid:'st-paid',expired:'st-cancelled',processing:'st-processing',pending_verification:'st-pending_verification',failed:'st-failed'};
+const STATUS_LBL={delivered:'Delivered',shipped:'Shipped',pending:'Pending',cancelled:'Cancelled',paid:'Paid ✓',expired:'Expired',processing:'Processing',pending_verification:'Awaiting Review',failed:'Payment Failed'};
 const TRACK_STEPS=['Ordered','Packed','Shipped','Delivered'];
-const TRACK_IDX={pending:0,paid:1,shipped:2,delivered:3,cancelled:-1,expired:-1};
+// pending_verification เหมือน pending (ยังไม่ถึงจุด "Paid" — ตรงกับที่ order-detail.html ทำอยู่แล้ว)
+// processing ใช้ index เดียวกับ paid ชั่วคราว (ยังไม่มี step แยกใน TRACK_STEPS 4 step นี้ — การเพิ่ม step
+// ใหม่เป็นเรื่อง wording/layout ที่เก็บไว้ทำรอบหน้า ตอนนี้แค่กันไม่ให้ fallback เป็น step 0 ซึ่งเข้าใจผิดว่า
+// ยังไม่จ่ายเงิน) failed เป็น terminal state ที่ไม่สำเร็จเหมือน cancelled/expired
+const TRACK_IDX={pending:0,pending_verification:0,paid:1,processing:1,shipped:2,delivered:3,cancelled:-1,expired:-1,failed:-1};
 
 let allOrders=[], activeFilter='all', _refreshTimer=null;
 
