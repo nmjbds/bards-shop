@@ -24,46 +24,50 @@ router.get('/', async (req, res) => {
     const isNew    = req.query.new === 'true';
     const sort     = req.query.sort || 'newest';
 
-    // ── WHERE ──
-    const conditions = ['is_active = true'];
+    // ── WHERE ── (p. prefix needed once we JOIN shops — both tables have a `name` column)
+    const conditions = ['p.is_active = true'];
     const params = [];
 
     if (category) {
       params.push(category);
-      conditions.push(`category = $${params.length}`);
+      conditions.push(`p.category = $${params.length}`);
     }
     if (isNew) {
-      conditions.push('is_new = true');
+      conditions.push('p.is_new = true');
     }
     if (search) {
       params.push(`%${search}%`);
-      conditions.push(`(name ILIKE $${params.length} OR description ILIKE $${params.length})`);
+      conditions.push(`(p.name ILIKE $${params.length} OR p.description ILIKE $${params.length})`);
     }
 
     const where = 'WHERE ' + conditions.join(' AND ');
 
     // ── ORDER BY ──
     const orderMap = {
-      newest:     'created_at DESC',
-      price_asc:  'price ASC',
-      price_desc: 'price DESC',
-      name:       'name ASC',
+      newest:     'p.created_at DESC',
+      price_asc:  'p.price ASC',
+      price_desc: 'p.price DESC',
+      name:       'p.name ASC',
     };
-    const orderBy = orderMap[sort] || 'created_at DESC';
+    const orderBy = orderMap[sort] || 'p.created_at DESC';
 
     // ── COUNT (total) ──
     const countRes = await query(
-      `SELECT COUNT(*) FROM products ${where}`,
+      `SELECT COUNT(*) FROM products p ${where}`,
       params
     );
     const total = parseInt(countRes.rows[0].count);
 
-    // ── FETCH ──
+    // ── FETCH ── LEFT JOIN shops: shop_id is nullable (products created before Phase 4,
+    // or orphaned if a shop is ever removed without cascading — see CLAUDE.md §4) so a
+    // product must still show up even with no matching shop row.
     params.push(limit, offset);
     const r = await query(
-      `SELECT id, name, description, price, sale_price, category,
-              images, colors, sizes, stock, is_new, is_active, created_at
-       FROM products
+      `SELECT p.id, p.name, p.description, p.price, p.sale_price, p.category,
+              p.images, p.colors, p.sizes, p.stock, p.is_new, p.is_active, p.created_at,
+              s.name AS shop_name, s.logo AS shop_logo
+       FROM products p
+       LEFT JOIN shops s ON p.shop_id = s.id
        ${where}
        ORDER BY ${orderBy}
        LIMIT $${params.length - 1} OFFSET $${params.length}`,
@@ -94,7 +98,10 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const r = await query(
-      `SELECT * FROM products WHERE id = $1 AND is_active = true`,
+      `SELECT p.*, s.name AS shop_name, s.logo AS shop_logo
+       FROM products p
+       LEFT JOIN shops s ON p.shop_id = s.id
+       WHERE p.id = $1 AND p.is_active = true`,
       [req.params.id]
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Product not found.' });
