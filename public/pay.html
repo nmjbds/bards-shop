@@ -22,7 +22,6 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .card-body{padding:20px;display:flex;flex-direction:column;align-items:center;}
 .qr-wrap{position:relative;width:220px;height:220px;border-radius:12px;overflow:hidden;border:3px solid var(--gray-100);box-shadow:0 4px 16px rgba(0,0,0,.1);background:#fff;margin-bottom:14px;}
 #qrImg{width:220px;height:220px;display:block;}
-.qr-logo{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:42px;height:42px;background:#fff;border-radius:9px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.15);}
 .expired-overlay{position:absolute;inset:0;background:rgba(255,255,255,.92);display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;}
 .expired-overlay.show{display:flex;}
 .meta{width:100%;text-align:center;margin-bottom:16px;}
@@ -114,12 +113,6 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       <div id="qrSection">
         <div class="qr-wrap">
           <img id="qrImg" width="220" height="220" alt="KHQR">
-          <div class="qr-logo">
-            <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" width="32" height="32">
-              <rect width="80" height="80" rx="10" fill="#0057A8"/>
-              <path d="M16 24h12l8 16 8-16h12v32H44V36l-8 16-8-16v20H16z" fill="#fff"/>
-            </svg>
-          </div>
           <div class="expired-overlay" id="expiredOverlay">
             <div style="font-size:28px">⏱</div>
             <div style="font-size:11px;font-weight:700;color:#8A8A88;letter-spacing:1px">EXPIRED</div>
@@ -198,10 +191,13 @@ function renderPayment(d) {
     return;
   }
 
-  // Show QR
-  if (d.qr_payload) {
-    const img = document.getElementById('qrImg');
-    img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=440x440&margin=2&color=0a0a0a&bgcolor=ffffff&data=' + encodeURIComponent(d.qr_payload);
+  // Show QR — เดิมยิงไป qrserver.com (third-party) ตรงๆ ทั้งที่ response มี d.qrImage (server-render จาก
+  // services/abaPayway ผ่าน qrcode package) อยู่แล้ว ใช้ค่านั้นก่อนเสมอ ตรงกับที่ payment.html ทำ — เหลือ
+  // qrserver.com ไว้แค่ fallback เผื่อ qrImage ไม่มีมาจริงๆ
+  if (d.qrImage) {
+    document.getElementById('qrImg').src = d.qrImage;
+  } else if (d.qr_payload) {
+    document.getElementById('qrImg').src = 'https://api.qrserver.com/v1/create-qr-code/?size=440x440&margin=2&color=0a0a0a&bgcolor=ffffff&data=' + encodeURIComponent(d.qr_payload);
   }
 
   EXPIRES_AT = d.expires_at ? new Date(d.expires_at) : new Date(Date.now() + 86400000);
