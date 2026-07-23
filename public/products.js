@@ -10,101 +10,17 @@
  *   - ทุกหน้าไม่ต้องแก้อะไรเพราะดึงจาก PRODUCTS ที่เดียว
  */
 
-const PRODUCTS = {
-  'oversized-tee-black': {
-    name:'Classic Black Oversized Tee', price:35.00,
-    tag:'BESTSELLER', tagLight:false, category:'tops',
-    isNew:false, isSale:false, stock:'in-stock',
-    dateAdded:'2024-10-01', rating:4.9, reviews:248,
-    desc:'Crafted from 300GSM premium heavy-weight cotton.',
-    images:['https://hnungh.github.io/mpj/img/oversized-tee-black.jpg','https://hnungh.github.io/mpj/img/hoodie-grey.jpg'],
-    colors:[{name:'Noir Black',hex:'#111111'},{name:'Stone White',hex:'#EDE9E1'}],
-    sizes:['S','M','L','XL'],
-    specs:{Material:'Premium Cotton',Weight:'300 GSM',Fit:'Oversized',Care:'Machine Wash'}
-  },
-  'cargo-pants-olive': {
-    name:'Military Olive Cargo Pants', price:48.18,
-    tag:'NEW', tagLight:false, category:'pants',
-    isNew:false, isSale:false, stock:'in-stock',
-    dateAdded:'2024-11-01', rating:4.7, reviews:91,
-    desc:'กางเกงคาร์โก้สีเขียวมะกอก 8 ช่อง Ripstop Nylon',
-    images:['https://hnungh.github.io/mpj/img/cargo-pants-olive.jpg','https://hnungh.github.io/mpj/img/hoodie-grey.jpg'],
-    colors:[{name:'Olive Green',hex:'#6B7C4A'},{name:'Tactical Black',hex:'#2A2A2A'}],
-    sizes:['M','L','XL'],
-    specs:{Material:'Ripstop Nylon',Pockets:'8 Pockets',Fit:'Relaxed',Care:'Cold Wash'}
-  },
-  'hoodie-grey': {
-    name:'Stone Grey Pullover Hoodie', price:39.09,
-    tag:'POPULAR', tagLight:false, category:'tops',
-    isNew:false, isSale:false, stock:'in-stock',
-    dateAdded:'2024-10-15', rating:4.8, reviews:175,
-    desc:'เสื้อฮู้ดดี้สีเทาหิน French Terry 380GSM',
-    images:['https://hnungh.github.io/mpj/img/hoodie-grey.jpg'],
-    colors:[{name:'Stone Grey',hex:'#9A9A95'},{name:'Midnight Navy',hex:'#1A2240'}],
-    sizes:['S','M','L','XL'],
-    specs:{Material:'French Terry',Weight:'380 GSM',Fit:'Regular',Care:'Gentle Wash'}
-  },
-  'sunglasses-retro': {
-    name:'Retro Square Sunglasses', price:26.97,
-    tag:'LIMITED', tagLight:false, category:'accessories',
-    isNew:false, isSale:true, stock:'low-stock',
-    dateAdded:'2024-10-20', rating:4.6, reviews:58,
-    desc:'แว่นตากันแดดทรงสี่เหลี่ยม Acetate UV400',
-    images:['https://hnungh.github.io/mpj/img/sunglasses-retro.jpg'],
-    colors:[{name:'Glossy Black',hex:'#111111'},{name:'Tortoise',hex:'#8B5E3C'}],
-    sizes:['One Size'],
-    specs:{Frame:'Acetate',Lens:'UV400',Style:'Square Retro','Lens Width':'52mm'}
-  },
-  'oversized-tee-white': {
-    name:'Stone White Oversized Tee', price:23.94,
-    tag:'NEW', tagLight:false, category:'tops',
-    isNew:true, isSale:false, stock:'in-stock',
-    dateAdded:'2025-01-10', rating:4.8, reviews:112,
-    desc:'เสื้อ oversized สีขาวหิน 300GSM',
-    images:['https://hnungh.github.io/mpj/img/oversized-tee-black.jpg'],
-    colors:[{name:'Stone White',hex:'#EDE9E1'},{name:'Noir Black',hex:'#111111'}],
-    sizes:['S','M','L','XL'],
-    specs:{Material:'Premium Cotton',Weight:'300 GSM',Fit:'Oversized',Care:'Machine Wash'}
-  },
-  'cargo-pants-black': {
-    name:'Tactical Black Cargo Pants', price:48.18,
-    tag:'NEW', tagLight:false, category:'pants',
-    isNew:true, isSale:false, stock:'in-stock',
-    dateAdded:'2025-01-12', rating:4.7, reviews:44,
-    desc:'กางเกงคาร์โก้สีดำ 8 ช่อง Ripstop Nylon',
-    images:['https://hnungh.github.io/mpj/img/cargo-pants-olive.jpg'],
-    colors:[{name:'Tactical Black',hex:'#2A2A2A'},{name:'Olive Green',hex:'#6B7C4A'}],
-    sizes:['M','L','XL'],
-    specs:{Material:'Ripstop Nylon',Pockets:'8 Pockets',Fit:'Relaxed',Care:'Cold Wash'}
-  },
-  'hoodie-navy': {
-    name:'Midnight Navy Pullover Hoodie', price:39.09,
-    tag:'NEW', tagLight:false, category:'tops',
-    isNew:true, isSale:false, stock:'in-stock',
-    dateAdded:'2025-01-15', rating:4.7, reviews:63,
-    desc:'เสื้อฮู้ดดี้สีกรมท่า French Terry 380GSM',
-    images:['https://hnungh.github.io/mpj/img/hoodie-grey.jpg'],
-    colors:[{name:'Midnight Navy',hex:'#1A2240'},{name:'Stone Grey',hex:'#9A9A95'}],
-    sizes:['S','M','L','XL'],
-    specs:{Material:'French Terry',Weight:'380 GSM',Fit:'Regular',Care:'Gentle Wash'}
-  },
-  'sunglasses-black': {
-    name:'Classic Black Sunglasses', price:26.97,
-    tag:'NEW', tagLight:false, category:'accessories',
-    isNew:true, isSale:false, stock:'in-stock',
-    dateAdded:'2025-01-18', rating:4.5, reviews:21,
-    desc:'แว่นตากันแดดคลาสสิกสีดำ Acetate UV400',
-    images:['https://hnungh.github.io/mpj/img/sunglasses-retro.jpg'],
-    colors:[{name:'Glossy Black',hex:'#111111'}],
-    sizes:['One Size'],
-    specs:{Frame:'Acetate',Lens:'UV400',Style:'Classic',Care:'Wipe clean'}
-  }
-};
+// เดิมมีสินค้าปลอม 8 ชิ้น hardcode ไว้ตรงนี้ (fake demo data ตั้งแต่ก่อนต่อ API จริง) — fetchAndMerge()
+// ด้านล่างมีแต่ "เพิ่ม/ทับ" ตาม key ไม่เคยลบของเดิมออก ทำให้สินค้าปลอมเหล่านี้ติดค้างปนอยู่กับสินค้าจริง
+// ทุกหน้า catalog ตลอดมา (index/categories/all-products/tops/pants/accessories/new-arrival/cart ทุกหน้า
+// render จาก Object.keys/values(PRODUCTS) ตรงๆ) กดเข้าไปดู/ซื้อไม่ได้เพราะไม่มีอยู่จริงใน DB — ลบออกแล้ว
+// (2026-07-23) เหลือ empty object ให้ fetchAndMerge() เติมสินค้าจริงจาก API เข้ามาแทนทั้งหมด
+const PRODUCTS = {};
 
 const CATEGORIES = [
-  { id:'tops',        label:'Tops',        url:'categories/tops.html',        img:PRODUCTS['oversized-tee-black'].images[0] },
-  { id:'pants',       label:'Pants',       url:'categories/pants.html',       img:PRODUCTS['cargo-pants-olive'].images[0]   },
-  { id:'accessories', label:'Accessories', url:'categories/accessories.html', img:PRODUCTS['sunglasses-retro'].images[0]    },
+  { id:'tops',        label:'Tops',        url:'categories/tops.html',        color:'#2A2A2A' },
+  { id:'pants',       label:'Pants',       url:'categories/pants.html',       color:'#3F3A2E' },
+  { id:'accessories', label:'Accessories', url:'categories/accessories.html', color:'#1F2733' },
 ];
 
 function fmtUSD(n){ return '$'+Number(n).toFixed(2); }

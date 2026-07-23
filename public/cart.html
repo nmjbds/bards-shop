@@ -428,6 +428,9 @@ window.onload = async function () {
     cart = Cart.get().map(item => ({ ...item, price: Number(item.price) }));
 
     render();
+    // PRODUCTS เริ่มว่างเปล่าตอนนี้ (สินค้าปลอมที่เคย hardcode ไว้ถูกลบแล้ว) ต้องโหลดจาก API เองก่อน
+    // buildRec() ถึงจะมีสินค้าจริงให้แนะนำ — หน้าอื่น (index/categories/all-products ฯลฯ) ทำแบบนี้อยู่แล้ว
+    await fetchAndMerge().catch(()=>{});
     buildRec();
 
     // Step 2: โหลดจาก server ใน background (source of truth) ไม่บล็อก UI
