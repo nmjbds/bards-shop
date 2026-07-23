@@ -772,9 +772,31 @@ async function loadOrder(){
     if(_order.status==='pending' && _order.expires_at){
       startCountdown(_order.expires_at);
     }
+    // เช็คว่าจ่ายแล้วหรือยังเป็นระยะ (เหมือน payment.html/pay.html) — ก่อนหน้านี้หน้านี้ไม่มี poll เลย
+    // ลูกค้าต้อง refresh มือถึงจะเห็นว่า status เปลี่ยนเป็น paid หลังจ่ายจริงผ่าน ABA
+    if(['pending','pending_verification'].includes(_order.status)){
+      startOrderPoll(id);
+    }
   }catch(e){
     showError(e.message||'Order not found.');
   }
+}
+
+let _orderPollTimer=null;
+function startOrderPoll(orderId){
+  clearInterval(_orderPollTimer);
+  _orderPollTimer=setInterval(async()=>{
+    try{
+      const d=await OrdersAPI.get(orderId);
+      const fresh=d.order||d;
+      if(fresh.status!==_order.status){
+        clearInterval(_orderPollTimer);
+        clearInterval(_countdownInterval);
+        _order=fresh;
+        renderPage(_order);
+      }
+    }catch(e){}
+  },10000);
 }
 
 function showError(msg){

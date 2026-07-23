@@ -104,14 +104,14 @@ app.get('/categories/:cat', (req,res)=>{
   const cat = req.params.cat; // tops | pants | accessories
   const file = `${cat}.html`;
   res.sendFile(file, {root:PUBLIC}, err=>{
-    if(err) res.sendFile('all-product.html',{root:PUBLIC});
+    if(err) res.sendFile('all-products.html',{root:PUBLIC});
   });
 });
 
 /* /product/:id → product.html */
 app.get('/product/:id', (_,res)=>{
   res.sendFile('product.html',{root:PUBLIC}, err=>{
-    if(err) res.sendFile('all-product.html',{root:PUBLIC});
+    if(err) res.sendFile('all-products.html',{root:PUBLIC});
   });
 });
 
