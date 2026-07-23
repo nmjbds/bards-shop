@@ -44,9 +44,9 @@
         .g-dot { width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.45); transition:all .28s ease; }
         .g-dot.on { width:18px; border-radius:3px; background:#fff; }
         .g-counter { position:absolute; bottom:14px; right:14px; z-index:5; font-family:'DM Mono',monospace; font-size:10px; color:rgba(255,255,255,.7); background:rgba(0,0,0,.3); padding:3px 8px; border-radius:10px; }
-        .g-fav { position:absolute; top:14px; right:14px; z-index:6; width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.9); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:transform .15s,background .18s; color:var(--gray-600); box-shadow:0 2px 8px rgba(0,0,0,.1); }
+        .g-fav { width:34px; height:34px; border-radius:50%; background:var(--gray-100); border:1.5px solid var(--gray-200); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:transform .15s,background .18s; color:var(--gray-600); flex-shrink:0; }
         .g-fav:active { transform:scale(.88); }
-        .g-fav.liked { background:var(--black); color:#fff; }
+        .g-fav.liked { background:var(--black); border-color:var(--black); color:#fff; }
 
         /* Desktop gallery nav (hidden on touch/small screens — swipe still works there) */
         .g-arrow { display:none; }
@@ -67,7 +67,8 @@
 
         /* BODY */
         .p-body { padding:20px 18px 0; max-width:800px; margin:0 auto; }
-        .price-line { display:flex; align-items:baseline; gap:8px; }
+        .price-line { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+        .price-line-left { display:flex; align-items:baseline; gap:8px; }
         .price { font-family:'DM Mono',monospace; font-size:32px; font-weight:500; color:#C8001A; line-height:1; }
         .price-currency { font-size:12px; color:var(--gray-400); font-weight:500; letter-spacing:.5px; }
         .p-name { font-size:17px; font-weight:600; margin-top:7px; line-height:1.35; color:var(--black); letter-spacing:-.2px; }
@@ -109,8 +110,10 @@
         .seller-col { display:flex; flex-direction:column; align-items:center; min-width:46px; gap:3px; }
         .seller-ava { width:36px; height:36px; border-radius:50%; border:1.5px solid var(--gray-200); object-fit:cover; background:#0A0A0A; color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue'; font-size:13px; letter-spacing:.5px; }
         .seller-nm { font-size:8px; font-weight:700; letter-spacing:.5px; color:var(--gray-400); text-transform:uppercase; }
-        .btn-add { flex:1; height:48px; border:none; border-radius:var(--radius-sm); font-family:'Bebas Neue'; font-size:16px; letter-spacing:2px; cursor:pointer; transition:opacity .18s,transform .12s; display:flex; align-items:center; justify-content:center; gap:6px; background:var(--black); color:#fff; }
-        .btn-add:active { opacity:.78; transform:scale(0.97); }
+        .btn-add, .btn-buy { flex:1; height:48px; border:none; border-radius:var(--radius-sm); font-family:'Bebas Neue'; font-size:16px; letter-spacing:2px; cursor:pointer; transition:opacity .18s,transform .12s; display:flex; align-items:center; justify-content:center; gap:6px; }
+        .btn-add { background:var(--gray-100); color:var(--black); }
+        .btn-buy { background:var(--black); color:#fff; flex:1.35; }
+        .btn-add:active, .btn-buy:active { opacity:.78; transform:scale(0.97); }
 
         /* SHEET */
         .mask { position:fixed; inset:0; z-index:300; background:rgba(10,10,10,.55); display:none; opacity:0; transition:opacity .32s ease; backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
@@ -199,12 +202,13 @@
         <div class="seller-ava" id="sellerAva">BD</div>
         <span class="seller-nm">BARDS</span>
     </div>
-    <button class="btn-add" onclick="openSheet()">
+    <button class="btn-add" onclick="openSheet('cart')">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
             <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-        </svg> ADD TO CART
+        </svg> ADD
     </button>
+    <button class="btn-buy" onclick="openSheet('buy')">BUY NOW</button>
 </div>
 
 <div class="mask" id="mask" onclick="hideSheet()"></div>
@@ -254,7 +258,7 @@
 /* product.html — สินค้าจาก products.js */
 
 /* ─── STATE ─── */
-let P = null, imgIdx = 0, selColor = null, selSize = null, qty = 1;
+let P = null, imgIdx = 0, selColor = null, selSize = null, qty = 1, sheetMode = 'cart';
 
 const PRODUCT_ID = new URLSearchParams(window.location.search).get('id') || '';
 
@@ -365,9 +369,6 @@ function buildPage() {
             <div class="gallery-viewport" id="gvp">
                 <div class="gallery-track" id="gtrack">${slidesHtml}</div>
                 <div class="g-tag${P.tagOrange?' orange':''}">${P.tag}</div>
-                <button class="g-fav" id="saveBtn" onclick="event.stopPropagation();toggleWish()" aria-label="Save to Wishlist">
-                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-                </button>
                 ${multiImg ? `
                 <button class="g-arrow prev" id="gPrev" onclick="event.stopPropagation();navGallery(-1)" aria-label="Previous image">
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 3L5 9.5L11.5 16"/></svg>
@@ -380,8 +381,13 @@ function buildPage() {
         </div>
         <div class="p-body fu d1">
             <div class="price-line">
-                <div class="price">${priceDisplay}</div>
-                <div class="price-currency">USD</div>
+                <div class="price-line-left">
+                    <div class="price">${priceDisplay}</div>
+                    <div class="price-currency">USD</div>
+                </div>
+                <button class="g-fav" id="saveBtn" onclick="toggleWish()" aria-label="Save to Wishlist">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </button>
             </div>
             <h1 class="p-name">${escapeHtml(P.name)}</h1>
             <div class="meta-line">
@@ -450,8 +456,8 @@ function pickSizeSheet(el, val) {
 function changeQty(d) { qty = Math.max(1, Math.min(10, qty+d)); document.getElementById('qtyVal').innerText = qty; }
 
 /* ─── SHEET ─── */
-function openSheet() {
-    setConfirm('idle');
+function openSheet(mode) {
+    sheetMode = mode; setConfirm('idle');
     document.getElementById('mask').style.display = 'block';
     requestAnimationFrame(() => {
         document.getElementById('mask').classList.add('on');
@@ -471,7 +477,18 @@ function handleConfirm() {
     setConfirm('loading');
     setTimeout(() => {
         /* price เป็น USD แล้ว — เก็บตรงๆ */
-        saveCart({ id:PRODUCT_ID, name:P.name, price:P.price, image:P.images[0], color:selColor||'', size:selSize||'', quantity:qty });
+        const item = { id:PRODUCT_ID, name:P.name, price:P.price, image:P.images[0], color:selColor||'', size:selSize||'', quantity:qty };
+        if (sheetMode === 'buy') {
+            // Buy Now = ซื้อจริง ข้ามตะกร้าไปเลย — ไม่แตะ persistent cart เลย (ไม่ add เข้า BARDS_CART)
+            // แค่ใส่ item เดียวนี้ลง CHECKOUT_ITEMS แล้วไป checkout.html ตรงๆ ซึ่ง checkout.html
+            // อ่าน CHECKOUT_ITEMS ก่อน BARDS_CART อยู่แล้ว (กลไกเดียวกับ "checkout เฉพาะที่เลือก" ใน
+            // cart.html) ถ้ายังไม่ login checkout.html จะเด้งไป signin ให้เอง แล้วกลับมาที่นี่ได้
+            // เพราะ sessionStorage อยู่ข้ามหน้า
+            sessionStorage.setItem('CHECKOUT_ITEMS', JSON.stringify([item]));
+            window.location.href = 'checkout.html';
+            return;
+        }
+        saveCart(item);
         updateBadge();
         hideSheet();
         setTimeout(() => setConfirm('idle'), 400);
