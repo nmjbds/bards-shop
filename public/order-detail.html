@@ -594,16 +594,22 @@ function renderFooter(o, orderId, status, items){
   let btns='';
   if(status==='pending'){
     // ซ่อน Buy Again — ออเดอร์ยังไม่ได้จ่าย ไม่ควรซื้อซ้ำ
-    btns+=`<button class="af-btn danger" onclick="openCancelConfirm('${orderId}')">Cancel Order</button>`;
+    // Cancel ลดขนาดลง (flex:.5) ให้ Pay Now เด่นกว่า แทนที่จะเท่ากันเป๊ะแบบเดิม —
+    // ไม่ควรชวนให้ยกเลิกเท่าๆ กับชวนให้จ่ายเงิน (ตรงกับ pattern ที่ pending_verification ใช้อยู่แล้ว)
+    btns+=`<button class="af-btn secondary" style="flex:.5;font-size:12px;" onclick="openCancelConfirm('${orderId}')">Cancel</button>`;
     btns+=`<button class="af-btn primary" onclick="goToPay('${orderId}')">
       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
       Pay Now
     </button>`;
   } else if(status==='pending_verification'){
+    // เดิมมีปุ่ม "I've Paid" ให้กดซ้ำได้ตรงนี้ — ลบออกแล้ว (2026-07-23): กดซ้ำไม่มีผลอะไรเลย (backend
+    // เดิมเช็ค status='pending' เท่านั้น ตอนนี้อยู่ pending_verification ไปแล้ว update 0 row แต่ UI ยัง
+    // ขึ้นว่าสำเร็จ) การยืนยันจ่ายเงินจริงตอนนี้เป็นอัตโนมัติทั้งหมดผ่าน ABA webhook/poll แล้ว — ไม่มี action
+    // อะไรให้ลูกค้ากดที่นี่อีกต่อไป เหลือแค่ยกเลิกได้เหมือนเดิม
     btns+=`<button class="af-btn secondary" style="flex:.5;font-size:12px;" onclick="openCancelConfirm('${orderId}')">Cancel</button>`;
-    btns+=`<button class="af-btn confirm" onclick="markIvePaid('${orderId}')">
-      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-      I've Paid
+    btns+=`<button class="af-btn secondary" disabled style="opacity:.45;cursor:not-allowed;">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><polyline points="12 6 12 12 16 14"/></svg>
+      Verifying...
     </button>`;
   } else if(status==='paid'||status==='processing'){
     // กำลังดำเนินการ — ยังไม่แสดง Buy Again (รอสำเร็จก่อน)
@@ -662,15 +668,6 @@ function renderFooter(o, orderId, status, items){
 function goToPay(orderId){
   const token=_order&&_order.id===orderId?(_order.pay_token||''):'';
   location.href='pay.html?id='+encodeURIComponent(orderId)+'&token='+encodeURIComponent(token);
-}
-
-async function markIvePaid(orderId){
-  const btn=event.currentTarget; btn.classList.add('loading'); btn.textContent='Sending...';
-  try{
-    await apiFetch('/orders/'+orderId+'/pending',{method:'POST',auth:true});
-    toast("✓ Sent! We'll verify your payment shortly.");
-    setTimeout(()=>loadOrder(),1200);
-  }catch(e){ toast('Error: '+e.message); btn.classList.remove('loading'); btn.textContent="I've Paid"; }
 }
 
 let _cancelOrderId=null;

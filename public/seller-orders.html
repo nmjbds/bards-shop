@@ -376,10 +376,16 @@ function renderTable() {
 function changePage(p){ _page=p; renderTable(); window.scrollTo(0,0); }
 
 // ── Quick confirm ──
+// เดิมยิง PATCH status='paid' ตรงๆ ไม่เช็คอะไรกับ ABA เลย — seller กดแล้ว mark paid ได้ทันทีโดยไม่มีเงิน
+// เข้าจริงก็ได้ เปลี่ยนมาเรียก endpoint ที่เช็คจริงกับ ABA แทน (เหมือนที่ payment.html ใช้) (2026-07-23)
 async function quickConfirm(id, e) {
   e.stopPropagation();
   try {
-    await apiFetch(`/seller/orders/${id}`, {method:'PATCH', auth:true, body:{status:'paid'}});
+    const res = await apiFetch(`/payment/confirm/${id}`, {method:'POST', auth:true});
+    if (res.status !== 'paid') {
+      toast("ABA hasn't confirmed this payment yet — try again shortly.");
+      return;
+    }
     const o=_allOrders.find(x=>x.id===id);
     if(o) o.status='paid';
     updateCounts(); renderTable();
@@ -585,6 +591,22 @@ async function doAction(id, newStatus) {
   btn.classList.add('loading');
   btn.textContent = 'Updating…';
   try {
+    // "Confirm Payment" ต้องเช็คจริงกับ ABA ก่อนเสมอ ไม่ใช่แค่เซ็ต status ตรงๆ เหมือน transition อื่น
+    // (processing/shipped/delivered ปล่อยให้ seller เซ็ตเองได้ตรงๆ เพราะเป็นขั้นตอนจัดส่งจริง ไม่เกี่ยวกับ
+    // การจ่ายเงิน) — กัน seller mark paid ได้เองโดยไม่มีเงินเข้าจริง (2026-07-23)
+    if (newStatus === 'paid') {
+      const res = await apiFetch(`/payment/confirm/${id}`, {method:'POST', auth:true});
+      if (res.status !== 'paid') {
+        toast("ABA hasn't confirmed this payment yet — try again shortly.");
+        btn.classList.remove('loading'); btn.textContent = 'Confirm Payment';
+        return;
+      }
+      const o = _allOrders.find(x=>x.id===id);
+      if(o){ o.status='paid'; }
+      updateCounts(); renderTable();
+      closeMask(); toast('✓ Payment confirmed by ABA');
+      return;
+    }
     const { order } = await apiFetch(`/seller/orders/${id}`, {method:'PATCH', auth:true, body:{status:newStatus}});
     const o = _allOrders.find(x=>x.id===id);
     if(o){ Object.assign(o, order); }

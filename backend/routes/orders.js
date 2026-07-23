@@ -56,15 +56,4 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/orders/:id/pending — customer clicked "I've Paid"
-router.post('/:id/pending', requireAuth, async (req, res) => {
-  try {
-    await query(
-      "UPDATE orders SET status='pending_verification' WHERE id=$1 AND user_id=$2 AND status='pending'",
-      [req.params.id, req.user.id]
-    );
-    res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: 'Server error.' }); }
-});
-
 module.exports = router;

@@ -138,11 +138,11 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
     <div class="step-row"><div class="step-num">1</div><div class="step-txt">Open <strong>ABA Mobile, Bakong, Wing, ACLEDA</strong> or any KHQR app.</div></div>
     <div class="step-row"><div class="step-num">2</div><div class="step-txt">Tap <strong>Scan QR</strong> and point your camera at the code above.</div></div>
     <div class="step-row"><div class="step-num">3</div><div class="step-txt">Confirm the amount — <strong id="stepAmtText">$0.00 USD</strong> — then approve.</div></div>
-    <div class="step-row"><div class="step-num">4</div><div class="step-txt">Come back here and tap <strong>I've Paid</strong> to confirm your order.</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-txt">We'll confirm automatically once ABA verifies your payment — or tap <strong>Check Now</strong> below.</div></div>
   </div>
 
   <div class="fu d1">
-    <button class="confirm-btn idle" id="confirmBtn" onclick="confirmPayment()">I'VE PAID — CONFIRM ORDER</button>
+    <button class="confirm-btn idle" id="confirmBtn" onclick="confirmPayment()">CHECK PAYMENT STATUS</button>
     <div class="confirm-sub">Need help? <a href="https://t.me/barrrds" target="_blank">Contact Support →</a></div>
   </div>
   <div style="height:20px"></div>
@@ -281,18 +281,23 @@ async function confirmPayment(){
   if(_confirming)return;_confirming=true;
   const btn=document.getElementById('confirmBtn');
   btn.className='confirm-btn loading';
-  btn.innerHTML='<svg style="animation:spin .8s linear infinite" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Processing…';
+  btn.innerHTML='<svg style="animation:spin .8s linear infinite" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Checking…';
+  // เดิมปุ่มนี้แค่เซ็ต status='pending_verification' เอง ไม่เช็คอะไรกับ ABA จริงเลย แล้วขึ้น
+  // "ORDER PLACED!" ทันทีทั้งที่ยังไม่ยืนยันว่าจ่ายจริง — เปลี่ยนมาเรียก endpoint ที่เช็คจริงกับ ABA แทน
+  // (2026-07-23) จะขึ้น success ก็ต่อเมื่อ ABA ยืนยันแล้วเท่านั้น
   try{
-    await apiFetch('/orders/'+ORDER.orderId+'/pending',{method:'POST',auth:true});
-  }catch(e){console.warn('[pending]',e.message);}
-  clearInterval(POLL_ID);clearInterval(TIMER_ID);
-  btn.className='confirm-btn success';btn.innerHTML='✓ ORDER PLACED!';
-  showToast('ok','Order placed!','Redirecting…');
-  /* ลบ cart ทันที แต่เก็บ BARDS_ORDER ไว้จนกว่า success.html จะโหลดเสร็จ */
-  Cart.clear();
-  sessionStorage.removeItem('CHECKOUT_ITEMS');
-  /* ส่ง orderId ไปใน URL เพื่อให้ success.html โหลดข้อมูลได้ */
-  setTimeout(()=>{ location.href='/success?order='+ORDER.orderId; },1200);
+    const res=await PaymentAPI.confirm(ORDER.orderId);
+    if(res.status==='paid'){
+      clearInterval(POLL_ID);clearInterval(TIMER_ID);
+      onSuccess();
+      return;
+    }
+    showToast('warn','Not confirmed yet','ABA hasn\'t received your payment yet — we\'ll keep checking automatically.');
+  }catch(e){
+    showToast('warn','Could not check status',e.message||'Please try again in a moment.');
+  }
+  btn.className='confirm-btn idle';btn.textContent='CHECK PAYMENT STATUS';
+  _confirming=false;
 }
 function onSuccess(){
   Cart.clear();
