@@ -300,8 +300,9 @@ async function confirmPayment(){
   _confirming=false;
 }
 function onSuccess(){
-  Cart.clear();
-  sessionStorage.removeItem('CHECKOUT_ITEMS');
+  // เดิม clear ตอนนี้ (ตอนจ่ายเงินสำเร็จ) — ย้ายไปทำตอนสร้าง order แล้ว (checkout.html's placeOrder())
+  // เพราะ order ถูกสร้างจริงตั้งแต่ตอนนั้น ไม่ใช่ตอนนี้ ถ้า clear ซ้ำอีกรอบตรงนี้จะไปลบของที่ลูกค้า
+  // เพิ่มเข้าตะกร้าใหม่ระหว่างรอจ่ายเงินโดยไม่ได้ตั้งใจ
   document.getElementById('confirmBtn').className='confirm-btn success';
   document.getElementById('confirmBtn').innerHTML='✓ PAYMENT CONFIRMED!';
   showToast('ok','Payment confirmed!','Redirecting…');

@@ -731,6 +731,15 @@ async function placeOrder() {
         const total        = Math.max(0, subtotal + effectiveShip - discount);
         const data  = await PaymentAPI.create({ items:ITEMS, subtotal, shipping:effectiveShip, discount, couponCode: _coupon?.code||null, total, address });
 
+        // Order is created now (not when payment is later confirmed) — remove exactly the
+        // items that were just ordered from the cart right away, same as real checkout flows.
+        // Only these items (not Cart.clear()) so anything left unselected in cart.html stays
+        // put. Without this, going back to checkout after placing an order left the same
+        // items still in the cart, letting a second identical order (and a second stock
+        // deduction) get created for the same items.
+        for (const it of ITEMS) { await Cart.remove(it.id, it.color, it.size); }
+        sessionStorage.removeItem('CHECKOUT_ITEMS');
+
         /* บันทึก order info สำหรับ payment.html */
         sessionStorage.setItem('BARDS_ORDER', JSON.stringify({
             orderId:   data.orderId,
