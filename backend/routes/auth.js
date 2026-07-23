@@ -610,10 +610,7 @@ async function upsertTelegramUser(data) {
   return r.rows[0];
 }
 
-// Redirect flow — signin.html/signup.html's handleTelegramLogin() sends the browser to
-// oauth.telegram.org with return_to pointing back here (2026-07-23: switched from the
-// popup-based /telegram/verify JSON flow below, which broke on iOS Safari regularly —
-// see signin.html for the full explanation).
+// Legacy redirect flow (kept in case the drop-in <script data-telegram-login> widget is ever used again)
 router.get('/telegram/callback', async (req, res) => {
   try {
     const check = verifyTelegramAuth(req.query);
@@ -624,9 +621,7 @@ router.get('/telegram/callback', async (req, res) => {
   } catch(e) { console.error(e); res.redirect(`${process.env.FRONTEND_URL}/signin?error=Telegram+login+failed`); }
 });
 
-// Popup flow — no longer called by any frontend button (2026-07-23, replaced by the
-// redirect flow above because it broke on iOS Safari). Left in place rather than deleted
-// until the redirect flow is confirmed working in production, in case of rollback.
+// JSON flow used by our custom-styled Telegram button (Telegram.Login.auth() popup).
 // Rate-limited the same way as signin, since it's an alternate login path.
 router.post('/telegram/verify', signinRateLimit, async (req, res) => {
   try {

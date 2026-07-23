@@ -171,6 +171,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 
 <script src="products.js"></script>
 <script src="api.js"></script>
+<script src="https://telegram.org/js/telegram-widget.js?22"></script>
 <script>
 /* ── Auth guard ── */
 const _qs = new URLSearchParams(location.search);
@@ -250,25 +251,47 @@ function validate() {
 /* ── Spinner SVG shared ── */
 const _spinnerSvg = `<svg style="animation:spin .8s linear infinite;flex-shrink:0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>`;
 
-/* ── Telegram login — full-page redirect flow (2026-07-23, see signin.html for the full
-   explanation) — window.Telegram.Login.auth()'s popup broke on iOS Safari regularly, this
-   redirects to oauth.telegram.org instead, which survives app-switching reliably. ── */
+/* ── Telegram login (custom-styled button, Telegram's official popup API) ── */
 // bot_id is the numeric ID from BotFather (the number before the ':' in your bot token) — NOT the username.
 // Get it via: https://api.telegram.org/bot<YOUR_TOKEN>/getMe  (look for "id")
 const TELEGRAM_BOT_ID = '8741549115';
 
 function handleTelegramLogin() {
-  const redirect = safeRedirect(_qs.get('redirect'));
-  if (redirect) sessionStorage.setItem('TG_REDIRECT', redirect);
-  else sessionStorage.removeItem('TG_REDIRECT');
+  const btn = document.getElementById('telegramBtn');
+  if (!window.Telegram || !window.Telegram.Login) {
+    showErr('Telegram login is still loading — please try again in a second.');
+    return;
+  }
+  const originalHTML = btn.innerHTML;
+  btn.classList.add('loading');
+  btn.innerHTML = `${_spinnerSvg} <span>Connecting…</span>`;
 
-  const params = new URLSearchParams({
-    bot_id: TELEGRAM_BOT_ID,
-    origin: location.origin,
-    request_access: 'write',
-    return_to: API_BASE + '/auth/telegram/callback',
-  });
-  location.href = 'https://oauth.telegram.org/auth?' + params.toString();
+  window.Telegram.Login.auth(
+    { bot_id: TELEGRAM_BOT_ID, request_access: 'write' },
+    async (user) => {
+      if (!user) {
+        btn.classList.remove('loading');
+        btn.innerHTML = originalHTML;
+        showErr('Telegram login was cancelled.');
+        return;
+      }
+      try {
+        const res  = await fetch('/api/auth/telegram/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(user),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Telegram login failed.');
+        const redirect = safeRedirect(_qs.get('redirect'));
+        location.href = `signin.html?token=${encodeURIComponent(data.token)}` + (redirect ? `&redirect=${encodeURIComponent(redirect)}` : '');
+      } catch(e) {
+        btn.classList.remove('loading');
+        btn.innerHTML = originalHTML;
+        showErr(e.message || 'Telegram login failed.');
+      }
+    }
+  );
 }
 
 /* ── Social login with loading state ── */

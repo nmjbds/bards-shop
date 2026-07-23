@@ -117,6 +117,7 @@ if (new URLSearchParams(location.search).has('token')) {
 
 <script src="products.js"></script>
 <script src="api.js"></script>
+<script src="https://telegram.org/js/telegram-widget.js?22"></script>
 <script>
 /* ── Auth guard — skip ถ้าเป็น OAuth callback ── */
 const _qs = new URLSearchParams(location.search);
@@ -138,11 +139,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const p       = new URLSearchParams(location.search);
   const token   = p.get('token');
   const error   = p.get('error');
-  // Telegram's redirect flow can't carry ?redirect= through oauth.telegram.org reliably
-  // (unlike Google, which round-trips it via the OAuth `state` param) — handleTelegramLogin()
-  // stashes it in sessionStorage before leaving instead, read that as a fallback here.
-  const redirect = safeRedirect(p.get('redirect')) || safeRedirect(sessionStorage.getItem('TG_REDIRECT'));
-  sessionStorage.removeItem('TG_REDIRECT');
+  const redirect = safeRedirect(p.get('redirect'));
 
   if (error) {
     document.documentElement.classList.remove('oauth-loading');
@@ -183,34 +180,47 @@ function togglePw(fieldId, btn) {
   btn.querySelector('.icon-eye-off').style.display = isHidden ? ''      : 'none';
 }
 
-/* ── Telegram login — full-page redirect flow (2026-07-23) ──
-   เดิมใช้ window.Telegram.Login.auth() (popup window + JS callback) — ใช้งานได้ปกติบน
-   คอมพิวเตอร์/Android แต่พังบน iOS Safari เป็นประจำ (ปัญหาที่รู้จักกันทั่วไปของ widget นี้ —
-   iOS จัดการ popup + การสลับไปแอป Telegram แล้วกลับมาไม่นิ่งเท่า Android/เดสก์ท็อป บางทีปิด popup
-   ไปเฉยๆ โดยไม่เรียก callback กลับมาเลย) เปลี่ยนมาใช้ full-page redirect ไป oauth.telegram.org
-   แทน ซึ่งทนต่อการสลับแอปได้ดีกว่ามาก (ไม่มี popup ให้ iOS ทำหาย) ฝั่ง backend มี
-   GET /api/auth/telegram/callback รองรับ flow นี้อยู่แล้ว (เขียนไว้ตั้งแต่แรกเผื่อใช้ แค่ไม่เคย
-   ต่อกับปุ่มจริง)
-
-   ⚠️ ต้องตั้งค่า bot's domain ผ่าน @BotFather (/setdomain → เลือกบอท → ใส่ bardskh.com) ก่อน ไม่งั้น
-   oauth.telegram.org จะปฏิเสธ request นี้ (เป็นการตั้งค่าฝั่ง Telegram ที่ทำผ่าน Claude ไม่ได้)
-
+/* ── Telegram login (custom-styled button, Telegram's official popup API) ── */
 // bot_id is the numeric ID from BotFather (the number before the ':' in your bot token) — NOT the username.
-// Get it via: https://api.telegram.org/bot<YOUR_TOKEN>/getMe  (look for "id") */
+// Get it via: https://api.telegram.org/bot<YOUR_TOKEN>/getMe  (look for "id")
 const TELEGRAM_BOT_ID = '8741549115';
 
 function handleTelegramLogin() {
-  const redirect = safeRedirect(new URLSearchParams(location.search).get('redirect'));
-  if (redirect) sessionStorage.setItem('TG_REDIRECT', redirect);
-  else sessionStorage.removeItem('TG_REDIRECT');
+  const btn = document.getElementById('telegramBtn');
+  if (!window.Telegram || !window.Telegram.Login) {
+    showErr('Telegram login is still loading — please try again in a second.');
+    return;
+  }
+  const originalHTML = btn.innerHTML;
+  btn.classList.add('loading');
+  btn.innerHTML = `${_spinnerSvg} <span>Connecting…</span>`;
 
-  const params = new URLSearchParams({
-    bot_id: TELEGRAM_BOT_ID,
-    origin: location.origin,
-    request_access: 'write',
-    return_to: API_BASE + '/auth/telegram/callback',
-  });
-  location.href = 'https://oauth.telegram.org/auth?' + params.toString();
+  window.Telegram.Login.auth(
+    { bot_id: TELEGRAM_BOT_ID, request_access: 'write' },
+    async (user) => {
+      if (!user) {
+        btn.classList.remove('loading');
+        btn.innerHTML = originalHTML;
+        showErr('Telegram login was cancelled.');
+        return;
+      }
+      try {
+        const res  = await fetch('/api/auth/telegram/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(user),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Telegram login failed.');
+        const redirect = safeRedirect(new URLSearchParams(location.search).get('redirect'));
+        location.href = `signin.html?token=${encodeURIComponent(data.token)}` + (redirect ? `&redirect=${encodeURIComponent(redirect)}` : '');
+      } catch(e) {
+        btn.classList.remove('loading');
+        btn.innerHTML = originalHTML;
+        showErr(e.message || 'Telegram login failed.');
+      }
+    }
+  );
 }
 
 /* ── Social login with loading spinner ── */
