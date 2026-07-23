@@ -184,9 +184,19 @@
 <script>
 /* orders.html — Real API, ล่าสุดก่อน */
 
+// Filter tabs reworded to match the progress-bar bucket wording (ขั้น 4, 2026-07-23) — each tab now
+// groups every status that shares a bucket, not just one raw status: pending+pending_verification →
+// "To Pay", paid+processing → "To Ship" (same merge as TRACK_IDX below). "Cancelled" also now covers
+// expired/failed (none of the 3 have a progress-bar step) — previously only status==='cancelled' had a
+// tab at all; expired/failed orders were reachable only via "All". `statuses` is null for 'all' (means
+// "no filter", handled specially in buildFilterTabs/render).
 const FILTERS=[
-    {id:'all',label:'All'},{id:'pending',label:'Pending'},{id:'paid',label:'Paid'},
-    {id:'shipped',label:'Shipped'},{id:'delivered',label:'Delivered'},{id:'cancelled',label:'Cancelled'}
+    {id:'all',label:'All',statuses:null},
+    {id:'to_pay',label:'To Pay',statuses:['pending','pending_verification']},
+    {id:'to_ship',label:'To Ship',statuses:['paid','processing']},
+    {id:'to_receive',label:'To Receive',statuses:['shipped']},
+    {id:'completed',label:'Completed',statuses:['delivered']},
+    {id:'cancelled',label:'Cancelled',statuses:['cancelled','expired','failed']}
 ];
 // ครบทั้ง 9 status ที่ orders.status เป็นไปได้จริง (เช็คจาก routes/seller.js's ALLOWED_TRANSITIONS +
 // routes/payment.js's ABA-purchase-failure compensation — ไม่ใช่แค่ 6 ตัวที่เคยมี) ก่อนหน้านี้ processing/
@@ -244,7 +254,7 @@ function startAutoRefresh(){
 }
 function buildFilterTabs(){
     document.getElementById('filterScroll').innerHTML=FILTERS.map(f=>{
-        const cnt=f.id==='all'?allOrders.length:allOrders.filter(o=>o.status===f.id).length;
+        const cnt=f.statuses===null?allOrders.length:allOrders.filter(o=>f.statuses.includes(o.status)).length;
         return`<div class="f-tab ${f.id==='all'?'on':''}" data-filter="${f.id}" onclick="setFilter('${f.id}')">${f.label}<span class="f-cnt">${cnt}</span></div>`;
     }).join('');
 }
@@ -257,7 +267,8 @@ function setFilter(id){
 
 /* ── RENDER LIST ── */
 function render(){
-    const list=activeFilter==='all'?allOrders:allOrders.filter(o=>o.status===activeFilter);
+    const activeStatuses=FILTERS.find(f=>f.id===activeFilter)?.statuses||null;
+    const list=activeStatuses===null?allOrders:allOrders.filter(o=>activeStatuses.includes(o.status));
     const n=list.length;
     document.getElementById('pageCount').textContent=`${n} order${n!==1?'s':''}`;
     document.getElementById('emptyWrap').classList.toggle('show',n===0);
