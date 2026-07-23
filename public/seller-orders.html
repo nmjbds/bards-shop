@@ -260,7 +260,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 <script src="api.js"></script>
 <script src="products.js"></script>
 <script>
-let _allOrders=[], _filter='all', _search='', _page=1, _perPage=15, _currentOrder=null;
+let _allOrders=[], _filter='all', _search='', _page=1, _perPage=15, _currentOrder=null, _refreshTimer=null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!Auth.isLoggedIn()) { location.href='signin.html?redirect=seller-orders.html'; return; }
@@ -276,7 +276,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   const p=new URLSearchParams(location.search);
   if(p.get('status')) setFilter(p.get('status'), null);
   loadOrders();
+  startAutoRefresh();
 });
+
+// เช็คออเดอร์ใหม่/สถานะที่เปลี่ยนเป็นระยะ — ข้ามรอบถ้า modal เปิดอยู่ (กำลังดู/แก้ order หนึ่งอยู่ ไม่อยาก
+// ให้ _allOrders ถูกแทนที่กลางคันจนชวนสับสน) เงียบๆ ไม่โชว์ toast ถ้าพัง (จะเห็นบ่อยเกินไปถ้าเน็ตกระตุก)
+function startAutoRefresh(){
+  clearInterval(_refreshTimer);
+  _refreshTimer=setInterval(async()=>{
+    if(document.getElementById('mask').classList.contains('on')) return;
+    try{
+      const d=await apiFetch('/seller/orders?limit=200', {auth:true});
+      _allOrders=d.orders||[];
+      updateCounts(); renderTable();
+    }catch(e){}
+  },15000);
+}
 
 async function loadOrders() {
   try {

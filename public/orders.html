@@ -90,6 +90,7 @@
         .oc-btn:active{opacity:.78;transform:scale(.97);}
         .oc-btn.view{background:var(--gray-100);color:var(--black);border:1.5px solid var(--gray-200);}
         .oc-btn.reorder{background:var(--black);color:#fff;}
+        .oc-btn.pay{background:var(--orange);color:#fff;}
 
         /* EMPTY */
         .empty-wrap{padding:60px 20px;text-align:center;display:none;}
@@ -189,7 +190,7 @@ const STATUS_LBL={delivered:'Delivered',shipped:'Shipped',pending:'Pending',canc
 const TRACK_STEPS=['Ordered','Packed','Shipped','Delivered'];
 const TRACK_IDX={pending:0,paid:1,shipped:2,delivered:3,cancelled:-1,expired:-1};
 
-let allOrders=[], activeFilter='all';
+let allOrders=[], activeFilter='all', _refreshTimer=null;
 
 window.onload = async function() {
     if (!Auth.isLoggedIn()) {
@@ -206,7 +207,26 @@ window.onload = async function() {
     buildFilterTabs(); render(); updateBadge();
     const qId=new URLSearchParams(location.search).get('id');
     if (qId) { goToDetail(qId); }
+    startAutoRefresh();
 };
+
+// เช็คสถานะใหม่เป็นระยะ (เช่น ABA webhook confirm ระหว่างที่เปิดหน้านี้ค้างไว้) — เงียบๆ ไม่รบกวนถ้าพัง
+// เช็ค signature ก่อน re-render จริง กัน .fu (fade-up) animation เล่นซ้ำทุก 15 วิ ทั้งที่ไม่มีอะไรเปลี่ยน
+function _ordersSignature(list){
+    return list.map(o=>`${o.id}:${o.status}:${o.tracking_number||''}`).join('|');
+}
+function startAutoRefresh(){
+    clearInterval(_refreshTimer);
+    _refreshTimer=setInterval(async()=>{
+        try{
+            const d=await OrdersAPI.list();
+            const fresh=(d.orders||[]).sort((a,b)=>new Date(b.created_at||b.createdAt||0)-new Date(a.created_at||a.createdAt||0));
+            const changed=_ordersSignature(fresh)!==_ordersSignature(allOrders);
+            allOrders=fresh;
+            if(changed){ buildFilterTabs(); render(); }
+        }catch(e){}
+    },15000);
+}
 function buildFilterTabs(){
     document.getElementById('filterScroll').innerHTML=FILTERS.map(f=>{
         const cnt=f.id==='all'?allOrders.length:allOrders.filter(o=>o.status===f.id).length;
@@ -255,11 +275,19 @@ function cardHTML(o,idx){
     const cnt=items.length;
     const dateStr=o.date||(o.createdAt?new Date(o.createdAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—');
 
-    const reorderBtn=status!=='cancelled'
-        ?`<button class="oc-btn reorder" onclick="event.stopPropagation();quickBuyAgain('${orderId}')">
+    // ออเดอร์ยังไม่จ่าย ไม่ควรเสนอ "Buy Again" (ซื้อของที่ยังไม่จ่ายซ้ำไม่มีความหมาย) — แจ้งเตือนให้จ่าย
+    // แทน (ตรงกับ order-detail.html's renderFooter ที่ซ่อน Buy Again ตอน status==='pending' เหมือนกัน)
+    const reorderBtn = status==='pending'
+        ? `<button class="oc-btn pay" onclick="event.stopPropagation();quickPayNow('${orderId}')">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+            Pay Now</button>`
+        : status==='pending_verification'
+        ? `<div class="oc-btn view" style="opacity:.35;pointer-events:none;font-size:10px;letter-spacing:.5px;">Verifying</div>`
+        : (status==='cancelled'||status==='expired')
+        ? `<div class="oc-btn view" style="opacity:.35;pointer-events:none;font-size:10px;letter-spacing:.5px;">${status==='expired'?'Expired':'Cancelled'}</div>`
+        : `<button class="oc-btn reorder" onclick="event.stopPropagation();quickBuyAgain('${orderId}')">
             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 1 4 1"/><path d="M1 1 4.5 4.5A7 7 0 1 1 1 11"/></svg>
-            Buy Again</button>`
-        :`<div class="oc-btn view" style="opacity:.35;pointer-events:none;font-size:10px;letter-spacing:.5px;">Cancelled</div>`;
+            Buy Again</button>`;
 
     return`<div class="order-card fu" style="animation-delay:${idx*.04}s" onclick="goToDetail('${orderId}')">
         <div class="oc-head">
@@ -295,6 +323,12 @@ function goToDetail(id){
     location.href='order-detail.html?id='+encodeURIComponent(id);
 }
 function openDetailById(id){ goToDetail(id); }
+
+function quickPayNow(orderId){
+    const o=allOrders.find(x=>(x.id||x.orderId)===orderId);
+    if(!o||!o.pay_token){ goToDetail(orderId); return; } // fallback: still reachable via the detail page's own pay banner
+    location.href='pay.html?id='+encodeURIComponent(orderId)+'&token='+encodeURIComponent(o.pay_token);
+}
 
 
 function quickBuyAgain(orderId){
