@@ -259,10 +259,11 @@ function escapeHtml(str) {
 // failed = orders ที่สร้างสำเร็จแต่เรียก ABA Purchase API ไม่สำเร็จตอน checkout (คนละกรณีกับ cancelled/
 // expired — ดู routes/payment.js's compensating transaction) เดิมไม่มี entry เลยในไฟล์นี้ ตกไปโชว์คำว่า
 // "failed" ดิบๆ ไม่มี style/ข้อความอธิบาย
+// Badge wording (ขั้น 3, 2026-07-23) — สไตล์ TikTok Shop/Shopee: ต้องตรงกับ STATUS_LBL ใน orders.html
 const STATUS_LBL = {
-  pending:'Pending Payment', pending_verification:'Awaiting Review',
-  paid:'Payment Confirmed', processing:'Processing',
-  shipped:'Shipped', delivered:'Delivered',
+  pending:'To Pay', pending_verification:'Verifying Payment',
+  paid:'Paid', processing:'Preparing',
+  shipped:'Shipped', delivered:'Completed',
   cancelled:'Cancelled', expired:'Expired', failed:'Payment Failed',
 };
 const STATUS_MSG = {
@@ -276,7 +277,9 @@ const STATUS_MSG = {
   expired:'Payment window expired. Order was automatically cancelled.',
   failed:'We could not set up payment for this order. Please contact support.',
 };
-const TRACK_STEPS = ['Pending','Paid','Processing','Shipped','Delivered'];
+// 5-step progress rail (ต่างจาก orders.html's 4-step bucket — paid/processing เป็นคนละ step ที่นี่โดย
+// ตั้งใจ, ไม่ใช่บั๊ก) แค่เปลี่ยนคำที่แสดงในขั้น 3 นี้ ไม่แตะ TRACK_IDX/step logic เดิม
+const TRACK_STEPS = ['To Pay','Paid','Preparing','Shipped','Completed'];
 const TRACK_IDX   = {pending:0,pending_verification:0,paid:1,processing:2,shipped:3,delivered:4,cancelled:-1,expired:-1,failed:-1};
 
 function fmtDate(d){return d?new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';}

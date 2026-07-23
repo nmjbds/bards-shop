@@ -66,6 +66,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .b-delivered{background:#DCFCE7;color:var(--green);}
 .b-cancelled{background:#FEE2E2;color:var(--red);}
 .b-expired{background:var(--gray-100);color:var(--gray-400);}
+.b-failed{background:#FEE2E2;color:var(--red);}
 .act-btn{height:28px;padding:0 11px;border-radius:7px;border:1.5px solid var(--gray-200);background:var(--white);color:var(--black);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Space Grotesk',sans-serif;}
 .act-btn:hover{background:var(--black);border-color:var(--black);color:#fff;}
 .act-btn.confirm{border-color:var(--green);color:var(--green);}
@@ -403,6 +404,7 @@ const ALLOWED_NEXT = {
   delivered:            [],
   cancelled:            [],
   expired:              [],
+  failed:               [],
 };
 const PAYMENT_STATUS = {
   pending:              'unpaid',
@@ -412,6 +414,7 @@ const PAYMENT_STATUS = {
   shipped:              'paid',
   delivered:            'paid',
   cancelled:            'cancelled',
+  failed:               'cancelled',
 };
 const STATUS_FLOW_STEPS = ['pending','paid','processing','shipped','delivered'];
 
@@ -442,6 +445,13 @@ function renderStatusFlow(status) {
       <div style="display:flex;align-items:center;gap:8px;padding:6px 0;">
         <span style="width:22px;height:22px;border-radius:50%;background:var(--gray-100);display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:var(--gray-400);">⏱</span>
         <span style="font-size:12px;font-weight:700;color:var(--gray-400);">Payment Expired</span>
+      </div>
+    </div>`;
+  if (status === 'failed') return `
+    <div class="seller-progress-wrap">
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;">
+        <span style="width:22px;height:22px;border-radius:50%;background:#FEE2E2;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#B91C1C;">✕</span>
+        <span style="font-size:12px;font-weight:700;color:#B91C1C;">Payment Failed</span>
       </div>
     </div>`;
 
@@ -684,7 +694,7 @@ async function saveNote() {
 function closeMask(){ document.getElementById('mask').classList.remove('on'); }
 document.getElementById('mask').addEventListener('click', e=>{ if(e.target===document.getElementById('mask')) closeMask(); });
 
-function fmtStatus(s){return{pending:'Pending',pending_verification:'Review',paid:'Paid',processing:'Processing',shipped:'Shipped',delivered:'Delivered',cancelled:'Cancelled',expired:'Expired'}[s]||s;}
+function fmtStatus(s){return{pending:'Pending',pending_verification:'Review',paid:'Paid',processing:'Processing',shipped:'Shipped',delivered:'Delivered',cancelled:'Cancelled',expired:'Expired',failed:'Payment Failed'}[s]||s;}
 function fmtDate(d){return d?new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—';}
 let _tt; function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('on'),2500);}
 </script>
