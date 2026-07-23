@@ -269,7 +269,7 @@ async function init() {
     // ลอง fetch จาก API ก่อน (ได้สินค้าจาก DB)
     // ถ้า fail หรือไม่เจอ → fallback ใช้ PRODUCTS static
     try {
-        const d = await apiFetch('/seller/public/products/' + encodeURIComponent(PRODUCT_ID));
+        const d = await apiFetch('/products/' + encodeURIComponent(PRODUCT_ID));
         if (d && d.product) P = normalizeProduct(d.product);
     } catch(e) {}
 

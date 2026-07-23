@@ -408,28 +408,6 @@ router.get('/stats', requireAuth, requireSeller, async (req, res) => {
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
 
-// ── GET /api/products ── public: list active products (หน้าร้านค้า)
-router.get('/public/products', async (req, res) => {
-  try {
-    const r = await query(
-      `SELECT * FROM products WHERE is_active=true ORDER BY created_at DESC`
-    );
-    res.json({ products: r.rows });
-  } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
-});
-
-// ── GET /api/products/:id ── public: single product (หน้า product.html)
-router.get('/public/products/:id', async (req, res) => {
-  try {
-    const r = await query(
-      `SELECT * FROM products WHERE id=$1 AND is_active=true`,
-      [req.params.id]
-    );
-    if (!r.rows.length) return res.status(404).json({ error: 'Product not found.' });
-    res.json({ product: r.rows[0] });
-  } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
-});
-
 // ── GET /api/seller/products ── list products — admin sees everything
 // (platform oversight), seller sees only their own shop's products. A
 // seller with no approved shop yet just sees an empty list, not an error.
