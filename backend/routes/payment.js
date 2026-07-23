@@ -288,24 +288,6 @@ router.get('/link/:orderId', async (req, res) => {
 });
 
 // ══════════════════════════════════════════════
-// POST /api/payment/send-link/:orderId — seller ส่ง pay link
-// ══════════════════════════════════════════════
-router.post('/send-link/:orderId', requireAuth, async (req, res) => {
-  try {
-    const r = await query(
-      "SELECT id,status,total,expires_at,pay_token FROM orders WHERE id=$1 AND status IN ('pending','pending_verification')",
-      [req.params.orderId]
-    );
-    const o = r.rows[0];
-    if (!o) return res.status(400).json({ error: 'Order not found or already paid.' });
-    const link = `${process.env.FRONTEND_URL || ''}/pay.html?id=${o.id}&token=${o.pay_token}`;
-    res.json({ ok: true, link, orderId: o.id, total: o.total });
-  } catch(e) {
-    res.status(500).json({ error: 'Server error.' });
-  }
-});
-
-// ══════════════════════════════════════════════
 // POST /api/payment/confirm/:orderId
 // Does NOT take the caller's word for it — this only *triggers* a real
 // check-transaction-2 call to ABA PayWay via settleOrderPayment(). Only the
