@@ -357,25 +357,19 @@ function quickPayNow(orderId){
 }
 
 
-function quickBuyAgain(orderId){
+// เดิม _addToCart() reimplement การ merge เข้า localStorage เองตรงๆ ไม่ผ่าน Cart.add() (api.js) เลย —
+// ไม่เคยเรียก CartAPI.add() ไปที่ server เลยสำหรับ user ที่ login อยู่ (แทบทุกคนที่มาอยู่หน้านี้ได้ ต้อง
+// login ก่อนเสมอ) พอเปิด cart.html หน้านั้นเรียก Cart.loadFromServer() ทันที ซึ่ง**เขียนทับ** localStorage
+// ทั้งก้อนด้วยข้อมูลจาก server (ที่ไม่รู้จัก item ที่เพิ่งเพิ่มเลย) — item ที่เพิ่งกด Buy Again เลยหายไป
+// ทันทีที่เปิดตะกร้า ดูเหมือนปุ่มไม่ทำงาน แก้โดยเรียก Cart.add() (helper กลางที่ใช้ทั่วทั้งแอป) แทน ซึ่ง
+// sync ไป server ให้เองอยู่แล้วถ้า login อยู่ (2026-07-24)
+async function quickBuyAgain(orderId){
     const o=allOrders.find(x=>(x.id||x.orderId)===orderId);
-    if(!_addToCart(orderId))return;
-    updateBadge();
-    showToast('ok','Added to cart',`${o?.items?.length||0} item(s) from #${orderId}`);
-}
-
-/* Merge items into BARDS_CART */
-function _addToCart(orderId){
-    const o=allOrders.find(x=>(x.id||x.orderId)===orderId);
-    if(!o||!o.items?.length)return false;
-    const cart=JSON.parse(localStorage.getItem('BARDS_CART')||'[]');
-    o.items.forEach(item=>{
-        const ex=cart.find(c=>c.id===item.id&&c.color===item.color&&c.size===item.size);
-        if(ex)ex.quantity+=Number(item.quantity||1);
-        else cart.push({...item,quantity:Number(item.quantity||1),price:Number(item.price||0)});
-    });
-    localStorage.setItem('BARDS_CART',JSON.stringify(cart));
-    return true;
+    if(!o||!o.items?.length){ showToast('warn','Nothing to add','This order has no items.'); return; }
+    for(const item of o.items){
+        await Cart.add({...item, quantity:Number(item.quantity||1)});
+    }
+    showToast('ok','Added to cart',`${o.items.length} item(s) from #${orderId}`);
 }
 
 function updateBadge(){
