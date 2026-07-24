@@ -1,7 +1,7 @@
 const express = require('express');
 const { z } = require('zod');
 const { query } = require('../db');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, getOwnApprovedShop } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const router = express.Router();
 
@@ -115,27 +115,52 @@ router.post('/use', requireAuth, async (req, res) => {
 // SELLER CRUD ROUTES (เพิ่มใหม่)
 // ════════════════════════════════════════
 
-// GET /api/coupons/seller — list all coupons (seller only)
+// Access control (2026-07-25) — coupons.shop_id is nullable: NULL means a
+// platform-wide coupon, visible to and (per the approved plan) editable by
+// every seller. A seller only sees/edits their own shop's coupons plus the
+// platform-wide ones; admin is unrestricted, same pattern as everywhere else
+// in this codebase that splits admin-vs-seller. Deliberately NOT touching
+// checkout discount math here — a coupon (shop-scoped or not) still discounts
+// the whole order subtotal exactly as before; this only changes who can
+// see/create/edit/delete the coupon row itself.
+
+// GET /api/coupons/seller — list coupons (seller: own shop + platform-wide only)
 router.get('/seller', requireAuth, requireSeller, async (req, res) => {
   try {
+    if (req.userRole === 'admin') {
+      const r = await query('SELECT * FROM coupons ORDER BY created_at DESC');
+      return res.json({ coupons: r.rows });
+    }
+    const shopId = await getOwnApprovedShop(req.user.id);
     const r = await query(
-      'SELECT * FROM coupons ORDER BY created_at DESC'
+      'SELECT * FROM coupons WHERE shop_id=$1 OR shop_id IS NULL ORDER BY created_at DESC',
+      [shopId]
     );
     res.json({ coupons: r.rows });
   } catch(e) { res.status(500).json({ error: 'Server error.' }); }
 });
 
-// POST /api/coupons/seller — create coupon (seller only)
+// POST /api/coupons/seller — create coupon. A seller's coupon always belongs
+// to their own shop (never taken from client input, never left NULL — same
+// convention as routes/seller.js's product create). Admin-created coupons
+// are platform-wide (shop_id NULL) — admin's role here is platform
+// oversight, not a specific shop, even though the account may also happen to
+// own one via the Phase-4 backfill.
 router.post('/seller', requireAuth, requireSeller, validate(couponCreateSchema), async (req, res) => {
   try {
     const { code, description, type, value, min_order, usage_limit, start_date, expiry_date, active } = req.body;
+    let shopId = null;
+    if (req.userRole !== 'admin') {
+      shopId = await getOwnApprovedShop(req.user.id);
+      if (!shopId) return res.status(403).json({ error: 'You need an approved shop before creating coupons.' });
+    }
     // ตรวจ duplicate code
     const dup = await query('SELECT id FROM coupons WHERE UPPER(code)=UPPER($1)', [code.trim()]);
     if (dup.rows.length) return res.status(409).json({ error: 'Coupon code already exists.' });
 
     const r = await query(
-      `INSERT INTO coupons(code, description, type, value, min_order, usage_limit, start_date, expiry_date, active, used_count)
-       VALUES(UPPER($1), $2, $3, $4, $5, $6, $7, $8, $9, 0) RETURNING *`,
+      `INSERT INTO coupons(code, description, type, value, min_order, usage_limit, start_date, expiry_date, active, used_count, shop_id)
+       VALUES(UPPER($1), $2, $3, $4, $5, $6, $7, $8, $9, 0, $10) RETURNING *`,
       [
         code.trim(),
         description || null,
@@ -146,16 +171,38 @@ router.post('/seller', requireAuth, requireSeller, validate(couponCreateSchema),
         start_date || null,
         expiry_date || null,
         active !== false,
+        shopId,
       ]
     );
     res.status(201).json({ coupon: r.rows[0] });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
 
-// PATCH /api/coupons/seller/:id — update coupon (seller only)
+// PATCH /api/coupons/seller/:id — update coupon (own shop + platform-wide only;
+// admin unrestricted). Cross-shop attempts get the same 404 (not 403) pattern
+// already used by routes/seller.js's product PATCH — doesn't reveal whether
+// the coupon exists at all, just belongs to someone else.
 router.patch('/seller/:id', requireAuth, requireSeller, validate(couponUpdateSchema), async (req, res) => {
   try {
     const { description, type, value, min_order, usage_limit, start_date, expiry_date, active } = req.body;
+    const isAdmin = req.userRole === 'admin';
+    const params = [
+      description ?? null,
+      type ?? null,
+      value != null ? Number(value) : null,
+      min_order != null ? Number(min_order) : null,
+      usage_limit != null ? parseInt(usage_limit) : null,
+      start_date ?? null,
+      expiry_date ?? null,
+      active ?? null,
+      req.params.id,
+    ];
+    let ownershipCond = '';
+    if (!isAdmin) {
+      const shopId = await getOwnApprovedShop(req.user.id);
+      ownershipCond = 'AND (shop_id=$10 OR shop_id IS NULL)';
+      params.push(shopId);
+    }
     const r = await query(
       `UPDATE coupons
        SET description=COALESCE($1,description),
@@ -166,28 +213,31 @@ router.patch('/seller/:id', requireAuth, requireSeller, validate(couponUpdateSch
            start_date=COALESCE($6,start_date),
            expiry_date=COALESCE($7,expiry_date),
            active=COALESCE($8,active)
-       WHERE id=$9 RETURNING *`,
-      [
-        description ?? null,
-        type ?? null,
-        value != null ? Number(value) : null,
-        min_order != null ? Number(min_order) : null,
-        usage_limit != null ? parseInt(usage_limit) : null,
-        start_date ?? null,
-        expiry_date ?? null,
-        active ?? null,
-        req.params.id,
-      ]
+       WHERE id=$9 ${ownershipCond} RETURNING *`,
+      params
     );
     if (!r.rows.length) return res.status(404).json({ error: 'Coupon not found.' });
     res.json({ coupon: r.rows[0] });
   } catch(e) { res.status(500).json({ error: 'Server error.' }); }
 });
 
-// DELETE /api/coupons/seller/:id — delete coupon (seller only)
+// DELETE /api/coupons/seller/:id — delete coupon (own shop + platform-wide only;
+// admin unrestricted). Previously didn't check whether anything was actually
+// deleted (always returned {ok:true} even for a non-existent id) — now
+// returns 404 if nothing matched, needed to make the ownership check
+// meaningful (a cross-shop id now behaves like a not-found id, same as PATCH).
 router.delete('/seller/:id', requireAuth, requireSeller, async (req, res) => {
   try {
-    await query('DELETE FROM coupons WHERE id=$1', [req.params.id]);
+    const isAdmin = req.userRole === 'admin';
+    let ownershipCond = '';
+    const params = [req.params.id];
+    if (!isAdmin) {
+      const shopId = await getOwnApprovedShop(req.user.id);
+      ownershipCond = 'AND (shop_id=$2 OR shop_id IS NULL)';
+      params.push(shopId);
+    }
+    const r = await query(`DELETE FROM coupons WHERE id=$1 ${ownershipCond} RETURNING id`, params);
+    if (!r.rows.length) return res.status(404).json({ error: 'Coupon not found.' });
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: 'Server error.' }); }
 });

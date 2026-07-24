@@ -310,6 +310,21 @@ async function initDb() {
         END IF;
       END $$;
 
+      -- Coupon access control (2026-07-25) — nullable: NULL means a
+      -- platform-wide coupon usable by/visible to every seller (this is also
+      -- what every existing coupon becomes automatically, since they were
+      -- already de facto shared across all sellers before this column
+      -- existed — no backfill needed, NULL preserves current behaviour for
+      -- them exactly). A non-null shop_id scopes GET/PATCH/DELETE /seller in
+      -- routes/coupons.js to that shop's owner + admin only. Deliberately NOT
+      -- used anywhere in checkout discount math yet — a shop-scoped coupon
+      -- still discounts the whole order subtotal today, same as always; only
+      -- who can see/edit/delete the coupon row is scoped by this column (see
+      -- CLAUDE.md's Phase 5 planning notes for why the discount-math half is
+      -- deferred).
+      ALTER TABLE coupons ADD COLUMN IF NOT EXISTS shop_id UUID REFERENCES shops(id);
+      CREATE INDEX IF NOT EXISTS idx_coupons_shop ON coupons(shop_id);
+
       -- Indexes
       CREATE INDEX IF NOT EXISTS idx_orders_user     ON orders(user_id);
       CREATE INDEX IF NOT EXISTS idx_orders_status   ON orders(status);
