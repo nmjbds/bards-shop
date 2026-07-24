@@ -288,6 +288,32 @@ router.get('/link/:orderId', async (req, res) => {
 });
 
 // ══════════════════════════════════════════════
+// POST /api/payment/link/:orderId/confirm — public, token-gated (added 2026-07-24)
+// pay.html has no login session (it's a shareable link, gated by pay_token
+// alone — same model as GET /link/:orderId above), so it can't call the
+// authenticated POST /confirm/:orderId below. This gives pay.html's poll the
+// same "actively ask ABA" capability without requiring auth: same token
+// check as the GET route, then the same settleOrderPayment() everything else
+// uses — still never trusts anything from the client except which order to
+// re-check.
+// ══════════════════════════════════════════════
+router.post('/link/:orderId/confirm', async (req, res) => {
+  try {
+    const r = await query('SELECT pay_token FROM orders WHERE id=$1', [req.params.orderId]);
+    const o = r.rows[0];
+    if (!o || !tokenMatches(req.body?.token || req.query.token, o.pay_token)) {
+      return res.status(404).json({ error: 'Order not found.' });
+    }
+    const result = await settleOrderPayment(req.params.orderId);
+    if (!result.ok) return res.status(result.httpStatus || 500).json({ error: result.error });
+    res.json({ ok: true, status: result.status, orderId: req.params.orderId });
+  } catch(e) {
+    console.error('[LINK CONFIRM ERROR]', e.message);
+    res.status(500).json({ error: 'Server error.' });
+  }
+});
+
+// ══════════════════════════════════════════════
 // POST /api/payment/confirm/:orderId
 // Does NOT take the caller's word for it — this only *triggers* a real
 // check-transaction-2 call to ABA PayWay via settleOrderPayment(). Only the
@@ -325,11 +351,22 @@ router.post('/confirm/:orderId', requireAuth, async (req, res) => {
 // payment succeeds. We don't trust the payload's status either — a webhook
 // call is only a *hint to re-check now*; settleOrderPayment() always asks
 // ABA directly via check-transaction-2 before touching order/payment status.
-// Always answer 200 for a structurally valid request so ABA doesn't retry-storm us.
+// Always answer 200, even if we can't find a tran_id — this endpoint has
+// never received a real webhook call end-to-end on production (see
+// docs/04-deploy-render.md §8), so the exact payload shape is unverified;
+// if the field name/nesting turns out to be different from what we guessed,
+// a 400 here would make ABA retry a request that will keep failing the same
+// way every time (a shape mismatch, not a transient error) — exactly the
+// "retry-storm" this comment already warned about. Log the raw body instead
+// so a real failure is diagnosable from the next live payment (2026-07-24).
 // ══════════════════════════════════════════════
 router.post('/webhook', async (req, res) => {
-  const tranId = req.body?.tran_id || req.body?.tranId;
-  if (!tranId) return res.status(400).json({ error: 'Missing tran_id.' });
+  const tranId = req.body?.tran_id || req.body?.tranId
+    || req.body?.data?.tran_id || req.body?.data?.tranId;
+  if (!tranId) {
+    console.error('[WEBHOOK] No tran_id found in payload:', JSON.stringify(req.body).slice(0, 500));
+    return res.status(200).json({ received: true });
+  }
   try {
     await settleOrderPayment(tranId);
   } catch(e) {

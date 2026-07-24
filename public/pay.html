@@ -114,8 +114,8 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
         <div class="qr-wrap">
           <img id="qrImg" width="220" height="220" alt="KHQR">
           <div class="expired-overlay" id="expiredOverlay">
-            <div style="font-size:28px">⏱</div>
-            <div style="font-size:11px;font-weight:700;color:#8A8A88;letter-spacing:1px">EXPIRED</div>
+            <div style="font-size:28px" id="expiredOverlayIcon">⏱</div>
+            <div style="font-size:11px;font-weight:700;color:#8A8A88;letter-spacing:1px" id="expiredOverlayText">EXPIRED</div>
           </div>
         </div>
         <div class="meta">
@@ -186,8 +186,21 @@ function renderPayment(d) {
   `;
 
   if (d.status === 'paid' || d.status === 'delivered' || d.status === 'processing' || d.status === 'shipped') {
+    clearInterval(POLL_ID); clearInterval(TIMER_ID);
     document.getElementById('paidBanner').classList.add('show');
     document.getElementById('qrSection').style.display = 'none';
+    return;
+  }
+
+  // เพิ่ม 2026-07-24 — เดิมไม่มีสาขานี้เลย: cancelled/failed/expired ตกไปที่ branch แสดง QR ด้านล่าง
+  // ทั้งที่ไม่มี QR ให้จ่ายจริงแล้ว (ยังโชว์ QR เก่าเหมือนใช้ได้อยู่) และ startTimer()/startAutoPoll() จะถูก
+  // เรียกซ้ำไม่จบ — ตอนนี้จบที่ overlay อธิบายสถานะแทน (expired ใช้ overlay เดิมที่มีอยู่แล้วจาก client-side
+  // timer, cancelled/failed ใช้ overlay เดียวกันแค่เปลี่ยนข้อความ)
+  if (d.status === 'cancelled' || d.status === 'failed' || d.status === 'expired') {
+    clearInterval(POLL_ID); clearInterval(TIMER_ID);
+    document.getElementById('qrSection').style.display = '';
+    const text = d.status === 'expired' ? 'QR EXPIRED' : d.status === 'cancelled' ? 'ORDER CANCELLED' : 'PAYMENT FAILED';
+    showOverlay(d.status === 'expired' ? '⏱' : '✕', text);
     return;
   }
 
@@ -213,21 +226,29 @@ function startTimer() {
     else updateTimer();
   }, 1000);
 }
+// Active check (2026-07-24) — เดิม poll แค่ re-fetch GET /payment/link/:id ซึ่งอ่านค่า orders.status ที่
+// มีอยู่ใน DB เฉยๆ ไม่เคยเรียก ABA เอง ต้องรอ webhook อัปเดต DB มาก่อน (ปัญหาเดียวกับ payment.html) —
+// pay.html ไม่มี login session (เป็น public link ที่ auth ด้วย pay_token อย่างเดียว) เรียก
+// POST /payment/confirm/:id (ต้อง auth) ตรงๆ ไม่ได้ เลยเรียก endpoint ใหม่
+// POST /payment/link/:id/confirm ที่ auth ด้วย token เดียวกับ GET /link/:id แทน (เช็คกับ ABA จริงผ่าน
+// settleOrderPayment() เหมือนกัน) แล้วค่อย re-fetch GET /link/:id เพื่อได้ข้อมูลเต็มมา render
 function startAutoPoll() {
   clearInterval(POLL_ID);
   POLL_ID = setInterval(async () => {
     if (!ORDER_ID) return;
     try {
-      const res  = await fetch(`${API_BASE}/payment/link/${ORDER_ID}?token=${encodeURIComponent(PAY_TOKEN)}`);
-      const data = await res.json();
-      if (!res.ok) return;
-      if (['paid','processing','shipped','delivered'].includes(data.status)) {
-        clearInterval(POLL_ID); clearInterval(TIMER_ID);
-        ORDER_DATA = data;
-        renderPayment(data);
+      const cRes  = await fetch(`${API_BASE}/payment/link/${ORDER_ID}/confirm?token=${encodeURIComponent(PAY_TOKEN)}`, { method: 'POST' });
+      const cData = await cRes.json();
+      if (!cRes.ok) return;
+      // renderPayment() ตัดสินใจเองแล้วว่าแต่ละ status ต้องหยุด poll/timer หรือไม่ (ดู comment ด้านบน) —
+      // ที่นี่แค่ re-fetch ข้อมูลเต็มมา render ใหม่ทุกครั้งที่ status ไม่ใช่ pending อีกต่อไป
+      if (cData.status !== 'pending') {
+        const res  = await fetch(`${API_BASE}/payment/link/${ORDER_ID}?token=${encodeURIComponent(PAY_TOKEN)}`);
+        const data = await res.json();
+        if (res.ok) { ORDER_DATA = data; renderPayment(data); }
       }
     } catch (_) {}
-  }, 10000);
+  }, 7000);
 }
 function getRemainingMs() { return Math.max(0, EXPIRES_AT - Date.now()); }
 function updateTimer() {
@@ -238,10 +259,18 @@ function updateTimer() {
   if (dot) dot.className = 'dot' + (warn?' warn':'');
   if (lbl) lbl.textContent = warn ? 'Expiring soon' : 'Valid · Scan now';
 }
-function onExpired() {
+// Shared by onExpired() (client-side countdown hitting zero) and renderPayment()'s
+// cancelled/failed/expired branch (poll detecting a terminal state from the server) —
+// same overlay box, just different icon/text (2026-07-24).
+function showOverlay(icon, text) {
+  document.getElementById('expiredOverlayIcon').textContent = icon;
+  document.getElementById('expiredOverlayText').textContent = text;
   document.getElementById('expiredOverlay').classList.add('show');
   document.getElementById('expireDot').className = 'dot off';
-  document.getElementById('expireLabel').textContent = 'QR Expired';
+  document.getElementById('expireLabel').textContent = text;
+}
+function onExpired() {
+  showOverlay('⏱', 'QR EXPIRED');
   toast('QR has expired. Contact the store for a new link.');
 }
 

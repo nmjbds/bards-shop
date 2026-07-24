@@ -784,21 +784,28 @@ async function loadOrder(){
   }
 }
 
+// Active check (2026-07-24) — เดิม poll เรียก OrdersAPI.get() (GET /api/orders/:id) ซึ่งแค่อ่านค่า
+// orders.status ที่มีอยู่ใน DB เฉยๆ ไม่เคยเรียก ABA เอง ต้องรอ webhook อัปเดต DB มาก่อนถึงจะเห็นความ
+// เปลี่ยนแปลง (ปัญหาเดียวกับที่เจอใน payment.html) เปลี่ยนมาเรียก PaymentAPI.confirm() (active check ผ่าน
+// ABA check-transaction-2 จริง) ก่อน แล้วค่อย re-fetch order เต็มด้วย OrdersAPI.get() เฉพาะตอนสถานะ
+// เปลี่ยนจริงเพื่อได้ข้อมูลครบสำหรับ renderPage() (confirm() คืนแค่ {status}) — settleOrderPayment() เป็น
+// no-op ปลอดภัยถ้า order ไม่ได้อยู่ pending/pending_verification แล้ว (เช่น order อื่นที่ยังพอลอยู่ตอน
+// user คลิก manual confirm ไปแล้วจากอีกแท็บ) ไม่ต้องเช็คซ้ำก่อนเรียก
 let _orderPollTimer=null;
 function startOrderPoll(orderId){
   clearInterval(_orderPollTimer);
   _orderPollTimer=setInterval(async()=>{
     try{
-      const d=await OrdersAPI.get(orderId);
-      const fresh=d.order||d;
-      if(fresh.status!==_order.status){
+      const r=await PaymentAPI.confirm(orderId);
+      if(r.status!==_order.status){
         clearInterval(_orderPollTimer);
         clearInterval(_countdownInterval);
-        _order=fresh;
+        const d=await OrdersAPI.get(orderId);
+        _order=d.order||d;
         renderPage(_order);
       }
     }catch(e){}
-  },10000);
+  },7000);
 }
 
 function showError(msg){

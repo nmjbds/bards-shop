@@ -227,12 +227,31 @@ function onExpired(){
   btn.className='confirm-btn loading';btn.innerHTML='QR EXPIRED';
   showToast('warn','QR Expired','Contact support for help');
 }
+// Active check (2026-07-24) — เดิม poll เรียก PaymentAPI.status() ซึ่งแค่อ่านค่า orders.status ที่มีอยู่
+// ใน DB เฉยๆ ไม่เคยเรียก ABA เอง ต้องรอ webhook (POST /api/payment/webhook) มาอัปเดต DB ก่อนถึงจะเห็นการ
+// เปลี่ยนแปลง — ถ้า webhook ไม่ถึงเซิร์ฟเวอร์ (ยังไม่เคยยืนยัน end-to-end บน production URL จริง — ดู
+// docs/04-deploy-render.md หัวข้อ 8) poll แบบ passive จะวนอ่านค่าเดิมไปเรื่อยๆ ไม่มีทางรู้ว่าจ่ายแล้ว —
+// นี่คือสาเหตุจริงที่ลูกค้าต้องกด "CHECK PAYMENT STATUS" เองถึงจะเห็นผล เปลี่ยนมาเรียก PaymentAPI.confirm()
+// (POST /payment/confirm) แทน ซึ่งเรียก ABA check-transaction-2 จริงทุกครั้งที่ poll (เหมือนกดปุ่มเช็ค
+// สถานะเองทุก 7 วิ) — ไม่ต้องพึ่ง webhook อีกต่อไปเป็นทางเดียว (webhook ยังทำงานคู่ขนานอยู่ ถ้ามาถึงเร็วกว่า
+// รอบ poll ถัดไปก็ยิ่งดี ไม่ชนกัน เพราะ settleOrderPayment() เป็น idempotent)
 function startAutoPoll(){
   clearInterval(POLL_ID);
   POLL_ID=setInterval(async()=>{
     if(!ORDER?.orderId)return;
-    try{const d=await PaymentAPI.status(ORDER.orderId);if(d.status==='paid'){clearInterval(POLL_ID);clearInterval(TIMER_ID);onSuccess();}}catch(_){}
-  },10000);
+    try{
+      const d=await PaymentAPI.confirm(ORDER.orderId);
+      if(d.status==='paid'){
+        clearInterval(POLL_ID);clearInterval(TIMER_ID);onSuccess();
+      } else if(d.status==='expired'){
+        clearInterval(POLL_ID);clearInterval(TIMER_ID);onExpired();
+      } else if(d.status==='cancelled'||d.status==='failed'){
+        clearInterval(POLL_ID);clearInterval(TIMER_ID);
+        showToast('warn','Order '+(d.status==='cancelled'?'cancelled':'payment failed'),'Redirecting to order details…');
+        setTimeout(()=>{ location.href='order-detail.html?id='+encodeURIComponent(ORDER.orderId); },1500);
+      }
+    }catch(_){}
+  },7000);
 }
 
 async function downloadQRCard(){
