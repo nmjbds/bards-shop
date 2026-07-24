@@ -374,7 +374,7 @@ function renderPage(o){
   const cancelledBy = o.cancelled_by || null; // 'customer'|'seller'|'system'|null
   const total    = Number(o.total||(subtotal+ship-discount));
   const shipVal  = ship===0?'<span class="tot-val free">FREE</span>':`<span class="tot-val">${fmtMoney(ship)}</span>`;
-  const payMethod= o.qr_payload?'KHQR / PromptPay QR':(addr.payment_method||'—');
+  const payMethod= o.qr_payload?'KHQR (ABA PayWay)':(addr.payment_method||'—');
 
   document.getElementById('navTitle').textContent=`Order #${orderId}`;
 
