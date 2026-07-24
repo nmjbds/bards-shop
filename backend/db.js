@@ -18,6 +18,92 @@ async function query(text, params) {
   }
 }
 
+// Phase 5 Step 1 backfill (2026-07-25) — builds order_shops/order_items from
+// existing orders.items JSONB. Purely additive: never touches orders.items,
+// never deletes anything, and is idempotent per order — an order that
+// already has any order_shops row (checked in one query up front, not one
+// query per order) is skipped entirely on every subsequent run, so re-running
+// this after a partial failure or on every future boot is always safe. Each
+// order's insert runs in its own small transaction, chunked, so one bad order
+// can't take down the whole run and a large backlog doesn't hold one giant
+// transaction open for the whole boot.
+async function backfillOrderShops() {
+  const CHUNK = 200;
+  const stats = { ordersProcessed: 0, orderShopsCreated: 0, orderItemsCreated: 0, ordersFailed: 0 };
+
+  const doneRes = await query('SELECT DISTINCT order_id FROM order_shops');
+  const done = new Set(doneRes.rows.map(r => r.order_id));
+
+  // Same "exactly one shop exists → unambiguous fallback" trick already used
+  // for products.shop_id — only applies here, to historical data. Items with
+  // no shop_id at all (orders that predate Phase 4 Step 4) or an explicit
+  // null (product had no shop_id at purchase time) fall back to this if
+  // it's unambiguous; if more than one shop exists, they're left under a
+  // genuine NULL order_shops row instead of guessing wrong.
+  const shopsRes = await query('SELECT id FROM shops');
+  const singleShopId = shopsRes.rows.length === 1 ? shopsRes.rows[0].id : null;
+
+  const ordersRes = await query(
+    `SELECT id, items, status, seller_note, tracking_number, cancelled_by, cancel_reason, created_at
+     FROM orders ORDER BY created_at ASC`
+  );
+  const todo = ordersRes.rows.filter(o => !done.has(o.id));
+
+  for (let i = 0; i < todo.length; i += CHUNK) {
+    for (const order of todo.slice(i, i + CHUNK)) {
+      const items = Array.isArray(order.items) ? order.items : [];
+      if (!items.length) { stats.ordersProcessed++; continue; }
+
+      const groups = new Map(); // shop_id (or null) -> items[]
+      for (const item of items) {
+        const key = item?.shop_id || null;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(item);
+      }
+
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        for (const [rawShopId, groupItems] of groups) {
+          const resolvedShopId = rawShopId || singleShopId || null;
+          const subtotal = Math.round(
+            groupItems.reduce((s, it) => s + Number(it.price || 0) * Number(it.quantity || 1), 0) * 100
+          ) / 100;
+
+          const osRes = await client.query(
+            `INSERT INTO order_shops(order_id, shop_id, subtotal, status, seller_note, tracking_number, cancelled_by, cancel_reason, created_at)
+             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+            [order.id, resolvedShopId, subtotal, order.status, order.seller_note,
+             order.tracking_number, order.cancelled_by, order.cancel_reason, order.created_at]
+          );
+          const orderShopId = osRes.rows[0].id;
+          stats.orderShopsCreated++;
+
+          for (const item of groupItems) {
+            await client.query(
+              `INSERT INTO order_items(order_shop_id, product_id, name, price, image, color, size, quantity)
+               VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,
+              [orderShopId, item.id || null, item.name || 'Unknown', Number(item.price || 0),
+               item.image || null, item.color || null, item.size || null, Number(item.quantity || 1)]
+            );
+            stats.orderItemsCreated++;
+          }
+        }
+        await client.query('COMMIT');
+        stats.ordersProcessed++;
+      } catch (e) {
+        await client.query('ROLLBACK').catch(() => {});
+        stats.ordersFailed++;
+        console.error(`[BACKFILL order_shops] order ${order.id} failed:`, e.message);
+      } finally {
+        client.release();
+      }
+    }
+  }
+
+  return stats;
+}
+
 async function initDb() {
   try {
     // enable pg_trgm สำหรับ ILIKE search บน index
@@ -325,6 +411,59 @@ async function initDb() {
       ALTER TABLE coupons ADD COLUMN IF NOT EXISTS shop_id UUID REFERENCES shops(id);
       CREATE INDEX IF NOT EXISTS idx_coupons_shop ON coupons(shop_id);
 
+      -- Phase 5 Step 1 (2026-07-25) — order_shops/order_items are a
+      -- normalized, per-shop breakdown of orders.items, built ADDITIVELY
+      -- alongside it. orders.items JSONB is NOT touched, dropped, or
+      -- replaced by this — it remains the only thing any existing
+      -- endpoint/page reads. These two tables exist purely so a future step
+      -- can migrate reads over one at a time and eventually support real
+      -- per-shop settlement (see CLAUDE.md's Phase 5 planning notes for the
+      -- full design — 1 payment/1 orders row per checkout still, split into
+      -- N order_shops rows, one per shop involved).
+      -- shop_id nullable: an item with no attributable shop (ambiguous
+      -- historical data, or a product that genuinely had none at purchase
+      -- time) still needs somewhere to live — same "leave it null rather
+      -- than guess wrong" precedent as products.shop_id.
+      CREATE TABLE IF NOT EXISTS order_shops (
+        id              UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+        order_id        TEXT          NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+        shop_id         UUID          REFERENCES shops(id),
+        subtotal        NUMERIC(10,2) NOT NULL DEFAULT 0,
+        status          TEXT          NOT NULL DEFAULT 'pending',
+        seller_note     TEXT,
+        tracking_number TEXT,
+        cancelled_by    TEXT,
+        cancel_reason   TEXT,
+        created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+        updated_at      TIMESTAMPTZ
+      );
+      -- Not a hard uniqueness guarantee against re-running the backfill (two
+      -- NULL shop_ids don't conflict under Postgres's NULL-is-distinct rule)
+      -- — the real idempotency guard is the backfill script's own "does this
+      -- order already have any order_shops row at all" check before it does
+      -- anything. This just blocks the one case it *can* catch for free: the
+      -- same non-null shop appearing twice for the same order.
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_order_shops_unique ON order_shops(order_id, shop_id) WHERE shop_id IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_order_shops_order ON order_shops(order_id);
+      CREATE INDEX IF NOT EXISTS idx_order_shops_shop  ON order_shops(shop_id);
+
+      -- No FK on product_id (matches orders.items' existing convention) — a
+      -- deleted/deactivated product must not make historical order lines
+      -- unreadable. price/name are a snapshot at purchase time, also matching
+      -- what orders.items already stores.
+      CREATE TABLE IF NOT EXISTS order_items (
+        id            UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+        order_shop_id UUID          NOT NULL REFERENCES order_shops(id) ON DELETE CASCADE,
+        product_id    TEXT,
+        name          TEXT          NOT NULL,
+        price         NUMERIC(10,2) NOT NULL,
+        image         TEXT,
+        color         TEXT,
+        size          TEXT,
+        quantity      INTEGER       NOT NULL DEFAULT 1
+      );
+      CREATE INDEX IF NOT EXISTS idx_order_items_shop ON order_items(order_shop_id);
+
       -- Indexes
       CREATE INDEX IF NOT EXISTS idx_orders_user     ON orders(user_id);
       CREATE INDEX IF NOT EXISTS idx_orders_status   ON orders(status);
@@ -346,6 +485,17 @@ async function initDb() {
       await query('UPDATE orders SET pay_token=$1 WHERE id=$2', [crypto.randomBytes(32).toString('hex'), row.id]);
     }
 
+    // Phase 5 Step 1 backfill — safe to run every boot (idempotent, skips
+    // anything already done in one query up front — see backfillOrderShops()).
+    const backfillStats = await backfillOrderShops();
+    if (backfillStats.orderShopsCreated || backfillStats.ordersFailed) {
+      console.log(
+        `[BACKFILL order_shops] processed ${backfillStats.ordersProcessed} order(s), ` +
+        `created ${backfillStats.orderShopsCreated} order_shops / ${backfillStats.orderItemsCreated} order_items row(s)` +
+        (backfillStats.ordersFailed ? `, ${backfillStats.ordersFailed} order(s) FAILED (see errors above)` : '')
+      );
+    }
+
     console.log('✅ Database ready');
 
     // Best-effort cleanup — refresh_tokens grows one row per login and one
@@ -360,4 +510,4 @@ async function initDb() {
   }
 }
 
-module.exports = { query, pool, initDb };
+module.exports = { query, pool, initDb, backfillOrderShops };

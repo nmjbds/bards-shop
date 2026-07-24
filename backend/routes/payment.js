@@ -177,6 +177,42 @@ router.post('/create', requireAuth, validate(createOrderSchema), async (req, res
       ]
     );
 
+    // Phase 5 Step 1 dual-write (2026-07-25) — same transaction as the orders
+    // insert above, so this can never exist without it (or vice versa) if
+    // anything fails. orders.items JSONB above is unchanged and remains the
+    // only thing any existing endpoint/page reads; this just additionally
+    // records the same items in normalized, per-shop form for future
+    // settlement work. shop_id is whatever the product had at purchase time
+    // (already computed per line above, same value stamped into
+    // orderItems[].shop_id) — grouped here, no single-shop fallback guess
+    // like the historical backfill does, since a genuinely shop-less item on
+    // a brand new order should stay honestly unattributed (null) rather than
+    // be guessed at.
+    const shopGroups = new Map(); // shop_id (or null) -> items[]
+    for (const item of orderItems) {
+      const key = item.shop_id || null;
+      if (!shopGroups.has(key)) shopGroups.set(key, []);
+      shopGroups.get(key).push(item);
+    }
+    for (const [groupShopId, groupItems] of shopGroups) {
+      const groupSubtotal = Math.round(
+        groupItems.reduce((s, it) => s + Number(it.price) * Number(it.quantity), 0) * 100
+      ) / 100;
+      const osRes = await client.query(
+        `INSERT INTO order_shops(order_id, shop_id, subtotal, status)
+         VALUES($1,$2,$3,'pending') RETURNING id`,
+        [orderId, groupShopId, groupSubtotal]
+      );
+      const orderShopId = osRes.rows[0].id;
+      for (const item of groupItems) {
+        await client.query(
+          `INSERT INTO order_items(order_shop_id, product_id, name, price, image, color, size, quantity)
+           VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,
+          [orderShopId, item.id, item.name, item.price, item.image, item.color, item.size, item.quantity]
+        );
+      }
+    }
+
     await client.query('COMMIT');
   } catch(e) {
     await client.query('ROLLBACK').catch(() => {});
