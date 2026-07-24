@@ -45,6 +45,15 @@ router.post('/:id/cancel', requireAuth, async (req, res) => {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Cannot cancel this order.' });
     }
+    // Phase 5 Step 2 (2026-07-25) — mirror onto order_shops, same rationale as
+    // settleOrderPayment()/expireIfNeeded(): only reachable while still
+    // pending/pending_verification, before any per-shop divergence is
+    // possible, so a uniform update across every shop on this order is safe.
+    await client.query(
+      `UPDATE order_shops SET status='cancelled', cancelled_by='customer',
+              cancel_reason='Cancelled by customer' WHERE order_id=$1`,
+      [req.params.id]
+    );
     await restoreStock(client, r.rows[0].items);
     await client.query('COMMIT');
     res.json({ ok: true, order: r.rows[0] });

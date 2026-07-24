@@ -42,6 +42,14 @@ async function settleOrderPayment(orderId) {
          RETURNING *`,
         [orderId]
       );
+      // Phase 5 Step 2 (2026-07-25) — mirror onto order_shops too, so seller-facing
+      // reads (now sourced from order_shops, not orders.items) don't go stale.
+      // Safe to apply uniformly to every order_shops row for this order with no
+      // per-shop divergence risk: this only ever fires while the order is still
+      // pending/pending_verification, before any seller could have advanced one
+      // shop's fulfillment independently of another (that only becomes possible
+      // once the order is already 'paid' — see routes/seller.js's PATCH /orders/:id).
+      await client.query("UPDATE order_shops SET status='paid' WHERE order_id=$1", [orderId]);
       await client.query('COMMIT');
       return { ok: true, order: upd.rows[0] || order, status: 'paid' };
     }

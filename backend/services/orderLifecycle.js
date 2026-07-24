@@ -20,6 +20,15 @@ async function expireIfNeeded(orderId) {
          WHERE id=$1 RETURNING *`,
         [orderId]
       );
+      // Phase 5 Step 2 (2026-07-25) — mirror onto order_shops, same rationale as
+      // paymentSettlement.js: only fires while still 'pending' (before this
+      // order's expires_at), which is before any per-shop divergence is possible,
+      // so applying uniformly to every shop here is safe.
+      await client.query(
+        `UPDATE order_shops SET status='expired', cancelled_by='system',
+                cancel_reason='Payment window expired (24h)' WHERE order_id=$1`,
+        [orderId]
+      );
       await restoreStock(client, order.items);
       await client.query('COMMIT');
       return upd.rows[0];
