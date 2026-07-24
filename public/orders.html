@@ -311,6 +311,15 @@ function cardHTML(o,idx){
         ? `<div class="oc-btn view" style="opacity:.35;pointer-events:none;font-size:10px;letter-spacing:.5px;">Verifying</div>`
         : (status==='cancelled'||status==='expired')
         ? `<div class="oc-btn view" style="opacity:.35;pointer-events:none;font-size:10px;letter-spacing:.5px;">${status==='expired'?'Expired':'Cancelled'}</div>`
+        // เพิ่ม 2026-07-24 — เดิม failed ตกไปที่ default branch ด้านล่างเป็น "Buy Again" เหมือน order ที่
+        // เคยส่งของสำเร็จแล้ว ทั้งที่ failed = ABA purchase call ล้มเหลวตอน checkout (ไม่เคยมี QR/จ่ายจริงเลย
+        // ดูหัวข้อ 12 ใน CLAUDE.md) — "Buy Again" สื่อผิดว่าครั้งก่อนสำเร็จ เปลี่ยนคำเป็น "Try Again" แทน
+        // (handler เดิม quickBuyAgain() ยังถูกต้องอยู่ — เพิ่มของเดิมกลับตะกร้าแล้วให้ลองเช็คเอาต์ใหม่ เป็น
+        // action ที่ถูกต้องอยู่แล้ว แค่คำต้องตรงกับสถานการณ์)
+        : status==='failed'
+        ? `<button class="oc-btn reorder" onclick="event.stopPropagation();quickBuyAgain('${orderId}')">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 1 4 1"/><path d="M1 1 4.5 4.5A7 7 0 1 1 1 11"/></svg>
+            Try Again</button>`
         : `<button class="oc-btn reorder" onclick="event.stopPropagation();quickBuyAgain('${orderId}')">
             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 1 4 1"/><path d="M1 1 4.5 4.5A7 7 0 1 1 1 11"/></svg>
             Buy Again</button>`;

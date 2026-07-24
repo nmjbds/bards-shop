@@ -628,40 +628,32 @@ function renderFooter(o, orderId, status, items){
       In Transit
     </button>`;
   } else if(status==='cancelled'||status==='expired'){
-    const isSystem   = cancelledBy==='system'||status==='expired';
-    const isSeller   = cancelledBy==='seller';
-    const cancelIcon = isSystem
-      ? '<svg width="16" height="16" fill="none" stroke="#B91C1C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
-      : '<svg width="16" height="16" fill="none" stroke="#B91C1C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-    const cancelTitle = isSystem
-      ? (status==='expired'?'Order Expired — Auto Cancelled':'Cancelled by System')
-      : isSeller ? 'Cancelled by Store' : 'Cancelled by You';
-    const cancelDesc = isSystem
-      ? 'Payment was not completed within 24 hours. This order was automatically cancelled by the system.'
-      : isSeller ? 'The store has cancelled this order. Please contact us if you have questions.'
-      : 'You cancelled this order.';
-    heroExtra=`
-    <div style="margin-top:16px;background:#FEF2F2;border:1.5px solid #FCA5A5;border-radius:var(--radius-sm);padding:14px 16px;">
-      <div style="font-size:13px;font-weight:700;color:#B91C1C;display:flex;align-items:center;gap:7px;margin-bottom:4px;">
-        ${cancelIcon}${cancelTitle}
-      </div>
-      <div style="font-size:11.5px;color:#991B1B;line-height:1.7;">${cancelDesc}</div>
-      <div style="margin-top:10px;">
-        <button onclick="location.href='index.html'" style="height:38px;padding:0 16px;background:#B91C1C;color:#fff;border:none;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">
-          Browse Products
-        </button>
-      </div>
-    </div>`;
+    // เดิมตรงนี้ copy-paste มาจาก renderPage()'s heroExtra logic ทั้งก้อน (icon/title/desc + set ตัวแปร
+    // heroExtra ที่ renderFooter ไม่มีสิทธิ์เข้าถึงด้วยซ้ำ — renderPage ประกาศ heroExtra ของตัวเองแยกกัน
+    // คนละ scope — ไม่มีผลอะไรเลยนอกจากสร้าง implicit global ทิ้งไว้เฉยๆ) ไม่ได้ set btns เลยสักบรรทัด ทำให้
+    // footer ทั้งก้อนถูกซ่อน (!btns → display:none) ส่วน branch "Shop Again" ด้านล่างที่ตั้งใจไว้จริงๆ ก็เลย
+    // unreachable เพราะ condition ซ้ำกับ branch นี้ที่มาก่อน (2026-07-24: ลบก้อนซ้ำทิ้ง เอา "Shop Again"
+    // ขึ้นมาแทนที่ตรงนี้ — คำอธิบายเต็ม/ปุ่ม Browse Products ยังอยู่ในหน้า hero banner ของ renderPage()
+    // เหมือนเดิม ไม่ได้หายไปไหน อันนี้แค่เพิ่มปุ่มใน footer ให้ตรงกับ pattern ที่ status อื่นทุกตัวมี)
+    btns+=`<button class="af-btn primary" onclick="location.href='index.html'">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Shop Again
+    </button>`;
   } else if(status==='delivered'){
     // ออเดอร์สำเร็จ — แสดง Buy Again
     btns+=`<button class="af-btn primary" onclick="buyAgain('${orderId}')">
       <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 1 4 1"/><path d="M1 1 4.5 4.5A7 7 0 1 1 1 11"/></svg>
       Buy Again
     </button>`;
-  } else if(status==='cancelled'||status==='expired'){
-    btns+=`<button class="af-btn primary" onclick="location.href='index.html'">
-      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      Shop Again
+  } else if(status==='failed'){
+    // เพิ่ม 2026-07-24 — เดิมไม่มี branch นี้เลย ทำให้ footer ทั้งก้อนหาย (!btns → display:none) เหลือแค่
+    // ข้อความอธิบายใน hero banner (STATUS_MSG) ไม่มีปุ่มกดอะไรเลย — order ที่ failed ไม่มี payment attempt
+    // ที่ resume ได้ (ABA purchase call ล้มเหลวตอน checkout, stock คืนไปแล้ว) ทางเดียวที่สมเหตุสมผลคือลองสั่ง
+    // ใหม่ทั้งหมด ใช้ buyAgain() ตัวเดียวกับ delivered เป๊ะ (เพิ่มของกลับตะกร้าแล้วพาไป cart.html) แค่เปลี่ยน
+    // คำเป็น "Try Again" ไม่ใช่ "Buy Again" เพราะรอบก่อนไม่ได้ "ซื้อสำเร็จ" ที่จะ "ซื้อซ้ำ" ได้จริง
+    btns+=`<button class="af-btn primary" onclick="buyAgain('${orderId}')">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="1 4 1 1 4 1"/><path d="M1 1 4.5 4.5A7 7 0 1 1 1 11"/></svg>
+      Try Again
     </button>`;
   }
   if(!btns){ footer.style.display='none'; return; }
@@ -703,7 +695,7 @@ async function buyAgain(orderId){
   const items=Array.isArray(_order?.items)?_order.items:[];
   if(!items.length){ toast('No items to add.'); return; }
   const btn=event?.currentTarget;
-  if(btn){ btn.disabled=true; btn.textContent='Adding...'; }
+  if(btn){ btn.dataset.origLabel=btn.textContent.trim(); btn.disabled=true; btn.textContent='Adding...'; }
   try{
     // ใช้ Cart.add() เพื่อ sync กับ server ถ้า login อยู่
     for(const item of items){
@@ -723,7 +715,7 @@ async function buyAgain(orderId){
   }catch(e){
     toast('Error: '+e.message);
   }finally{
-    if(btn){ btn.disabled=false; btn.textContent='Buy Again'; }
+    if(btn){ btn.disabled=false; btn.textContent=btn.dataset.origLabel||'Buy Again'; }
   }
 }
 
