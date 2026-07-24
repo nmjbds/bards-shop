@@ -335,6 +335,45 @@ function renderItems(items){
   }).join('');
 }
 
+// Phase 5 Step 3 (2026-07-25) — per-shop fulfillment breakdown. Only renders
+// for a genuine multi-shop order (o.shops.length > 1) — every order that
+// exists today has exactly one shop, so this returns '' and the page is
+// pixel-identical to before Step 3 for all of them. The single overall
+// progress tracker + hero banner above (driven by the existing top-level
+// `status`, still dual-written by Step 2) stays as the "big picture"; this
+// card is the supplementary per-shop detail agreed on before writing this —
+// each shop's own status/tracking/note shown separately, never merged into
+// the single shared orders.tracking_number/seller_note the way they'd have
+// looked pre-Step 3. Doesn't re-list full item images (already shown in the
+// "Items Ordered" card above) — just a name/count recap per shop.
+function renderShopBreakdown(shops){
+  if(!Array.isArray(shops)||shops.length<2) return '';
+  const rows = shops.map((sh,i)=>{
+    const st = sh.status||'pending';
+    const items = Array.isArray(sh.items)?sh.items:[];
+    const itemNames = items.map(it=>it.name).filter(Boolean).join(', ');
+    const isLast = i===shops.length-1;
+    return `
+    <div style="padding:12px 0;${isLast?'':'border-bottom:1px solid var(--gray-100);'}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px;">
+        <div style="font-size:12.5px;font-weight:700;">${escapeHtml(sh.shop_name||'BARDS')}</div>
+        <span class="sh-badge st-${st}" style="font-size:9px;flex-shrink:0;">${STATUS_LBL[st]||st}</span>
+      </div>
+      <div style="font-size:11px;color:var(--gray-400);margin-bottom:4px;">${items.length} item${items.length!==1?'s':''}${itemNames?' · '+escapeHtml(itemNames):''}</div>
+      ${sh.tracking_number?`<div style="font-size:11px;color:var(--black);"><strong>Tracking:</strong> ${escapeHtml(sh.tracking_number)}</div>`:''}
+      ${sh.seller_note?`<div style="font-size:11px;color:var(--gray-600);margin-top:2px;"><strong>Note:</strong> ${escapeHtml(sh.seller_note)}</div>`:''}
+    </div>`;
+  }).join('');
+  return `
+  <div class="card fu" style="animation-delay:.10s">
+    <div class="card-title">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Fulfilled by ${shops.length} Shops
+    </div>
+    ${rows}
+  </div>`;
+}
+
 function renderAddress(addr){
   if(!addr) return '';
   // รองรับทั้ง checkout (name/line/address) และ addresses.js (full_name/address_line)
@@ -518,6 +557,8 @@ function renderPage(o){
       </div>
     </div>
   </div>
+
+  ${renderShopBreakdown(o.shops)}
 
   ${(addr.name||addr.full_name)?`
   <div class="card fu" style="animation-delay:.12s">

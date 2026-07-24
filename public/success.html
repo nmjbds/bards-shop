@@ -333,7 +333,12 @@ function _renderOrder(o) {
     }
 
     document.getElementById('shipBody').innerHTML = _addrHTML(addr);
-    _renderItems(items);
+    // Phase 5 Step 3 (2026-07-25) — group by shop only for a genuine
+    // multi-shop order (o.shops.length > 1); every order today has exactly
+    // one shop, so _renderItems(items) below is unchanged/unreached for any
+    // real order right now.
+    if (Array.isArray(o.shops) && o.shops.length > 1) _renderItemsByShop(o.shops);
+    else _renderItems(items);
 }
 
 /* ─── Fallback: sessionStorage ─── */
@@ -362,6 +367,28 @@ function _renderItems(items) {
             </div>
             <div class="item-price">$${sub}</div>
         </div>`;
+    }).join('');
+}
+
+// Phase 5 Step 3 (2026-07-25) — same item-row markup as _renderItems() above,
+// just grouped under a shop-name header per shop. Only called for a genuine
+// multi-shop order (o.shops.length > 1) — see _renderOrder().
+function _renderItemsByShop(shops) {
+    const el = document.getElementById('itemsBody');
+    el.innerHTML = shops.map(sh => {
+        const rows = (sh.items||[]).map(i => {
+            const img = i.image || PRODUCTS[i.id]?.images[0] || '';
+            const sub = (Number(i.price) * Number(i.quantity || 1)).toFixed(2);
+            return `<div class="item-row">
+                <div class="item-img"><img src="${_esc(img)}" alt="" loading="lazy"></div>
+                <div class="item-info">
+                    <div class="item-name">${_esc(i.name || i.id)}</div>
+                    <div class="item-meta">${_esc([i.color, i.size, '×'+(i.quantity||1)].filter(Boolean).join(' · '))}</div>
+                </div>
+                <div class="item-price">$${sub}</div>
+            </div>`;
+        }).join('');
+        return `<div style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 4px;">${_esc(sh.shop_name||'BARDS')}</div>${rows}`;
     }).join('');
 }
 
