@@ -44,4 +44,14 @@ async function getUserRole(userId) {
   return r.rows[0]?.role || null;
 }
 
-module.exports = { requireAuth, requireRole, getUserRole };
+// The caller's own approved shop id, or null if they don't have one yet
+// (never applied, still pending, or rejected/suspended). Moved here from
+// routes/seller.js (2026-07-25) once routes/coupons.js also needed it for
+// coupon ownership scoping — same rationale as getUserRole above: a small
+// lookup shared by 2+ route files belongs here, not copy-pasted.
+async function getOwnApprovedShop(userId) {
+  const r = await query("SELECT id FROM shops WHERE owner_user_id=$1 AND status='approved'", [userId]);
+  return r.rows[0]?.id || null;
+}
+
+module.exports = { requireAuth, requireRole, getUserRole, getOwnApprovedShop };

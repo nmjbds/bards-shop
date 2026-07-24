@@ -2,7 +2,7 @@ const express = require('express');
 const crypto  = require('crypto');
 const { z } = require('zod');
 const { query, pool } = require('../db');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, getOwnApprovedShop } = require('../middleware/auth');
 const { validate, MIME_EXT } = require('../middleware/validate');
 const { restoreStock } = require('../services/stock');
 const router = express.Router();
@@ -170,13 +170,6 @@ router.post('/upload', requireAuth, requireSeller, (req, res) => {
   });
 });
 
-// Phase 4: the caller's own approved shop id, or null if they don't have
-// one yet (never applied, still pending, or rejected/suspended).
-async function getOwnApprovedShop(userId) {
-  const r = await query("SELECT id FROM shops WHERE owner_user_id=$1 AND status='approved'", [userId]);
-  return r.rows[0]?.id || null;
-}
-
 // ── GET /api/seller/orders ── admin: all orders, full items, unchanged.
 // Seller: only orders containing at least one of their own shop's items —
 // and within each of those, `items` is filtered down to just their own
@@ -338,34 +331,93 @@ router.patch('/orders/:id/note', requireAuth, requireSeller, validate(orderNoteS
 });
 
 
+// Shop-scoped for sellers (Phase 4 follow-up, 2026-07-25) — admin keeps seeing
+// the exact same platform-wide queries as before (unchanged), a seller now
+// only sees their own shop's numbers. Two different techniques needed:
+//   - Count/breakdown queries (orders/customers/pending/status) just need the
+//     same "does this order contain ≥1 of my shop's items" EXISTS filter
+//     GET /api/seller/orders already uses — the order itself still describes
+//     the whole checkout, we're just deciding whether to count it at all.
+//   - Revenue queries (revenue/daily/top-products) can't just filter WHICH
+//     orders count — orders.total is the *whole* order's total, which would
+//     leak other shops' item revenue into a seller's number on any shared
+//     multi-shop order. These unnest items and sum only this shop's line
+//     values (same technique GET /api/seller/orders' own_subtotal and the
+//     existing top-products query already use), not orders.total.
+function zeroStats() {
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  return {
+    totalOrders: 0, totalRevenue: 0, totalCustomers: 0, pendingOrders: 0,
+    dailyRevenue: days.map(d => ({ day: d, revenue: 0 })),
+    statusBreakdown: {}, topProducts: [],
+  };
+}
+
 router.get('/stats', requireAuth, requireSeller, async (req, res) => {
   try {
+    const isAdmin = req.userRole === 'admin';
+    let shopId = null;
+    if (!isAdmin) {
+      shopId = await getOwnApprovedShop(req.user.id);
+      if (!shopId) return res.json(zeroStats());
+    }
+
+    // Reused by the 4 count/breakdown queries below — empty for admin (no
+    // filter at all, matches the old unscoped behaviour exactly).
+    const shopExistsCond = `EXISTS (SELECT 1 FROM jsonb_array_elements(items) it WHERE (it->>'shop_id')=$1)`;
+    const shopAnd  = isAdmin ? '' : `AND ${shopExistsCond}`;
+    const shopWhereOnly = isAdmin ? '' : `WHERE ${shopExistsCond}`;
+    const shopParams = isAdmin ? [] : [shopId];
+
     const [ordersRes, revenueRes, customersRes, pendingRes, dailyRes, statusRes, topRes] = await Promise.all([
-      query("SELECT COUNT(*) FROM orders WHERE status NOT IN ('cancelled','expired')"),
-      query("SELECT COALESCE(SUM(total),0) AS total FROM orders WHERE status IN ('paid','processing','shipped','delivered')"),
-      query("SELECT COUNT(DISTINCT user_id) FROM orders"),
-      query("SELECT COUNT(*) FROM orders WHERE status='pending_verification'"),
+      query(`SELECT COUNT(*) FROM orders WHERE status NOT IN ('cancelled','expired') ${shopAnd}`, shopParams),
+
+      isAdmin
+        ? query("SELECT COALESCE(SUM(total),0) AS total FROM orders WHERE status IN ('paid','processing','shipped','delivered')")
+        : query(`
+            SELECT COALESCE(SUM((item->>'price')::numeric * (item->>'quantity')::int), 0) AS total
+            FROM orders, jsonb_array_elements(items) AS item
+            WHERE status IN ('paid','processing','shipped','delivered')
+              AND (item->>'shop_id')=$1
+          `, [shopId]),
+
+      query(`SELECT COUNT(DISTINCT user_id) FROM orders ${shopWhereOnly}`, shopParams),
+
+      query(`SELECT COUNT(*) FROM orders WHERE status='pending_verification' ${shopAnd}`, shopParams),
 
       // Daily revenue — last 7 days
-      query(`
-        SELECT
-          TO_CHAR(created_at AT TIME ZONE 'UTC', 'Dy') AS day,
-          COALESCE(SUM(total), 0) AS revenue
-        FROM orders
-        WHERE status IN ('paid','processing','shipped','delivered')
-          AND created_at >= NOW() - INTERVAL '7 days'
-        GROUP BY TO_CHAR(created_at AT TIME ZONE 'UTC', 'Dy'),
-                 DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')
-        ORDER BY DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')
-      `),
+      isAdmin
+        ? query(`
+            SELECT
+              TO_CHAR(created_at AT TIME ZONE 'UTC', 'Dy') AS day,
+              COALESCE(SUM(total), 0) AS revenue
+            FROM orders
+            WHERE status IN ('paid','processing','shipped','delivered')
+              AND created_at >= NOW() - INTERVAL '7 days'
+            GROUP BY TO_CHAR(created_at AT TIME ZONE 'UTC', 'Dy'),
+                     DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')
+            ORDER BY DATE_TRUNC('day', created_at AT TIME ZONE 'UTC')
+          `)
+        : query(`
+            SELECT
+              TO_CHAR(o.created_at AT TIME ZONE 'UTC', 'Dy') AS day,
+              COALESCE(SUM((item->>'price')::numeric * (item->>'quantity')::int), 0) AS revenue
+            FROM orders o, jsonb_array_elements(o.items) AS item
+            WHERE o.status IN ('paid','processing','shipped','delivered')
+              AND o.created_at >= NOW() - INTERVAL '7 days'
+              AND (item->>'shop_id')=$1
+            GROUP BY TO_CHAR(o.created_at AT TIME ZONE 'UTC', 'Dy'),
+                     DATE_TRUNC('day', o.created_at AT TIME ZONE 'UTC')
+            ORDER BY DATE_TRUNC('day', o.created_at AT TIME ZONE 'UTC')
+          `, [shopId]),
 
       // Status breakdown
       query(`
         SELECT status, COUNT(*) AS count
         FROM orders
-        WHERE status NOT IN ('expired')
+        WHERE status NOT IN ('expired') ${shopAnd}
         GROUP BY status
-      `),
+      `, shopParams),
 
       // Top products by revenue (from JSONB items array)
       query(`
@@ -375,10 +427,11 @@ router.get('/stats', requireAuth, requireSeller, async (req, res) => {
         FROM orders,
              jsonb_array_elements(items) AS item
         WHERE status IN ('paid','processing','shipped','delivered')
+        ${isAdmin ? '' : "AND (item->>'shop_id')=$1"}
         GROUP BY item->>'name'
         ORDER BY revenue DESC
         LIMIT 5
-      `),
+      `, shopParams),
     ]);
 
     // Fill missing days with 0
