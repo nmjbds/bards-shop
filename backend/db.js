@@ -341,6 +341,21 @@ async function initDb() {
         ('Other',       'other',       NULL,      4, false)
       ON CONFLICT (slug) DO NOTHING;
 
+      -- products.category_id (เพิ่ม 2026-07-25, Phase 2 ของ categories migration) — เชื่อม products
+      -- เข้ากับ categories จริง products.category (TEXT เดิม) **ไม่ถูกแตะ/ลบ** ยังใช้งานคู่กันไปก่อน
+      -- (ทั้งสอง field จะ sync กันเองทุกครั้งที่สร้าง/แก้สินค้าใหม่ — ดู routes/seller.js) nullable เพราะ
+      -- ถ้า products.category ไม่ match slug ไหนใน categories เลย (ไม่เคยพบข้อมูลแบบนี้จริง แต่ป้องกันไว้)
+      -- ปล่อยเป็น NULL ดีกว่าเดา — 1 สินค้า = 1 หมวดเดียว (ไม่ใช่ join table) เพราะ UI ปัจจุบัน
+      -- (seller-products.html's dropdown) เป็น single-select ไม่มี concept สินค้าอยู่หลายหมวดพร้อมกันเลย
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS category_id UUID REFERENCES categories(id);
+      CREATE INDEX IF NOT EXISTS idx_products_category_id ON products(category_id);
+
+      -- Backfill ครั้งเดียว (idempotent — WHERE category_id IS NULL กันรันซ้ำ) จับคู่ products.category
+      -- (TEXT) เดิมกับ categories.slug ที่ตรงกัน
+      UPDATE products p SET category_id = c.id
+      FROM categories c
+      WHERE p.category_id IS NULL AND p.category = c.slug;
+
       -- Cart table
       CREATE TABLE IF NOT EXISTS carts (
       user_id    UUID          NOT NULL REFERENCES users(id) ON DELETE CASCADE,

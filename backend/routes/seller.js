@@ -619,10 +619,17 @@ router.post('/products', requireAuth, requireSeller, validate(productCreateSchem
     const newId = crypto.randomUUID ? crypto.randomUUID()
                 : require('crypto').randomUUID();
 
+    // Dual-write category_id (เพิ่ม 2026-07-25) — products.category (TEXT) ยังเป็นค่าหลักที่ client ส่งมา
+    // เหมือนเดิมทุกประการ แค่ derive category_id คู่กันไปจาก categories.slug ที่ตรงกัน ถ้าไม่ตรงกับ slug
+    // ไหนเลย (ไม่เคยเจอจริง แต่ป้องกันไว้) ปล่อย category_id เป็น NULL ไม่เดา
+    const categoryId = category
+      ? (await query('SELECT id FROM categories WHERE slug=$1', [category])).rows[0]?.id || null
+      : null;
+
     const r = await query(
       `INSERT INTO products
-         (id, name, description, price, sale_price, category, images, colors, sizes, stock, is_new, is_active, shop_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+         (id, name, description, price, sale_price, category, category_id, images, colors, sizes, stock, is_new, is_active, shop_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
        RETURNING *`,
       [
         newId,
@@ -631,6 +638,7 @@ router.post('/products', requireAuth, requireSeller, validate(productCreateSchem
         Number(price),
         sale_price ? Number(sale_price) : null,
         category || null,
+        categoryId,
         parseArr(images),
         parseArr(colors),
         parseArr(sizes),
@@ -663,7 +671,16 @@ router.patch('/products/:id', requireAuth, requireSeller, validate(productUpdate
     if (description !== undefined) { updates.push(`description=$${idx++}`); params.push(description || null); }
     if (price       !== undefined) { updates.push(`price=$${idx++}`);       params.push(Number(price)); }
     if (sale_price  !== undefined) { updates.push(`sale_price=$${idx++}`);  params.push(sale_price ? Number(sale_price) : null); }
-    if (category    !== undefined) { updates.push(`category=$${idx++}`);    params.push(category || null); }
+    if (category    !== undefined) {
+      updates.push(`category=$${idx++}`);    params.push(category || null);
+      // Dual-write category_id (2026-07-25) — same lookup as POST /products; whenever category
+      // (TEXT) changes, category_id follows it. NULL if the new value doesn't match any
+      // categories.slug (not guessed at).
+      const categoryId = category
+        ? (await query('SELECT id FROM categories WHERE slug=$1', [category])).rows[0]?.id || null
+        : null;
+      updates.push(`category_id=$${idx++}`); params.push(categoryId);
+    }
     const parseArr = v => { if (Array.isArray(v)) return JSON.stringify(v); if (typeof v === 'string') { try { return JSON.stringify(JSON.parse(v)); } catch { return '[]'; } } return '[]'; };
     if (images      !== undefined) { updates.push(`images=$${idx++}`);  params.push(parseArr(images)); }
     if (colors      !== undefined) { updates.push(`colors=$${idx++}`);  params.push(parseArr(colors)); }
