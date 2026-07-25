@@ -307,6 +307,40 @@ async function initDb() {
       CREATE INDEX IF NOT EXISTS idx_products_created   ON products(created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_products_name_trgm ON products USING gin(name gin_trgm_ops);
 
+      -- Categories (เพิ่ม 2026-07-25) — เดิม products.category เป็น free-text ล้วนๆ ไม่มี table จริง
+      -- (ดู CLAUDE.md §4/§11) ค่าที่ใช้จริงถูกจำกัดด้วย seller-products.html's dropdown (tops/pants/
+      -- accessories/other) ไม่ใช่ free text สุ่มเขียนได้จริงถึง DB column จะไม่บังคับ — table นี้ normalize
+      -- 4 ค่านั้นเข้า DB จริง เตรียมไว้สำหรับให้เพิ่มหมวดใหม่ผ่าน DB ได้โดยไม่ต้องเพิ่มไฟล์ .html เอง
+      -- (ตัดสินใจแล้วว่าจะทำ routing แบบ dynamic ในขั้นถัดไป ไม่ใช่แค่ normalize เฉยๆ)
+      -- parent_id: เผื่อรองรับหมวดย่อยในอนาคต — nullable, ไม่มีใครใช้ตอนนี้ (ระบบเป็น flat 4 หมวด)
+      -- show_on_homepage: index.html's หน้าแรกโชว์แค่ 3 การ์ด (tops/pants/accessories) ไม่รวม "other" —
+      -- migrate พฤติกรรมเดิมนี้มาเป็น column ที่ปรับได้จริงแทนการ hardcode ไว้ในโค้ด
+      CREATE TABLE IF NOT EXISTS categories (
+        id               UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+        name             TEXT          NOT NULL,
+        slug             TEXT          NOT NULL UNIQUE,
+        parent_id        UUID          REFERENCES categories(id),
+        image            TEXT,
+        color            TEXT,
+        sort_order       INTEGER       NOT NULL DEFAULT 0,
+        is_active        BOOLEAN       NOT NULL DEFAULT true,
+        show_on_homepage BOOLEAN       NOT NULL DEFAULT true,
+        created_at       TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+        updated_at       TIMESTAMPTZ
+      );
+      CREATE INDEX IF NOT EXISTS idx_categories_slug   ON categories(slug);
+      CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);
+
+      -- Seed ครั้งเดียว (idempotent ผ่าน ON CONFLICT) — 4 ค่าที่มีอยู่จริงในระบบตอนนี้ทั้งหมด (ตรวจแล้วทั้ง
+      -- local dev DB และ production ไม่มีค่าอื่นเลยนอกจาก 4 ตัวนี้ + NULL) สี/ลำดับตรงกับ products.js's
+      -- CATEGORIES array เดิม (จะย้ายมาอ่านจาก DB แทนในขั้นถัดไป)
+      INSERT INTO categories (name, slug, color, sort_order, show_on_homepage) VALUES
+        ('Tops',        'tops',        '#2A2A2A', 1, true),
+        ('Pants',       'pants',       '#3F3A2E', 2, true),
+        ('Accessories', 'accessories', '#1F2733', 3, true),
+        ('Other',       'other',       NULL,      4, false)
+      ON CONFLICT (slug) DO NOTHING;
+
       -- Cart table
       CREATE TABLE IF NOT EXISTS carts (
       user_id    UUID          NOT NULL REFERENCES users(id) ON DELETE CASCADE,
