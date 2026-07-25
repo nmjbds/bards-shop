@@ -162,10 +162,8 @@
 
 <div class="filter-strip" id="filterStrip">
     <div class="filter-row" id="filterRow">
-        <div class="f-chip on" data-filter="all"        onclick="setFilter(this,'all')">All <span class="f-count" id="cnt-all">0</span></div>
-        <div class="f-chip"   data-filter="tops"        onclick="setFilter(this,'tops')">Tops <span class="f-count" id="cnt-tops">0</span></div>
-        <div class="f-chip"   data-filter="pants"       onclick="setFilter(this,'pants')">Pants <span class="f-count" id="cnt-pants">0</span></div>
-        <div class="f-chip"   data-filter="accessories" onclick="setFilter(this,'accessories')">Accessories <span class="f-count" id="cnt-accessories">0</span></div>
+        <div class="f-chip on" data-filter="all" onclick="setFilter(this,'all')">All <span class="f-count" id="cnt-all">0</span></div>
+        <!-- หมวดอื่นๆ เพิ่มเข้ามาไดนามิกโดย renderFilterChips() (ดึงจาก CATEGORIES ที่ fetchCategories() โหลดมา — เดิม hardcode 3 อันตรงนี้) -->
     </div>
 </div>
 
@@ -230,8 +228,6 @@
 <script>
 /* index.html — ข้อมูลสินค้าจาก products.js (Single Source) */
 
-const CATEGORIES_EXTRA = CATEGORIES; // ใช้จาก products.js
-
 const SORT_OPTS = [
     { label:'Sort',    fn:null },
     { label:'Price ↑', fn:([,a],[,b]) => a.price - b.price },
@@ -247,10 +243,24 @@ const S = {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // โหลดสินค้าจาก DB ก่อน (สำคัญ! ไม่งั้นจะเห็นแค่ local PRODUCTS)
-    await fetchAndMerge().catch(() => {});
-    updateCounts(); restoreSearch(); renderGrid(); renderNewArrivals(); renderCategories(); updateBadge();
+    // โหลดสินค้า + หมวดหมู่จาก DB ก่อน (สำคัญ! ไม่งั้นจะเห็นแค่ local PRODUCTS/CATEGORIES ว่างเปล่า)
+    await Promise.all([fetchAndMerge().catch(() => {}), fetchCategories().catch(() => {})]);
+    renderFilterChips(); updateCounts(); restoreSearch(); renderGrid(); renderNewArrivals(); renderCategories(); updateBadge();
 });
+
+/* FILTER CHIPS — เดิม hardcode tops/pants/accessories ไว้ใน HTML ตรงๆ (2026-07-25: ย้ายมาสร้างจาก
+   CATEGORIES ที่ fetchCategories() โหลดมาแทน) — เก็บแค่ chip "All" เดิมไว้ (ไม่ใช่ category จริง จาก DB) */
+function renderFilterChips() {
+    const row = document.getElementById('filterRow');
+    CATEGORIES.forEach(cat => {
+        const chip = document.createElement('div');
+        chip.className = 'f-chip';
+        chip.dataset.filter = cat.id;
+        chip.onclick = () => setFilter(chip, cat.id);
+        chip.innerHTML = `${escapeHtml(cat.label)} <span class="f-count" id="cnt-${escapeHtml(cat.id)}">0</span>`;
+        row.appendChild(chip);
+    });
+}
 
 /* SEARCH */
 let _searchOpen = false;
@@ -361,15 +371,17 @@ function renderNewArrivals() {
     document.getElementById('newRow').innerHTML = all.map(([id,p])=>cardHTML(id,p,false)).join('');
 }
 
-/* CATEGORIES */
+/* CATEGORIES — homepage card grid, filtered to categories.show_on_homepage (เดิม "other" ไม่เคยมีการ์ด
+   ตรงนี้เพราะไม่ได้อยู่ใน hardcode array 3 ตัว — ย้ายมาเป็น column ที่ปรับได้จริงแทน ดู CLAUDE.md §4) */
 function renderCategories() {
     const countMap={};
     Object.values(PRODUCTS).forEach(p=>{ countMap[p.category]=(countMap[p.category]||0)+1; });
-    document.getElementById('catGrid').innerHTML = CATEGORIES.map(cat=>`
-<div class="cat-card" style="background:${cat.color}" onclick="window.location.href='${cat.url}'">
+    const homepageCats = CATEGORIES.filter(cat=>cat.showOnHomepage);
+    document.getElementById('catGrid').innerHTML = homepageCats.map(cat=>`
+<div class="cat-card" style="background:${escapeHtml(cat.color)}" onclick="window.location.href='${escapeHtml(cat.url)}'">
     <div class="cat-arrow"><svg width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4.5h7M5 1.5l3 3-3 3"/></svg></div>
     <div class="cat-info">
-        <span class="cat-name">${cat.label.toUpperCase()}</span>
+        <span class="cat-name">${escapeHtml(cat.label.toUpperCase())}</span>
         <span class="cat-count">${countMap[cat.id]||0} items</span>
     </div>
 </div>`).join('');
@@ -378,10 +390,11 @@ function renderCategories() {
 /* COUNTS */
 function updateCounts() {
     const all=Object.values(PRODUCTS);
-    document.getElementById('cnt-all').innerText         = all.length;
-    document.getElementById('cnt-tops').innerText        = all.filter(p=>p.category==='tops').length;
-    document.getElementById('cnt-pants').innerText       = all.filter(p=>p.category==='pants').length;
-    document.getElementById('cnt-accessories').innerText = all.filter(p=>p.category==='accessories').length;
+    document.getElementById('cnt-all').innerText = all.length;
+    CATEGORIES.forEach(cat => {
+        const el = document.getElementById('cnt-'+cat.id);
+        if (el) el.innerText = all.filter(p=>p.category===cat.id).length;
+    });
 }
 
 /* TOAST */

@@ -17,11 +17,11 @@
 // (2026-07-23) เหลือ empty object ให้ fetchAndMerge() เติมสินค้าจริงจาก API เข้ามาแทนทั้งหมด
 const PRODUCTS = {};
 
-const CATEGORIES = [
-  { id:'tops',        label:'Tops',        url:'categories/tops.html',        color:'#2A2A2A' },
-  { id:'pants',       label:'Pants',       url:'categories/pants.html',       color:'#3F3A2E' },
-  { id:'accessories', label:'Accessories', url:'categories/accessories.html', color:'#1F2733' },
-];
+// เดิม hardcode 3 หมวดตรงนี้ (2026-07-25: ย้ายไป categories table จริงแล้ว — ดู CLAUDE.md §4/§11)
+// CATEGORIES เริ่มว่างเปล่าเหมือน PRODUCTS ด้านบน ต้องเรียก fetchCategories() (ดูด้านล่าง) ก่อนอ่านค่า —
+// หน้าไหนต้องการ CATEGORIES ต้อง await fetchCategories() ก่อน render เหมือนที่ fetchAndMerge() ต้อง
+// await ก่อนอ่าน PRODUCTS
+let CATEGORIES = [];
 
 function fmtUSD(n){ return '$'+Number(n).toFixed(2); }
 
@@ -156,6 +156,44 @@ async function fetchAndMerge(opts = {}) {
 
 // backward compat
 async function loadProducts() { return fetchAndMerge(); }
+
+/* ═══════════════════════════════════════════════════════════
+   CategoriesAPI / fetchCategories() — เพิ่ม 2026-07-25 (ขั้น 4a ของ
+   categories migration) แทนที่ CATEGORIES array เดิมที่ hardcode ไว้
+   ตรงนี้ ตอนนี้ดึงจริงจาก GET /api/categories — ใช้งาน:
+
+     document.addEventListener('DOMContentLoaded', async () => {
+       await fetchCategories();
+       renderCategories(); // อ่าน CATEGORIES ได้แล้ว
+     });
+
+   url ที่ map มาจาก slug ยังชี้ไปที่ categories/<slug>.html เหมือนเดิม
+   (ไฟล์ static เดิมยังอยู่ ยังไม่เปลี่ยน routing — เป็นงานขั้นถัดไป)
+═══════════════════════════════════════════════════════════ */
+const CategoriesAPI = {
+  async fetch() {
+    const res = await fetch(_API_BASE + '/categories');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    return data.categories || [];
+  },
+};
+
+async function fetchCategories() {
+  try {
+    const rows = await CategoriesAPI.fetch();
+    CATEGORIES = rows.map(c => ({
+      id:             c.slug,
+      label:          c.name,
+      url:            `categories/${c.slug}.html`,
+      color:          c.color || '#2A2A2A',
+      showOnHomepage: c.show_on_homepage !== false,
+    }));
+  } catch(e) {
+    console.warn('[products.js] fetchCategories() failed:', e.message);
+  }
+  return CATEGORIES;
+}
 
 /* ─── วิธีใช้ loadProducts() ────────────────────────────────────────────────
    เรียกใน DOMContentLoaded ก่อน render แต่ละหน้า เช่น:
