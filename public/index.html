@@ -249,10 +249,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /* FILTER CHIPS — เดิม hardcode tops/pants/accessories ไว้ใน HTML ตรงๆ (2026-07-25: ย้ายมาสร้างจาก
-   CATEGORIES ที่ fetchCategories() โหลดมาแทน) — เก็บแค่ chip "All" เดิมไว้ (ไม่ใช่ category จริง จาก DB) */
+   CATEGORIES ที่ fetchCategories() โหลดมาแทน) — เก็บแค่ chip "All" เดิมไว้ (ไม่ใช่ category จริง จาก DB)
+   กรองด้วย showOnHomepage เหมือน renderCategories() ด้านล่าง (แก้ 2026-07-25 — เดิมกรองแค่การ์ดหมวด
+   หน้าแรก ไม่ครอบคลุม filter chip แถบนี้ ทำให้หมวดที่ตั้งใจซ่อน เช่น 'other' เดิม โผล่ในนี้ได้อยู่ดี) */
 function renderFilterChips() {
     const row = document.getElementById('filterRow');
-    CATEGORIES.forEach(cat => {
+    CATEGORIES.filter(cat => cat.showOnHomepage).forEach(cat => {
         const chip = document.createElement('div');
         chip.className = 'f-chip';
         chip.dataset.filter = cat.id;

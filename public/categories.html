@@ -140,9 +140,14 @@ let _cat = getCat();
 // จริงใน DB (ข้อความที่ seller กำหนด ผ่าน API ตรงได้โดยไม่ต้องผ่าน dropdown ที่ step 4b ล็อกตัวเลือกไว้) —
 // การต่อ string เดิมทั้ง innerHTML และ onclick="setcat('${c}')" เสี่ยง stored XSS ทั้งสองทาง (attribute
 // breakout ผ่าน escapeHtml() อย่างเดียวไม่พอสำหรับ inline onclick — ต้องเลี่ยงไปเลยแบบนี้ถึงจะปลอดภัยจริง)
+// cats กรองด้วย showOnHomepage เหมือน index.html/all-products.html/new-arrival.html (แก้ 2026-07-25)
 function buildTabs() {
   const allProds = typeof PRODUCTS !== 'undefined' ? Object.values(PRODUCTS) : [];
-  const cats = ['all', ...new Set(allProds.map(p=>p.category).filter(Boolean))];
+  const cats = ['all', ...new Set(allProds.map(p=>p.category).filter(Boolean))].filter(c => {
+    if (c === 'all') return true;
+    const catObj = CATEGORIES.find(x => x.id === c);
+    return !catObj || catObj.showOnHomepage;
+  });
   const tabs = document.getElementById('catTabs');
   tabs.innerHTML = '';
   cats.forEach(c => {

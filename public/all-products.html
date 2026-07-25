@@ -148,9 +148,11 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   renderFilterChips(); updateCounts(); renderGrid(); updateBadge();
 });
 
+// กรองด้วย showOnHomepage เหมือน index.html's renderFilterChips() (แก้ 2026-07-25 — เดิมไม่กรองเลย
+// ทำให้หมวดที่ตั้งใจซ่อน เช่น 'other' เดิม โผล่แถบ filter chip นี้ได้อยู่ดีแม้ show_on_homepage=false)
 function renderFilterChips(){
   const row = document.getElementById('filterRow');
-  CATEGORIES.forEach(cat => {
+  CATEGORIES.filter(cat => cat.showOnHomepage).forEach(cat => {
     const chip = document.createElement('div');
     chip.className = 'f-chip';
     chip.dataset.cat = cat.id;

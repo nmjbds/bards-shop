@@ -331,14 +331,19 @@ async function initDb() {
       CREATE INDEX IF NOT EXISTS idx_categories_slug   ON categories(slug);
       CREATE INDEX IF NOT EXISTS idx_categories_parent ON categories(parent_id);
 
-      -- Seed ครั้งเดียว (idempotent ผ่าน ON CONFLICT) — 4 ค่าที่มีอยู่จริงในระบบตอนนี้ทั้งหมด (ตรวจแล้วทั้ง
-      -- local dev DB และ production ไม่มีค่าอื่นเลยนอกจาก 4 ตัวนี้ + NULL) สี/ลำดับตรงกับ products.js's
-      -- CATEGORIES array เดิม (จะย้ายมาอ่านจาก DB แทนในขั้นถัดไป)
+      -- Seed ครั้งเดียว (idempotent ผ่าน ON CONFLICT) — สี/ลำดับตรงกับ products.js's CATEGORIES array
+      -- เดิม (ย้ายมาอ่านจาก DB แทนแล้วตั้งแต่ categories migration step 4a)
+      -- 'Other' เคยอยู่ในลิสต์นี้ (seed ตอน migration แรกสุด) — ลบออกแล้ว (2026-07-25) เพราะไม่มีสินค้า
+      -- ใช้จริงบน production เลย (local dev มี 1 ชิ้นที่ผูกไว้ ย้ายไป tops แล้ว) เจ้าของโปรเจกต์เลือกลบ
+      -- ทิ้งแทนที่จะเก็บไว้เป็นหมวด "ซ่อน" — ต้องลบบรรทัดนี้ออกจริง ไม่ใช่แค่ลบแถวออกจาก DB เฉยๆ เพราะ
+      -- ON CONFLICT DO NOTHING กันแค่ error ตอนมีแถวซ้ำ ไม่ได้กันไม่ให้ค่าใน INSERT ที่ยังอยู่ในโค้ดถูก
+      -- สร้างขึ้นมาใหม่หลังถูกลบ (พบจริงตอนทดสอบ: ลบแถว 'other' ออกจาก local dev DB ตรงๆ แล้ว restart
+      -- server อีกที แถวกลับมาใหม่ เพราะ seed statement เดิมยังมี 'Other' อยู่ — ถ้าไม่แก้ตรงนี้ด้วย
+      -- production ก็จะเจอปัญหาเดียวกันทันทีที่ deploy/restart ครั้งถัดไปหลังลบผ่าน SQL เอง)
       INSERT INTO categories (name, slug, color, sort_order, show_on_homepage) VALUES
         ('Tops',        'tops',        '#2A2A2A', 1, true),
         ('Pants',       'pants',       '#3F3A2E', 2, true),
-        ('Accessories', 'accessories', '#1F2733', 3, true),
-        ('Other',       'other',       NULL,      4, false)
+        ('Accessories', 'accessories', '#1F2733', 3, true)
       ON CONFLICT (slug) DO NOTHING;
 
       -- products.category_id (เพิ่ม 2026-07-25, Phase 2 ของ categories migration) — เชื่อม products

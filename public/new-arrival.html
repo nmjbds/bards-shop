@@ -134,9 +134,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ช่องโหว่เดียวกับที่เจอ+แก้ใน categories.html's buildTabs() (step 4c, commit ac3930c) — แก้ด้วยเทคนิค
 // เดียวกัน: สร้าง element ผ่าน createElement + textContent/append + onclick function reference แทน
 // การต่อ string ทั้งหมด, ดึง label จาก CATEGORIES (fetchCategories()) แทน hardcode (2026-07-25)
+// cats กรองด้วย showOnHomepage เหมือน index.html/all-products.html (แก้ 2026-07-25 — เดิมไม่กรอง
+// เลย ถ้ามีสินค้าใหม่อยู่ในหมวดที่ตั้งใจซ่อนก็จะโผล่ chip ได้อยู่ดี) — เก็บ chip ของหมวดที่ไม่มีใน
+// CATEGORIES เลยไว้เหมือนเดิม (fallback แสดง raw category text ตามพฤติกรรมเดิม)
 function buildChips(){
   const newItems=Object.values(PRODUCTS).filter(p=>p.isNew);
-  const cats=['all',...new Set(newItems.map(p=>p.category))];
+  const cats=['all',...new Set(newItems.map(p=>p.category))].filter(c => {
+    if (c === 'all') return true;
+    const catObj = CATEGORIES.find(x=>x.id===c);
+    return !catObj || catObj.showOnHomepage;
+  });
   const counts={all:newItems.length};
   newItems.forEach(p=>{counts[p.category]=(counts[p.category]||0)+1;});
   const row = document.getElementById('filterRow');
