@@ -28,9 +28,19 @@ router.get('/', async (req, res) => {
     const conditions = ['p.is_active = true'];
     const params = [];
 
+    // Phase 3 of the categories migration (2026-07-25) — resolve the ?category=
+    // slug through the categories table (matches p.category_id) instead of a
+    // raw text comparison, since category_id is now the real source of truth
+    // (dual-written on every product create/edit). Still also matches on the
+    // raw p.category text as a fallback, purely defensive: covers any product
+    // whose category text doesn't resolve to a categories row (none exist in
+    // real data today, but nothing enforces that at the DB level either) —
+    // same query param name/format the frontend already sends, no API
+    // contract change.
     if (category) {
       params.push(category);
-      conditions.push(`p.category = $${params.length}`);
+      const idx = params.length;
+      conditions.push(`(p.category_id = (SELECT id FROM categories WHERE slug = $${idx}) OR p.category = $${idx})`);
     }
     if (isNew) {
       conditions.push('p.is_new = true');
@@ -63,7 +73,7 @@ router.get('/', async (req, res) => {
     // product must still show up even with no matching shop row.
     params.push(limit, offset);
     const r = await query(
-      `SELECT p.id, p.name, p.description, p.price, p.sale_price, p.category,
+      `SELECT p.id, p.name, p.description, p.price, p.sale_price, p.category, p.category_id,
               p.images, p.colors, p.sizes, p.stock, p.is_new, p.is_active, p.created_at,
               s.name AS shop_name, s.logo AS shop_logo
        FROM products p
