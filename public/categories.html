@@ -133,17 +133,28 @@ function getCat() {
 let _cat = getCat();
 
 // ── Build category tabs from PRODUCTS ──────────────────────
+// เดิม labels ตรงนี้ hardcode { tees:'Tees', hoodies:'Hoodies', ... } ซึ่งเป็น slug ที่ไม่ตรงกับหมวดจริง
+// เลย (ค้างจาก naming scheme เก่ากว่า tops/pants/accessories/other ปัจจุบัน) — ตอนนี้ดึง label จาก
+// CATEGORIES (fetchCategories(), เพิ่ม 2026-07-25) แทน — สร้าง element ผ่าน createElement +
+// textContent/onclick (function reference) แทนการต่อ HTML string เดิม เพราะ `c` มาจาก product.category
+// จริงใน DB (ข้อความที่ seller กำหนด ผ่าน API ตรงได้โดยไม่ต้องผ่าน dropdown ที่ step 4b ล็อกตัวเลือกไว้) —
+// การต่อ string เดิมทั้ง innerHTML และ onclick="setcat('${c}')" เสี่ยง stored XSS ทั้งสองทาง (attribute
+// breakout ผ่าน escapeHtml() อย่างเดียวไม่พอสำหรับ inline onclick — ต้องเลี่ยงไปเลยแบบนี้ถึงจะปลอดภัยจริง)
 function buildTabs() {
   const allProds = typeof PRODUCTS !== 'undefined' ? Object.values(PRODUCTS) : [];
   const cats = ['all', ...new Set(allProds.map(p=>p.category).filter(Boolean))];
-  const labels = { all:'All', tees:'Tees', hoodies:'Hoodies', pants:'Pants', accessories:'Accessories', new:'New Arrivals' };
   const tabs = document.getElementById('catTabs');
-  tabs.innerHTML = cats.map(c => `
-    <a href="${c==='all'?'/all-products':'/categories/'+c}"
-       class="cat-tab${_cat===c?' active':''}"
-       onclick="event.preventDefault();setcat('${c}')">
-      ${labels[c]||c.charAt(0).toUpperCase()+c.slice(1)}
-    </a>`).join('');
+  tabs.innerHTML = '';
+  cats.forEach(c => {
+    const catObj = CATEGORIES.find(x => x.id === c);
+    const label = c === 'all' ? 'All' : (catObj ? catObj.label : c.charAt(0).toUpperCase()+c.slice(1));
+    const a = document.createElement('a');
+    a.href = c === 'all' ? '/all-products' : '/categories/' + encodeURIComponent(c);
+    a.className = 'cat-tab' + (_cat === c ? ' active' : '');
+    a.textContent = label;
+    a.onclick = (e) => { e.preventDefault(); setcat(c); };
+    tabs.appendChild(a);
+  });
 }
 
 function setcat(c) {
@@ -151,16 +162,20 @@ function setcat(c) {
   // Update URL without reload
   const url = c==='all' ? '/all-products' : c==='new' ? '/new-arrivals' : `/categories/${c}`;
   history.pushState({}, '', url);
-  document.querySelectorAll('.cat-tab').forEach(t => t.classList.toggle('active', t.textContent.trim().toLowerCase()===c||(c==='all'&&t.textContent.trim()==='All')));
+  buildTabs();
   updateHeader();
   renderProducts();
 }
 
+// เดิม labels ตรงนี้ก็ hardcode tees/hoodies เหมือน buildTabs() — ดึงจาก CATEGORIES แทนเหมือนกัน (จุดนี้
+// ใช้ .textContent อยู่แล้วเดิม เลยไม่มีความเสี่ยง XSS จาก _cat แม้จะมาจาก URL ก็ตาม)
 function updateHeader() {
-  const labels = { all:'ALL PRODUCTS', new:'NEW ARRIVALS', tees:'TEES', hoodies:'HOODIES', pants:'PANTS', accessories:'ACCESSORIES' };
-  document.getElementById('pageTitle').textContent = labels[_cat] || _cat.toUpperCase();
-  document.getElementById('breadCat').textContent  = labels[_cat] || _cat;
-  document.title = (labels[_cat]||_cat) + ' — Bards';
+  const special = { all:'ALL PRODUCTS', new:'NEW ARRIVALS' };
+  const catObj = CATEGORIES.find(c => c.id === _cat);
+  const label = special[_cat] || (catObj ? catObj.label.toUpperCase() : _cat.toUpperCase());
+  document.getElementById('pageTitle').textContent = label;
+  document.getElementById('breadCat').textContent  = label;
+  document.title = label + ' — Bards';
 }
 
 // ── Render ──────────────────────────────────────────────────
@@ -168,8 +183,12 @@ let _favs = [];
 async function init() {
   _favs = await WishlistAPI.load().catch(()=>[]);
   updateBadge();
-  // ── โหลดสินค้าจาก DB ก่อน render ──
-  await fetchAndMerge({ category: _cat === 'all' || _cat === 'new' ? undefined : _cat }).catch(()=>{});
+  // ── โหลดสินค้า + หมวดหมู่จาก DB ก่อน render (2026-07-25: CATEGORIES ต้องพร้อมก่อน buildTabs()/
+  //    updateHeader() อ่านค่าได้ถูกต้อง) ──
+  await Promise.all([
+    fetchAndMerge({ category: _cat === 'all' || _cat === 'new' ? undefined : _cat }).catch(()=>{}),
+    fetchCategories().catch(()=>{}),
+  ]);
   buildTabs();
   updateHeader();
   renderProducts();
