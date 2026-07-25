@@ -213,12 +213,9 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       </div>
       <div class="form-group">
         <label class="f-label">Category</label>
-        <select class="f-select" id="fCategory">
-          <option value="tops">Tops (Tees &amp; Hoodies)</option>
-          <option value="pants">Pants</option>
-          <option value="accessories">Accessories</option>
-          <option value="other">Other</option>
-        </select>
+        <!-- ตัวเลือกเดิม hardcode 4 หมวดตรงนี้ (2026-07-25: ย้ายไป categories table จริงแล้ว, populate
+             แบบไดนามิกโดย renderCategorySelect() ตอนโหลดหน้า — ดู CLAUDE.md §4/§11) -->
+        <select class="f-select" id="fCategory"></select>
       </div>
       <div class="form-group">
         <label class="f-label">Stock</label>
@@ -318,8 +315,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const av=document.getElementById('sbAvatar');
     if(user.avatar){av.innerHTML=`<img src="${escapeHtml(user.avatar)}" alt="">`;} else {av.textContent=(user.name||'S')[0].toUpperCase();}
   } catch(e){location.href='/signin';return;}
+  await fetchCategories();
+  renderCategorySelect();
   await loadProducts();
 });
+
+function renderCategorySelect() {
+  document.getElementById('fCategory').innerHTML =
+    CATEGORIES.map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.label)}</option>`).join('');
+}
 
 async function loadProducts() {
   try {
@@ -397,7 +401,9 @@ function openModal(id=null) {
   document.getElementById('fName').value    = p?.name||'';
   document.getElementById('fPrice').value   = p?.price||'';
   document.getElementById('fSalePrice').value = p?.sale_price||p?.salePrice||'';
-  document.getElementById('fCategory').value = p?.category||'tees';
+  // เดิม fallback เป็น 'tees' ซึ่งไม่ตรงกับ slug ไหนเลยในหมวดจริง (ค้างจาก naming scheme เก่า) —
+  // ผลคือ select ไม่มี option ไหนถูกเลือกเลยตอนเปิด "Add Product" ครั้งแรก (แก้ 2026-07-25)
+  document.getElementById('fCategory').value = p?.category || CATEGORIES[0]?.id || '';
   document.getElementById('fStock').value   = p?.stock??'';
   document.getElementById('fSizes').value   = (Array.isArray(p?.sizes)?p.sizes:[]).map(s=>typeof s==='object'?s.name||s:s).join(', ');
   document.getElementById('fDesc').value    = p?.description||'';
