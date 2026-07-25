@@ -91,10 +91,9 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
 
 <div class="filter-strip">
   <div class="filter-row" id="filterRow">
-    <div class="f-chip on" data-cat="all"         onclick="setCat(this,'all')">All <span class="f-count" id="cnt-all">0</span></div>
-    <div class="f-chip"   data-cat="tops"         onclick="setCat(this,'tops')">Tops <span class="f-count" id="cnt-tops">0</span></div>
-    <div class="f-chip"   data-cat="pants"        onclick="setCat(this,'pants')">Pants <span class="f-count" id="cnt-pants">0</span></div>
-    <div class="f-chip"   data-cat="accessories"  onclick="setCat(this,'accessories')">Accessories <span class="f-count" id="cnt-accessories">0</span></div>
+    <div class="f-chip on" data-cat="all" onclick="setCat(this,'all')">All <span class="f-count" id="cnt-all">0</span></div>
+    <!-- หมวดอื่นๆ เพิ่มเข้ามาไดนามิกโดย renderFilterChips() (2026-07-25: เดิม hardcode 3 หมวดตรงนี้ —
+         ย้ายไป categories table แล้ว ดู CLAUDE.md §4/§11) -->
   </div>
 </div>
 
@@ -144,17 +143,34 @@ const S={sort:0,cat:'all',query:''};
 
 function fmtUSD(num){ return '$'+Number(num).toFixed(2); }
 
-document.addEventListener('DOMContentLoaded', async ()=>{ 
-  await fetchAndMerge().catch(()=>{});
-  updateCounts(); renderGrid(); updateBadge(); 
+document.addEventListener('DOMContentLoaded', async ()=>{
+  await Promise.all([fetchAndMerge().catch(()=>{}), fetchCategories().catch(()=>{})]);
+  renderFilterChips(); updateCounts(); renderGrid(); updateBadge();
 });
 
+function renderFilterChips(){
+  const row = document.getElementById('filterRow');
+  CATEGORIES.forEach(cat => {
+    const chip = document.createElement('div');
+    chip.className = 'f-chip';
+    chip.dataset.cat = cat.id;
+    chip.onclick = () => setCat(chip, cat.id);
+    chip.append(cat.label + ' ');
+    const count = document.createElement('span');
+    count.className = 'f-count';
+    count.id = 'cnt-' + cat.id;
+    count.textContent = '0';
+    chip.appendChild(count);
+    row.appendChild(chip);
+  });
+}
 function updateCounts(){
   const all=Object.values(PRODUCTS);
   document.getElementById('cnt-all').innerText=all.length;
-  document.getElementById('cnt-tops').innerText=all.filter(p=>p.category==='tops').length;
-  document.getElementById('cnt-pants').innerText=all.filter(p=>p.category==='pants').length;
-  document.getElementById('cnt-accessories').innerText=all.filter(p=>p.category==='accessories').length;
+  CATEGORIES.forEach(cat => {
+    const el = document.getElementById('cnt-'+cat.id);
+    if (el) el.innerText = all.filter(p=>p.category===cat.id).length;
+  });
 }
 function setCat(el,cat){
   S.cat=cat;

@@ -124,17 +124,36 @@ const S={sort:0,cat:'all'};
 
 function fmtUSD(num){ return '$'+Number(num).toFixed(2); }
 
-document.addEventListener('DOMContentLoaded', async () => { await fetchAndMerge({ isNew: true }).catch(()=>{}); buildChips(); renderGrid(); updateBadge(); });
+document.addEventListener('DOMContentLoaded', async () => {
+  await Promise.all([fetchAndMerge({ isNew: true }).catch(()=>{}), fetchCategories().catch(()=>{})]);
+  buildChips(); renderGrid(); updateBadge();
+});
 
+// เดิม labels ตรงนี้ hardcode { tops:'Tops', pants:'Pants', accessories:'Accessories' } และต่อ HTML
+// string ดิบทั้ง innerHTML/onclick จาก `c` (=product.category ข้อความที่ seller กำหนดได้ผ่าน API ตรง) —
+// ช่องโหว่เดียวกับที่เจอ+แก้ใน categories.html's buildTabs() (step 4c, commit ac3930c) — แก้ด้วยเทคนิค
+// เดียวกัน: สร้าง element ผ่าน createElement + textContent/append + onclick function reference แทน
+// การต่อ string ทั้งหมด, ดึง label จาก CATEGORIES (fetchCategories()) แทน hardcode (2026-07-25)
 function buildChips(){
   const newItems=Object.values(PRODUCTS).filter(p=>p.isNew);
   const cats=['all',...new Set(newItems.map(p=>p.category))];
   const counts={all:newItems.length};
   newItems.forEach(p=>{counts[p.category]=(counts[p.category]||0)+1;});
-  const labels={all:'All',tops:'Tops',pants:'Pants',accessories:'Accessories'};
-  document.getElementById('filterRow').innerHTML=cats.map((c,i)=>
-    `<div class="f-chip${i===0?' on':''}" onclick="setCat(this,'${c}')">${labels[c]||c} <span class="f-count">${counts[c]||0}</span></div>`
-  ).join('');
+  const row = document.getElementById('filterRow');
+  row.innerHTML = '';
+  cats.forEach((c,i) => {
+    const catObj = CATEGORIES.find(x=>x.id===c);
+    const label = c==='all' ? 'All' : (catObj ? catObj.label : c);
+    const chip = document.createElement('div');
+    chip.className = 'f-chip' + (i===0?' on':'');
+    chip.onclick = () => setCat(chip, c);
+    chip.append(label + ' ');
+    const count = document.createElement('span');
+    count.className = 'f-count';
+    count.textContent = counts[c]||0;
+    chip.appendChild(count);
+    row.appendChild(chip);
+  });
 }
 function setCat(el,cat){
   S.cat=cat;

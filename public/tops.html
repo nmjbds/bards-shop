@@ -146,11 +146,17 @@
 <script src="/api.js"></script>
 <script src="/products.js"></script>
 <script>
-/* อ่าน category จากชื่อไฟล์อัตโนมัติ */
-// Reads category from URL: /categories/tops OR /tops OR /tops.html
+/* ═══════════════════════════════════════════════════════════
+   Generic category listing page (2026-07-25, categories migration step 4d)
+   เดิมไฟล์นี้, pants.html, accessories.html เนื้อหาเหมือนกันทุกตัวอักษร (ต่างแค่ comment/whitespace)
+   ต่างกันแค่ PAGE_CAT ที่ derive จากชื่อไฟล์ — รวมเหลือไฟล์เดียว (ไฟล์นี้) แล้ว pants.html/accessories.html
+   ถูกลบออกจริง — server.js เสิร์ฟไฟล์นี้ตรงๆ สำหรับ /categories/:cat (ทุก slug ไม่ต้องมีไฟล์แยก) และ
+   สำหรับ URL เก่า /tops, /pants, /accessories (ทั้งแบบมี/ไม่มี .html) ที่อาจมีคนบุ๊กมาร์กไว้ — PAGE_CAT
+   อ่านจาก location.pathname ของ URL จริงเสมอ ไม่ได้ผูกกับชื่อไฟล์ที่ถูกส่งมา เลยได้ค่าถูกต้องไม่ว่าจะเข้า
+   ทางไหน ═══════════════════════════════════════════════════════════ */
+// Reads category from URL: /categories/tops OR /tops OR /tops.html (หรือ slug ใหม่ใดๆ เช่น /skincare)
 const _parts = location.pathname.split('/').filter(Boolean);
 const PAGE_CAT = _parts[_parts.length-1].replace('.html','') || 'tops';
-const CAT_LABELS = { tops:'Tops', pants:'Pants', accessories:'Accessories' };
 
 const SORT_OPTS = [
     {label:'Sort',   fn:null},
@@ -165,11 +171,15 @@ const S = { sort:0 };
 function fmtUSD(num) { return '$' + Number(num).toFixed(2); }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const label = CAT_LABELS[PAGE_CAT] || PAGE_CAT;
+    // โหลดสินค้า + หมวดหมู่จาก DB ก่อน render (label ต้องมาจาก CATEGORIES ที่โหลดเสร็จก่อนถึงจะถูกต้อง)
+    await Promise.all([
+        fetchAndMerge({ category: PAGE_CAT }).catch(() => {}),
+        fetchCategories().catch(() => {}),
+    ]);
+    const catObj = CATEGORIES.find(c => c.id === PAGE_CAT);
+    const label  = catObj ? catObj.label : PAGE_CAT;
     document.title = `${label} — Bards`;
     document.getElementById('pageTitle').innerText = label;
-    // โหลดสินค้าจาก DB ตาม category
-    await fetchAndMerge({ category: PAGE_CAT }).catch(() => {});
     renderFilterChips();
     renderGrid();
     updateBadge();

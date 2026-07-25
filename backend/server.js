@@ -111,13 +111,24 @@ try {
     });
 } catch(e) { console.warn('Could not scan PUBLIC folder:', e.message); }
 
-/* /categories/tops → tops.html  (ไฟล์เดิมทำงานได้เลย) */
-app.get('/categories/:cat', (req,res)=>{
-  const cat = req.params.cat; // tops | pants | accessories
-  const file = `${cat}.html`;
-  res.sendFile(file, {root:PUBLIC}, err=>{
-    if(err) res.sendFile('all-products.html',{root:PUBLIC});
-  });
+/* /categories/:cat → tops.html (template เดียว, generic — categories migration step 4d, 2026-07-25)
+   เดิม tops.html/pants.html/accessories.html เนื้อหาเหมือนกันทุกตัวอักษร ต่างแค่ชื่อไฟล์ที่ client JS
+   ใช้ derive PAGE_CAT — รวมเหลือ tops.html ไฟล์เดียว (ชื่อไฟล์เดิม ไม่ได้ตั้งใจสื่อว่าเป็นหมวด "เสื้อ"
+   อย่างเดียวอีกต่อไป — ดู comment ในตัวไฟล์) เสิร์ฟไฟล์เดียวกันนี้ตรงๆ ให้ทุก :cat โดยไม่เช็คว่ามีหมวดนั้น
+   จริงใน DB หรือไม่ที่ระดับ routing เลย — ปล่อยให้ client JS (fetchAndMerge/fetchCategories) จัดการเอง
+   ไม่มีสินค้า/ไม่มีหมวดจริงก็แค่โชว์ empty state ปกติ — หมวดใหม่ที่เพิ่มผ่าน DB (categories table) ใช้
+   เส้นทางนี้ได้ทันทีไม่ต้อง deploy โค้ด/สร้างไฟล์ใหม่เลย */
+app.get('/categories/:cat', (_,res)=> res.sendFile('tops.html', {root:PUBLIC}));
+
+/* URL หมวดแบบเก่า (ก่อน step 4d) ที่อาจมีคนบุ๊กมาร์ก/แชร์ไว้ — /pants, /pants.html, /accessories,
+   /accessories.html ยังใช้งานได้ปกติแม้ pants.html/accessories.html ถูกลบไฟล์จริงออกไปแล้ว (รวมเข้า
+   tops.html หมดแล้ว) — เสิร์ฟไฟล์เดียวกัน (tops.html) ตรงๆ ไม่ redirect เพราะ client JS อ่าน category จาก
+   location.pathname ของ URL จริงที่ browser เห็นอยู่แล้ว ไม่ได้พึ่งพาว่าไฟล์ไหนถูกส่งมา เลยได้ค่าถูกต้อง
+   ไม่ว่าจะเข้าทางไหน — /tops, /tops.html ไม่ต้องเพิ่ม route ตรงนี้เพราะไฟล์ tops.html ยังอยู่จริง
+   express.static() + auto-scan ด้านบน เสิร์ฟให้เองอยู่แล้วตามปกติ */
+['pants','accessories'].forEach(cat => {
+  app.get(`/${cat}`,      (_,res)=> res.sendFile('tops.html', {root:PUBLIC}));
+  app.get(`/${cat}.html`, (_,res)=> res.sendFile('tops.html', {root:PUBLIC}));
 });
 
 /* /product/:id → product.html */
