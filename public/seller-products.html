@@ -454,7 +454,7 @@ function renderImgGrid() {
          ondrop="onDrop(event,${i})"
          ondragend="onDragEnd()"
          id="ithumb-${i}">
-      <img src="${img.url}" alt="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22/>'">
+      <img src="${escapeHtml(img.url)}" alt="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1 1%22/>'">
       ${i===0?'<div class="img-thumb-badge">COVER</div>':''}
       <button class="img-thumb-del" onclick="removeImg(${i})" title="ลบรูป">
         <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -598,12 +598,19 @@ async function saveProduct() {
   const sale_price = parseFloat(document.getElementById('fSalePrice').value)||null;
   const sizes  = document.getElementById('fSizes').value.split(',').map(s=>s.trim()).filter(Boolean);
 
+  // Empty field = unlimited stock (null) — but an explicit "0" must stay 0
+  // (out of stock), not collapse into null via `||` the way it used to
+  // (0 is falsy in JS, so `parseInt('0')||null` silently became null —
+  // a seller could never mark a product out of stock through this form).
+  const stockRaw = document.getElementById('fStock').value.trim();
+  const stock = stockRaw === '' ? null : parseInt(stockRaw);
+
   const payload = {
     name,
     price,
     sale_price: sale_price || null,
     category:    document.getElementById('fCategory').value,
-    stock:       parseInt(document.getElementById('fStock').value)||null,
+    stock:       Number.isNaN(stock) ? null : stock,
     images:      _images.filter(img=>img.url).map(img=>img.url),
     colors:      _colors.map(c=>c.name),
     sizes,

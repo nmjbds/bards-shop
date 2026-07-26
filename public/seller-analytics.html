@@ -115,12 +115,12 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       <div class="stat-card">
         <div class="stat-label">Revenue</div>
         <div class="stat-val" id="aRev">—</div>
-        <div class="stat-sub">vs prev period <span class="stat-trend up" id="aRevTrend"></span></div>
+        <div class="stat-sub" id="aRevSub">Paid + delivered</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Orders</div>
         <div class="stat-val" id="aOrders">—</div>
-        <div class="stat-sub">Completed orders</div>
+        <div class="stat-sub" id="aOrdersSub">Excl. cancelled & expired</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Avg Order Value</div>
@@ -168,7 +168,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 <script src="api.js"></script>
 <script src="products.js"></script>
 <script>
-let _period=7, _lineChart, _barChart, _allOrders=[];
+let _period=7, _lineChart, _barChart;
 
 document.addEventListener('DOMContentLoaded', async()=>{
   if(!Auth.isLoggedIn()){location.href='signin.html';return;}
@@ -186,98 +186,93 @@ document.addEventListener('DOMContentLoaded', async()=>{
   loadAnalytics();
 });
 
-async function loadAnalytics(){
-  try{
-    const d=await apiFetch('/seller/orders?limit=500',{auth:true});
-    _allOrders=d.orders||[];
-    renderAll();
-  }catch(e){toast('Failed to load analytics');}
-}
-
 function setPeriod(days, btn){
   _period=days;
   document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('chartPeriodLabel').textContent=`Last ${days} days`;
-  renderAll();
+  loadAnalytics();
 }
 
-function renderAll(){
-  const now=Date.now();
-  const cutoff=now-_period*86400000;
-  const filtered=_allOrders.filter(o=>new Date(o.created_at).getTime()>=cutoff);
-  const paid=filtered.filter(o=>['paid','processing','shipped','delivered'].includes(o.status));
+// Step 6 review (2026-07-26) — used to fetch up to 500 raw orders and
+// recompute everything client-side, separately from seller.html's dashboard
+// (which already called /seller/stats). Two problems with that: the two
+// pages could show different numbers for the same seller/period since the
+// math was independently implemented twice, and any shop with more than 500
+// lifetime orders would silently undercount once older orders fell outside
+// the fetched slice. Now calls the same backend endpoint seller.html uses,
+// made period-aware for exactly this page (see routes/seller.js's /stats).
+async function loadAnalytics(){
+  try{
+    const d = await apiFetch(`/seller/stats?days=${_period}`, {auth:true});
+    renderAll(d);
+  }catch(e){toast('Failed to load analytics');}
+}
 
-  // Stats
-  const rev=paid.reduce((s,o)=>s+Number(o.total),0);
-  const aov=paid.length?rev/paid.length:0;
-  const conv=filtered.length?(paid.length/filtered.length*100):0;
-  document.getElementById('aRev').textContent='$'+rev.toFixed(2);
-  document.getElementById('aOrders').textContent=paid.length;
+function renderAll(d){
+  const sb = d.statusBreakdown || {};
+  // "Completed"/paid+ order count isn't a single field on the response, but
+  // it's derivable from statusBreakdown (already fetched for the funnel) —
+  // used for AOV/Conversion instead of totalOrders, which intentionally
+  // includes not-yet-paid orders (see routes/seller.js).
+  const paidCount = ['paid','processing','shipped','delivered'].reduce((s,k)=>s+(sb[k]||0), 0);
+  const totalOrders = d.totalOrders || 0;
+  const revenue = d.totalRevenue || 0;
+  const aov = paidCount ? revenue/paidCount : 0;
+  const conv = totalOrders ? (paidCount/totalOrders*100) : 0;
+  const periodLabel = `Last ${_period} day${_period>1?'s':''}`;
+
+  document.getElementById('aRev').textContent='$'+revenue.toFixed(2);
+  document.getElementById('aOrders').textContent=totalOrders;
   document.getElementById('aAOV').textContent='$'+aov.toFixed(2);
   document.getElementById('aConv').textContent=conv.toFixed(1)+'%';
+  document.getElementById('aRevSub').textContent=`Paid + delivered · ${periodLabel}`;
+  document.getElementById('aOrdersSub').textContent=`Excl. cancelled & expired · ${periodLabel}`;
 
-  // Charts
-  buildLineChart(paid);
-  buildBarChart(filtered);
-  buildTopProds(paid);
-  buildFunnel(filtered);
+  buildLineChart(d.dailyRevenue || []);
+  buildBarChart(d.dailyOrders || []);
+  buildTopProds(d.topProducts || []);
+  buildFunnel(sb);
 }
 
-function getDayLabels(){
-  const labels=[];
-  for(let i=_period-1;i>=0;i--){
-    const d=new Date(Date.now()-i*86400000);
-    labels.push(d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}));
-  }
-  return labels;
+function fmtDayLabel(dayKey) {
+  // dayKey มาจาก backend เป็น 'YYYY-MM-DD' — เหตุผลเดียวกับ admin-stats.html's
+  // fmtDayLabel: ช่วง 30/90 วันจะทำให้ชื่อวันซ้ำกันข้ามสัปดาห์ถ้ากรุ๊ปด้วยชื่อวันแทนวันที่จริง
+  const d = new Date(dayKey + 'T00:00:00Z');
+  if (isNaN(d)) return dayKey;
+  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', timeZone:'UTC' });
 }
 
-function groupByDay(orders,field='total'){
-  const map={};
-  getDayLabels().forEach(l=>map[l]=0);
-  orders.forEach(o=>{
-    const d=new Date(o.created_at);
-    const key=d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-    if(map[key]!==undefined) map[key]+=(field==='count'?1:Number(o.total));
-  });
-  return Object.values(map);
-}
-
-function buildLineChart(orders){
+function buildLineChart(data){
   const ctx=document.getElementById('lineChart');
-  const labels=getDayLabels();
-  const data=groupByDay(orders,'total');
   if(_lineChart)_lineChart.destroy();
   _lineChart=new Chart(ctx,{
     type:'line',
-    data:{labels,datasets:[{
-      label:'Revenue',data,
+    data:{labels:data.map(d=>fmtDayLabel(d.day)),datasets:[{
+      label:'Revenue',data:data.map(d=>d.revenue),
       borderColor:'#0A0A0A',borderWidth:2,
       backgroundColor:'rgba(10,10,10,.06)',
       fill:true,tension:.4,
-      pointRadius:3,pointBackgroundColor:'#0A0A0A',pointBorderColor:'#fff',pointBorderWidth:2,
+      pointRadius:data.length>30?0:3,pointBackgroundColor:'#0A0A0A',pointBorderColor:'#fff',pointBorderWidth:2,
     }]},
     options:{
       responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` $${c.raw.toFixed(2)}`},backgroundColor:'#0A0A0A',padding:10,cornerRadius:8,titleColor:'#fff',bodyColor:'#aaa'}},
       scales:{
-        x:{grid:{display:false},ticks:{font:{family:'DM Mono',size:10},color:'#8A8A88',maxRotation:0}},
+        x:{grid:{display:false},ticks:{font:{family:'DM Mono',size:10},color:'#8A8A88',maxRotation:0,autoSkip:true,maxTicksLimit:10}},
         y:{grid:{color:'#F2F2F0'},ticks:{font:{family:'DM Mono',size:10},color:'#8A8A88',callback:v=>'$'+v}},
       }
     }
   });
 }
 
-function buildBarChart(orders){
+function buildBarChart(data){
   const ctx=document.getElementById('barChart');
-  const labels=getDayLabels();
-  const data=groupByDay(orders,'count');
   if(_barChart)_barChart.destroy();
   _barChart=new Chart(ctx,{
     type:'bar',
-    data:{labels,datasets:[{
-      label:'Orders',data,
+    data:{labels:data.map(d=>fmtDayLabel(d.day)),datasets:[{
+      label:'Orders',data:data.map(d=>d.orders),
       backgroundColor:data.map((_,i)=>i===data.length-1?'#0A0A0A':'#E4E4E2'),
       borderRadius:5,borderSkipped:false,
     }]},
@@ -285,64 +280,62 @@ function buildBarChart(orders){
       responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw} orders`},backgroundColor:'#0A0A0A',padding:8,cornerRadius:6,titleColor:'#fff',bodyColor:'#aaa'}},
       scales:{
-        x:{grid:{display:false},ticks:{font:{family:'DM Mono',size:10},color:'#8A8A88',maxRotation:0}},
+        x:{grid:{display:false},ticks:{font:{family:'DM Mono',size:10},color:'#8A8A88',maxRotation:0,autoSkip:true,maxTicksLimit:10}},
         y:{grid:{color:'#F2F2F0'},ticks:{font:{family:'DM Mono',size:10},color:'#8A8A88',precision:0}},
       }
     }
   });
 }
 
-function buildTopProds(orders){
-  const map={};
-  orders.forEach(o=>{
-    const items=typeof o.items==='string'?JSON.parse(o.items):(o.items||[]);
-    items.forEach(it=>{
-      const k=it.name||it.id||'Unknown';
-      if(!map[k])map[k]={name:k,rev:0,units:0,category:it.category||''};
-      map[k].rev+=Number(it.price||0)*(it.quantity||1);
-      map[k].units+=(it.quantity||1);
-    });
-  });
-  const sorted=Object.values(map).sort((a,b)=>b.rev-a.rev).slice(0,6);
-  const max=sorted[0]?.rev||1;
-  document.getElementById('topProds').innerHTML=sorted.length
+function buildTopProds(data){
+  const max=data[0]?.revenue||1;
+  document.getElementById('topProds').innerHTML=data.length
     ?`<div class="tp-row" style="border-bottom:1.5px solid var(--gray-200)">
         <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--gray-400)">#</span>
         <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--gray-400)">PRODUCT</span>
         <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--gray-400);text-align:right">REVENUE</span>
         <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--gray-400);text-align:right">UNITS</span>
         <span></span>
-      </div>`+sorted.map((p,i)=>`
+      </div>`+data.map((p,i)=>`
       <div class="tp-row">
         <span class="tp-rank">${i+1}</span>
-        <div><div class="tp-name">${escapeHtml(p.name)}</div><div class="tp-bar"><div class="tp-fill" style="width:${(p.rev/max*100).toFixed(0)}%"></div></div></div>
-        <span class="tp-rev">$${p.rev.toFixed(0)}</span>
-        <span class="tp-units">${p.units}</span>
+        <div><div class="tp-name">${escapeHtml(p.name)}</div><div class="tp-bar"><div class="tp-fill" style="width:${(p.revenue/max*100).toFixed(0)}%"></div></div></div>
+        <span class="tp-rev">$${p.revenue.toFixed(0)}</span>
+        <span class="tp-units">${p.units ?? '—'}</span>
         <span></span>
       </div>`).join('')
     :`<div style="padding:30px;text-align:center;color:var(--gray-400);font-size:12px">No sales data yet</div>`;
 }
 
-function buildFunnel(orders){
-  const counts={
-    'Total':{count:orders.length,color:'#E4E4E2'},
-    'Pending':{count:orders.filter(o=>o.status==='pending').length,color:'#FDE68A'},
-    'Reviewing':{count:orders.filter(o=>o.status==='pending_verification').length,color:'#BFDBFE'},
-    'Paid':{count:orders.filter(o=>['paid','processing','shipped','delivered'].includes(o.status)).length,color:'#BBF7D0'},
-    'Delivered':{count:orders.filter(o=>o.status==='delivered').length,color:'#6EE7B7'},
-    'Cancelled':{count:orders.filter(o=>o.status==='cancelled').length,color:'#FECACA'},
-  };
-  const total=counts['Total'].count||1;
-  document.getElementById('funnelEl').innerHTML=Object.entries(counts).map(([k,v])=>`
+// Data-driven from statusBreakdown (whatever statuses this shop actually has
+// orders in this period) instead of a hardcoded bucket list — "Reviewing"
+// (pending_verification) only appears when its count is >0, since nothing
+// creates new orders in that state anymore (Step 6 review, 2026-07-26) but a
+// shop can still have pre-existing ones that need surfacing, not a
+// permanently-empty row.
+function buildFunnel(statusBreakdown){
+  const sb = statusBreakdown || {};
+  const buckets = [
+    { label:'Total',   count: Object.values(sb).reduce((s,n)=>s+n,0), color:'#E4E4E2' },
+    { label:'Pending',   count: sb.pending || 0, color:'#FDE68A' },
+  ];
+  if (sb.pending_verification) buckets.push({ label:'Reviewing', count: sb.pending_verification, color:'#BFDBFE' });
+  buckets.push(
+    { label:'Paid',      count: (sb.paid||0)+(sb.processing||0)+(sb.shipped||0)+(sb.delivered||0), color:'#BBF7D0' },
+    { label:'Delivered', count: sb.delivered || 0, color:'#6EE7B7' },
+    { label:'Cancelled', count: sb.cancelled || 0, color:'#FECACA' },
+  );
+  const total = buckets[0].count || 1;
+  document.getElementById('funnelEl').innerHTML = buckets.map(b => `
     <div class="funnel-row">
-      <span class="funnel-label">${k}</span>
+      <span class="funnel-label">${escapeHtml(b.label)}</span>
       <div class="funnel-bar-wrap">
         <div class="funnel-bar">
-          <div class="funnel-fill" style="width:${(v.count/total*100).toFixed(0)}%;background:${v.color}"></div>
-          <span class="funnel-count">${v.count}</span>
+          <div class="funnel-fill" style="width:${(b.count/total*100).toFixed(0)}%;background:${b.color}"></div>
+          <span class="funnel-count">${b.count}</span>
         </div>
       </div>
-      <span class="funnel-pct">${(v.count/total*100).toFixed(0)}%</span>
+      <span class="funnel-pct">${(b.count/total*100).toFixed(0)}%</span>
     </div>`).join('');
 }
 

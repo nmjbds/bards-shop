@@ -270,8 +270,13 @@ router.get('/orders', requireAuth, requireSeller, async (req, res) => {
 
 // ── Allowed status transitions (Marketplace standard) ──
 // แต่ละสถานะไปได้เฉพาะสถานะที่กำหนดเท่านั้น
+// pending_verification ไม่ใช่ target ที่ไปถึงได้จาก 'pending' อีกต่อไป (Step 6 review, 2026-07-26) —
+// เคยตั้งไว้ให้ customer self-attest "I've Paid" ได้ แต่ปุ่มนั้นถูกลบไปแล้วตั้งแต่ 2026-07-23 (ดู
+// CLAUDE.md §6.1) ไม่มีจุดไหนในระบบตั้งสถานะนี้อีกเลย — ยังคง `pending_verification: [...]` ไว้เป็น
+// target (ไม่ใช่ source) เพราะมี order เก่าจริงที่ค้างอยู่ในสถานะนี้ (พบ 9 ใบใน local dev ระหว่างสำรวจ
+// ก่อนแก้) ต้องยังคง resolve (paid/cancelled) ได้ตามปกติ
 const ALLOWED_TRANSITIONS = {
-  pending:              ['pending_verification', 'paid', 'cancelled'],
+  pending:              ['paid', 'cancelled'],
   pending_verification: ['paid', 'cancelled'],
   paid:                 ['processing', 'cancelled'],
   processing:           ['shipped', 'cancelled'],
@@ -458,11 +463,15 @@ router.patch('/orders/:id/note', requireAuth, requireSeller, validate(orderNoteS
 // JSONB (which is what Part A did on 2026-07-24, before order_shops
 // existed) — same numbers, simpler/faster SQL, and status/breakdown now
 // reflect this shop's own order_shops.status rather than the whole order's.
-function zeroStats() {
-  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+function zeroStats(periodDays = 7) {
+  const dailyRevenue = [];
+  for (let i = periodDays - 1; i >= 0; i--) {
+    const key = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+    dailyRevenue.push({ day: key, revenue: 0 });
+  }
   return {
     totalOrders: 0, totalRevenue: 0, totalCustomers: 0, pendingOrders: 0,
-    dailyRevenue: days.map(d => ({ day: d, revenue: 0 })),
+    dailyRevenue, dailyOrders: dailyRevenue.map(d => ({ day: d.day, orders: 0 })),
     statusBreakdown: {}, topProducts: [],
   };
 }
@@ -478,20 +487,30 @@ const ALLOWED_STATS_PERIODS = [7, 30, 90];
 router.get('/stats', requireAuth, requireSeller, async (req, res) => {
   try {
     const isAdmin = req.userRole === 'admin';
-    let shopId = null;
-    if (!isAdmin) {
-      shopId = await getOwnApprovedShop(req.user.id);
-      if (!shopId) return res.json(zeroStats());
-    }
     const periodDays = ALLOWED_STATS_PERIODS.includes(parseInt(req.query.days))
       ? parseInt(req.query.days) : 7;
 
-    // seller.html's dashboard (non-admin) is unchanged below — still a fixed
-    // 7-day window, exact same queries as before this change.
+    let shopId = null;
+    if (!isAdmin) {
+      shopId = await getOwnApprovedShop(req.user.id);
+      if (!shopId) return res.json(zeroStats(periodDays));
+    }
+
+    // Seller branch made period-aware (Step 6 review, 2026-07-26) — previously
+    // every seller query below ignored `?days=` entirely and always computed
+    // all-time totals (dailyRevenue was the one exception: a hardcoded fixed
+    // 7-day window). Now mirrors the admin branch exactly, just scoped by
+    // shop_id via order_shops/order_items instead of the raw orders table —
+    // this is what seller-analytics.html's 7/30/90 toggle now actually calls
+    // instead of recomputing stats client-side from up to 500 raw orders
+    // (which silently undercounted for any shop with >500 lifetime orders,
+    // and could drift from these numbers since it was separately implemented
+    // math). seller.html's dashboard calls this same endpoint with no
+    // `?days=` param, which still resolves to periodDays=7 — unchanged behavior.
     const [ordersRes, revenueRes, customersRes, pendingRes, dailyRes, statusRes, topRes] = await Promise.all([
       isAdmin
         ? query("SELECT COUNT(*) FROM orders WHERE status NOT IN ('cancelled','expired') AND created_at >= NOW() - make_interval(days => $1)", [periodDays])
-        : query("SELECT COUNT(*) FROM order_shops WHERE shop_id=$1 AND status NOT IN ('cancelled','expired')", [shopId]),
+        : query("SELECT COUNT(*) FROM order_shops WHERE shop_id=$1 AND status NOT IN ('cancelled','expired') AND created_at >= NOW() - make_interval(days => $2)", [shopId, periodDays]),
 
       isAdmin
         ? query("SELECT COALESCE(SUM(total),0) AS total FROM orders WHERE status IN ('paid','processing','shipped','delivered') AND created_at >= NOW() - make_interval(days => $1)", [periodDays])
@@ -499,25 +518,31 @@ router.get('/stats', requireAuth, requireSeller, async (req, res) => {
             SELECT COALESCE(SUM(oi.price * oi.quantity), 0) AS total
             FROM order_shops os JOIN order_items oi ON oi.order_shop_id = os.id
             WHERE os.shop_id=$1 AND os.status IN ('paid','processing','shipped','delivered')
-          `, [shopId]),
+              AND os.created_at >= NOW() - make_interval(days => $2)
+          `, [shopId, periodDays]),
 
       isAdmin
         ? query("SELECT COUNT(DISTINCT user_id) FROM orders WHERE created_at >= NOW() - make_interval(days => $1)", [periodDays])
         : query(`
             SELECT COUNT(DISTINCT o.user_id) FROM order_shops os
-            JOIN orders o ON o.id = os.order_id WHERE os.shop_id=$1
-          `, [shopId]),
+            JOIN orders o ON o.id = os.order_id
+            WHERE os.shop_id=$1 AND os.created_at >= NOW() - make_interval(days => $2)
+          `, [shopId, periodDays]),
 
       // pendingOrders — deliberately NOT period-scoped for either branch: "orders
       // awaiting review right now" is an operational queue, not a historical stat.
+      // Still meaningful even though nothing can newly enter pending_verification
+      // anymore (see ALLOWED_TRANSITIONS above) — legacy orders from before that
+      // fix can still be sitting here and this is how a seller/admin notices them.
       isAdmin
         ? query("SELECT COUNT(*) FROM orders WHERE status='pending_verification'")
         : query("SELECT COUNT(*) FROM order_shops WHERE shop_id=$1 AND status='pending_verification'", [shopId]),
 
-      // Daily revenue. Admin: grouped by actual calendar date (not day-of-week
+      // Daily revenue+orders, grouped by actual calendar date (not day-of-week
       // name) since a 30/90-day window would otherwise collapse every "Monday"
-      // into one bucket — only safe to use day-names when the window is exactly
-      // 7 days, which is all the seller branch below has ever needed.
+      // into one bucket. COUNT(DISTINCT os.id) for orders (not COUNT(*)) because
+      // the seller branch's JOIN to order_items means a multi-item order_shop
+      // would otherwise be counted once per item.
       isAdmin
         ? query(`
             SELECT
@@ -531,15 +556,15 @@ router.get('/stats', requireAuth, requireSeller, async (req, res) => {
           `, [periodDays])
         : query(`
             SELECT
-              TO_CHAR(os.created_at AT TIME ZONE 'UTC', 'Dy') AS day,
-              COALESCE(SUM(oi.price * oi.quantity), 0) AS revenue
+              TO_CHAR(os.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day,
+              COALESCE(SUM(oi.price * oi.quantity), 0) AS revenue,
+              COUNT(DISTINCT os.id) AS orders
             FROM order_shops os JOIN order_items oi ON oi.order_shop_id = os.id
             WHERE os.shop_id=$1 AND os.status IN ('paid','processing','shipped','delivered')
-              AND os.created_at >= NOW() - INTERVAL '7 days'
-            GROUP BY TO_CHAR(os.created_at AT TIME ZONE 'UTC', 'Dy'),
-                     DATE_TRUNC('day', os.created_at AT TIME ZONE 'UTC')
-            ORDER BY DATE_TRUNC('day', os.created_at AT TIME ZONE 'UTC')
-          `, [shopId]),
+              AND os.created_at >= NOW() - make_interval(days => $2)
+            GROUP BY TO_CHAR(os.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD')
+            ORDER BY 1
+          `, [shopId, periodDays]),
 
       // Status breakdown
       isAdmin
@@ -550,8 +575,10 @@ router.get('/stats', requireAuth, requireSeller, async (req, res) => {
           `, [periodDays])
         : query(`
             SELECT status, COUNT(*) AS count FROM order_shops
-            WHERE shop_id=$1 AND status NOT IN ('expired') GROUP BY status
-          `, [shopId]),
+            WHERE shop_id=$1 AND status NOT IN ('expired')
+              AND created_at >= NOW() - make_interval(days => $2)
+            GROUP BY status
+          `, [shopId, periodDays]),
 
       // Top products by revenue
       isAdmin
@@ -564,11 +591,12 @@ router.get('/stats', requireAuth, requireSeller, async (req, res) => {
             GROUP BY item->>'name' ORDER BY revenue DESC LIMIT 5
           `, [periodDays])
         : query(`
-            SELECT oi.name, SUM(oi.price * oi.quantity) AS revenue
+            SELECT oi.name, SUM(oi.price * oi.quantity) AS revenue, SUM(oi.quantity) AS units
             FROM order_shops os JOIN order_items oi ON oi.order_shop_id = os.id
             WHERE os.shop_id=$1 AND os.status IN ('paid','processing','shipped','delivered')
+              AND os.created_at >= NOW() - make_interval(days => $2)
             GROUP BY oi.name ORDER BY revenue DESC LIMIT 5
-          `, [shopId]),
+          `, [shopId, periodDays]),
     ]);
 
     // totalShops/totalRegisteredCustomers — admin-only snapshot metrics (not
@@ -584,22 +612,22 @@ router.get('/stats', requireAuth, requireSeller, async (req, res) => {
       totalRegisteredCustomers = parseInt(regCustRes.rows[0].count);
     }
 
-    // Fill in missing buckets with 0 so the chart has no gaps.
-    let dailyRevenue;
-    if (isAdmin) {
-      const dailyMap = {};
-      dailyRes.rows.forEach(r => { dailyMap[r.day] = parseFloat(r.revenue); });
-      dailyRevenue = [];
-      for (let i = periodDays - 1; i >= 0; i--) {
-        const d = new Date(Date.now() - i * 86400000);
-        const key = d.toISOString().slice(0, 10);
-        dailyRevenue.push({ day: key, revenue: dailyMap[key] || 0 });
-      }
-    } else {
-      const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-      const dailyMap = {};
-      dailyRes.rows.forEach(r => { dailyMap[r.day] = parseFloat(r.revenue); });
-      dailyRevenue = days.map(d => ({ day: d, revenue: dailyMap[d] || 0 }));
+    // Fill in missing buckets with 0 so the chart has no gaps — both branches
+    // now key by real calendar date (YYYY-MM-DD), so this fill-in loop is
+    // shared. dailyOrders is seller-only (order_shops query above is the only
+    // one that computes an order count alongside revenue per day) — admin
+    // rows won't have an `orders` column, so dailyMap stays empty for it and
+    // every bucket is 0; admin-stats.html doesn't read this field anyway.
+    const revMap = {}, ordMap = {};
+    dailyRes.rows.forEach(r => {
+      revMap[r.day] = parseFloat(r.revenue);
+      if (r.orders !== undefined) ordMap[r.day] = parseInt(r.orders);
+    });
+    const dailyRevenue = [], dailyOrders = [];
+    for (let i = periodDays - 1; i >= 0; i--) {
+      const key = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+      dailyRevenue.push({ day: key, revenue: revMap[key] || 0 });
+      dailyOrders.push({ day: key, orders: ordMap[key] || 0 });
     }
 
     // Status breakdown as object
@@ -609,6 +637,9 @@ router.get('/stats', requireAuth, requireSeller, async (req, res) => {
     const topProducts = topRes.rows.map(r => ({
       name: r.name || 'Unknown',
       revenue: parseFloat(r.revenue) || 0,
+      // units — seller branch only (admin's jsonb_array_elements query doesn't
+      // select it; admin-stats.html doesn't display a units column anyway)
+      units: r.units !== undefined ? parseInt(r.units) : undefined,
     }));
 
     res.json({
@@ -617,6 +648,7 @@ router.get('/stats', requireAuth, requireSeller, async (req, res) => {
       totalCustomers: parseInt(customersRes.rows[0].count),
       pendingOrders:  parseInt(pendingRes.rows[0].count),
       dailyRevenue,
+      dailyOrders,
       statusBreakdown,
       topProducts,
       ...(isAdmin ? { totalShops, totalRegisteredCustomers, periodDays } : {}),

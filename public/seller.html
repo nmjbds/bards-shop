@@ -47,7 +47,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .content{padding:22px 24px;flex:1;}
 
 /* ── Stat cards ── */
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:20px;}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:20px;}
 .stat-card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);padding:18px 20px;position:relative;overflow:hidden;}
 .stat-card::after{content:'';position:absolute;top:0;right:0;width:3px;height:100%;background:var(--gray-200);border-radius:0 var(--radius) var(--radius) 0;}
 .stat-card.c-orange::after{background:var(--orange);}
@@ -89,6 +89,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .b-delivered{background:#DCFCE7;color:var(--green);}
 .b-cancelled{background:#FEE2E2;color:var(--red);}
 .b-expired{background:var(--gray-100);color:var(--gray-400);}
+.b-failed{background:#FEE2E2;color:var(--red);}
 
 /* ── Top products ── */
 .prod-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--gray-100);}
@@ -148,7 +149,6 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
     <a href="seller-orders.html" class="sb-item">
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
       Orders
-      <span class="sb-badge" id="pendingBadge" style="display:none">0</span>
     </a>
     <a href="seller-analytics.html" class="sb-item">
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
@@ -206,18 +206,6 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 
   <div class="content">
 
-    <!-- Pending alert -->
-    <div class="alert-card fu" id="pendingAlert" style="display:none" onclick="location.href='seller-orders.html?status=pending_verification'">
-      <div class="alert-icon">
-        <svg width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      </div>
-      <div class="alert-text">
-        <strong id="alertTitle">0 orders awaiting payment confirmation</strong>
-        <span>Click to review and confirm — tap to open orders</span>
-      </div>
-      <svg width="16" height="16" fill="none" stroke="var(--gray-400)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-    </div>
-
     <!-- Stats -->
     <div class="stats-grid fu d1">
       <div class="stat-card c-orange">
@@ -234,11 +222,6 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
         <div class="stat-label">Customers</div>
         <div class="stat-val" id="sCustomers">—</div>
         <div class="stat-sub">Unique buyers</div>
-      </div>
-      <div class="stat-card c-yellow">
-        <div class="stat-label">Pending Review</div>
-        <div class="stat-val" id="sPending">—</div>
-        <div class="stat-sub">Awaiting confirmation</div>
       </div>
     </div>
 
@@ -321,15 +304,6 @@ async function loadStats() {
     document.getElementById('sRevenue').textContent  = '$' + (d.totalRevenue||0).toFixed(2);
     document.getElementById('sOrders').textContent   = d.totalOrders || 0;
     document.getElementById('sCustomers').textContent= d.totalCustomers || 0;
-    document.getElementById('sPending').textContent  = d.pendingOrders || 0;
-
-    // Pending alert
-    if (d.pendingOrders > 0) {
-      document.getElementById('pendingAlert').style.display = 'flex';
-      document.getElementById('alertTitle').textContent = `${d.pendingOrders} order${d.pendingOrders>1?'s':''} awaiting payment confirmation`;
-      const pb = document.getElementById('pendingBadge');
-      pb.textContent = d.pendingOrders; pb.style.display = 'flex';
-    }
 
     buildRevenueChart(d.dailyRevenue || mockDailyRevenue());
     buildStatusChart(d.statusBreakdown || mockStatusBreakdown());
@@ -435,7 +409,7 @@ async function loadRecentOrders() {
 }
 
 function fmtStatus(s) {
-  return { pending:'Pending', pending_verification:'Review', paid:'Paid', processing:'Processing', shipped:'Shipped', delivered:'Done', cancelled:'Cancelled', expired:'Expired' }[s] || s;
+  return { pending:'Pending', pending_verification:'Review', paid:'Paid', processing:'Processing', shipped:'Shipped', delivered:'Done', cancelled:'Cancelled', expired:'Expired', failed:'Failed' }[s] || s;
 }
 
 let _tt;
