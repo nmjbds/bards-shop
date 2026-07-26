@@ -70,8 +70,6 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .b-failed{background:#FEE2E2;color:var(--red);}
 .act-btn{height:28px;padding:0 11px;border-radius:7px;border:1.5px solid var(--gray-200);background:var(--white);color:var(--black);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Space Grotesk',sans-serif;}
 .act-btn:hover{background:var(--black);border-color:var(--black);color:#fff;}
-.act-btn.confirm{border-color:var(--green);color:var(--green);}
-.act-btn.confirm:hover{background:var(--green);border-color:var(--green);color:#fff;}
 
 /* Pagination */
 .pagination{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-top:1px solid var(--gray-200);background:var(--gray-50);}
@@ -193,10 +191,6 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
   <div class="content">
     <div class="filter-bar fu">
       <button class="filter-tab active" onclick="setFilter('all',this)">All <span class="filter-count" id="cnt-all"></span></button>
-      <button class="filter-tab" onclick="setFilter('pending_verification',this)" id="tab-pv">
-        <svg width="11" height="11" fill="var(--blue)" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
-        Review <span class="filter-count" id="cnt-pv"></span>
-      </button>
       <button class="filter-tab" onclick="setFilter('pending',this)">Pending <span class="filter-count" id="cnt-pending"></span></button>
       <button class="filter-tab" onclick="setFilter('paid',this)">Paid <span class="filter-count" id="cnt-paid"></span></button>
       <button class="filter-tab" onclick="setFilter('processing',this)">Processing <span class="filter-count" id="cnt-processing"></span></button>
@@ -223,8 +217,8 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
   </div>
 </main>
 
-<!-- Order Detail Modal -->
-<div class="mask" id="mask" onclick="e=>e.target===this&&closeMask()">
+<!-- Order Detail Modal — backdrop-click-to-close is wired via addEventListener below -->
+<div class="mask" id="mask">
   <div class="modal" id="modal">
     <div class="modal-title">
       <span id="modalTitle">Order Detail</span>
@@ -288,7 +282,6 @@ function updateCounts() {
   const fmt = (n) => n ? `(${n})` : '';
   const setEl = (id, n) => { const el=document.getElementById(id); if(el) el.textContent=fmt(n); };
   setEl('cnt-all',      _allOrders.length);
-  setEl('cnt-pv',       counts['pending_verification']||0);
   setEl('cnt-pending',  counts['pending']||0);
   setEl('cnt-paid',     counts['paid']||0);
   setEl('cnt-processing',counts['processing']||0);
@@ -337,9 +330,7 @@ function renderTable() {
         <span class="ord-date">${fmtDate(o.created_at)}</span>
         <span class="badge b-${o.status}">${fmtStatus(o.status)}</span>
         <div onclick="event.stopPropagation()">
-          ${o.status==='pending_verification'
-            ? `<button class="act-btn confirm" onclick="quickConfirm('${o.id}',event)">✓ Confirm</button>`
-            : `<button class="act-btn" onclick="openOrder('${o.id}')">Edit</button>`}
+          <button class="act-btn" onclick="openOrder('${o.id}')">Edit</button>
         </div>
       </div>`).join('');
   }
@@ -354,25 +345,17 @@ function renderTable() {
 }
 function changePage(p){ _page=p; renderTable(); window.scrollTo(0,0); }
 
-// ── Quick confirm — เช็คจริงกับ ABA ผ่าน settleOrderPayment() เดียวกับที่ seller-orders.html ใช้ ──
-async function quickConfirm(id, e) {
-  e.stopPropagation();
-  try {
-    const res = await apiFetch(`/payment/confirm/${id}`, {method:'POST', auth:true});
-    if (res.status !== 'paid') {
-      toast("ABA hasn't confirmed this payment yet — try again shortly.");
-      return;
-    }
-    const o=_allOrders.find(x=>x.id===id);
-    if(o) o.status='paid';
-    updateCounts(); renderTable();
-    toast('Order confirmed as Paid');
-  } catch(er){ toast('Error: '+er.message); }
-}
-
 // ── Order Detail Modal — Workflow Action Buttons ──
+// pending_verification removed as a target reachable from 'pending' (2026-07-26,
+// same cleanup as seller-orders.html's Step 6 review) — the customer
+// self-attest "I've Paid" flow that used to set it was removed 2026-07-23, so
+// nothing creates new orders in that state anymore. Left as a source (below)
+// so any pre-existing legacy order still in it can still be resolved through
+// the normal Confirm Payment / Cancel buttons — quickConfirm() and the
+// dedicated "Review" tab/quick-action button were removed since they'd
+// permanently show zero.
 const ALLOWED_NEXT = {
-  pending:              ['pending_verification','paid','cancelled'],
+  pending:              ['paid','cancelled'],
   pending_verification: ['paid','cancelled'],
   paid:                 ['processing','cancelled'],
   processing:           ['shipped','cancelled'],
@@ -654,9 +637,10 @@ async function saveNote() {
     if(o) o.seller_note = note;
     closeMask(); toast('Note saved');
   } catch(er){
-    const o = _allOrders.find(x=>x.id===_currentOrder.id);
-    if(o) o.seller_note = note;
-    closeMask(); toast('Note saved (local)');
+    // 2026-07-26: this used to swallow any error and claim "Note saved
+    // (local)" regardless (same bug fixed in seller-orders.html's Step 6
+    // review) — a failure here is real and must be shown, not hidden.
+    toast('❌ Failed to save note: ' + er.message);
   }
 }
 

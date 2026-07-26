@@ -44,7 +44,6 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .stat-card.c-orange::after{background:var(--orange);}
 .stat-card.c-green::after{background:var(--green);}
 .stat-card.c-blue::after{background:var(--blue);}
-.stat-card.c-yellow::after{background:var(--yellow);}
 .stat-label{font-size:9.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--gray-400);margin-bottom:10px;}
 .stat-val{font-family:'DM Mono',monospace;font-size:26px;font-weight:500;line-height:1;}
 .stat-sub{font-size:10.5px;color:var(--gray-400);margin-top:6px;}
@@ -145,11 +144,6 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
         <div class="stat-val" id="sRegCustomers">—</div>
         <div class="stat-sub">All-time, whole platform</div>
       </div>
-      <div class="stat-card c-yellow">
-        <div class="stat-label">Pending Review</div>
-        <div class="stat-val" id="sPending">—</div>
-        <div class="stat-sub">Awaiting confirmation now</div>
-      </div>
     </div>
 
     <div class="grid-3 fu">
@@ -216,7 +210,6 @@ async function loadStats() {
     document.getElementById('sCustomers').textContent = d.totalCustomers || 0;
     document.getElementById('sShops').textContent     = d.totalShops ?? '—';
     document.getElementById('sRegCustomers').textContent = d.totalRegisteredCustomers ?? '—';
-    document.getElementById('sPending').textContent   = d.pendingOrders || 0;
 
     const label = `Last ${_period} Day${_period>1?'s':''}`;
     document.getElementById('sRevenueSub').textContent  = `Paid + delivered · ${label}`;
