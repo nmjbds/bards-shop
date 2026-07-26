@@ -209,10 +209,12 @@ router.get('/orders', requireAuth, requireSeller, async (req, res) => {
               o.id, o.user_id, o.subtotal, o.shipping, o.discount, o.coupon_code, o.total,
               o.address, o.payment_ref, o.qr_payload, o.expires_at, o.confirmed_at, o.pay_token,
               o.created_at,
-              u.name AS customer_name, u.email AS customer_email
+              u.name AS customer_name, u.email AS customer_email,
+              s.name AS shop_name
        FROM order_shops os
        JOIN orders o ON o.id = os.order_id
        LEFT JOIN users u ON o.user_id = u.id
+       LEFT JOIN shops s ON s.id = os.shop_id
        ${whereClause}
        ORDER BY o.created_at DESC LIMIT $${idx++} OFFSET $${idx}`,
       params
@@ -259,6 +261,7 @@ router.get('/orders', requireAuth, requireSeller, async (req, res) => {
       customer_email: row.customer_email,
       own_subtotal: row.own_subtotal,
       shop_id: row.shop_id,
+      shop_name: row.shop_name,
     }));
 
     res.json({ orders });
