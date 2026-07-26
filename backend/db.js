@@ -129,6 +129,14 @@ async function initDb() {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS provider_id TEXT;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS role        TEXT NOT NULL DEFAULT 'customer';
       ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at  TIMESTAMPTZ;
+      -- status (เพิ่ม 2026-07-26, Admin UI step 5) — active|suspended, ไม่มี CHECK constraint เหมือน
+      -- role/orders.status/shops.status ทุกจุดในโปรเจกต์นี้ (คุมแค่ระดับ app code) — suspended บล็อกที่
+      -- choke point การ signin/refresh (ดู routes/auth.js's isSuspended()) ไม่ได้เช็คทุก request ผ่าน
+      -- requireAuth เพราะนั่นจะเพิ่ม DB query ให้ทุก endpoint ที่ auth (cart/orders/wishlist/ฯลฯ) —
+      -- access token อายุ 15 นาทีอยู่แล้วเป็นหน้าต่างสูงสุดที่ session เก่ายังใช้ได้หลังโดน suspend บวกกับ
+      -- suspend เพิ่ม revoke refresh token ทั้งหมดทันที (ดู routes/seller.js's PATCH /customers/:id/status)
+      -- เลย sign in ใหม่/refresh ไม่ได้เลยหลัง suspend
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS status      TEXT NOT NULL DEFAULT 'active';
 
       -- Orders table
       CREATE TABLE IF NOT EXISTS orders (
@@ -527,6 +535,7 @@ async function initDb() {
       CREATE INDEX IF NOT EXISTS idx_products_cat    ON products(category) WHERE is_active=true;
       CREATE INDEX IF NOT EXISTS idx_coupons_code    ON coupons(UPPER(code));
       CREATE INDEX IF NOT EXISTS idx_users_email     ON users(email);
+      CREATE INDEX IF NOT EXISTS idx_users_status    ON users(status);
       CREATE INDEX IF NOT EXISTS idx_carts_user ON carts(user_id);
       CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_pay_token ON orders(pay_token) WHERE pay_token IS NOT NULL;
     `);

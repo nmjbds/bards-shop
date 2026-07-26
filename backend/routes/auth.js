@@ -309,6 +309,17 @@ router.post('/signup', signupRateLimit, validate(signupSchema), async (req, res)
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
 
+// Admin UI step 5 (2026-07-26) — shared suspension check, used at every
+// login choke point (email signin, OAuth callbacks, Telegram) right before
+// issueSession(). Checked AFTER password/OAuth/Telegram verification
+// succeeds everywhere it's used, never before — so a suspended-account
+// message is only ever shown to someone who already proved they own the
+// account, not leaked to a stranger who merely knows the email.
+function isSuspended(user) {
+  return !!user && user.status === 'suspended';
+}
+const SUSPENDED_MSG = 'This account has been suspended. Contact support for help.';
+
 // Email signin
 router.post('/signin', signinRateLimit, async (req, res) => {
   try {
@@ -319,6 +330,7 @@ router.post('/signin', signinRateLimit, async (req, res) => {
     if (!user || !user.password) return res.status(401).json({ error: 'Incorrect email or password.' });
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ error: 'Incorrect email or password.' });
+    if (isSuspended(user)) return res.status(403).json({ error: SUSPENDED_MSG, code: 'ACCOUNT_SUSPENDED' });
     const token = await issueSession(user, req, res);
     res.json({ token, user: safe(user) });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
@@ -352,6 +364,16 @@ router.post('/refresh', async (req, res) => {
     if (!userRes.rows.length) { clearRefreshCookie(res); return res.status(401).json({ error: 'User not found.' }); }
     const user = userRes.rows[0];
 
+    // Belt-and-suspenders — PATCH /seller/customers/:id/status already revokes
+    // every refresh token the instant an account is suspended, but this catches
+    // the edge case of a token issued in the gap between that revoke query and
+    // whatever request is mid-flight right now.
+    if (isSuspended(user)) {
+      await query('UPDATE refresh_tokens SET revoked_at=NOW() WHERE user_id=$1 AND revoked_at IS NULL', [user.id]);
+      clearRefreshCookie(res);
+      return res.status(403).json({ error: SUSPENDED_MSG, code: 'ACCOUNT_SUSPENDED' });
+    }
+
     const newRaw = await issueRefreshToken(user.id, req, row.id);
     setRefreshCookie(res, newRaw);
     res.json({ token: sign(user), user: safe(user) });
@@ -369,11 +391,15 @@ router.post('/logout', async (req, res) => {
   res.json({ ok: true });
 });
 
-// Get current user
+// Get current user — also doubles as the fastest signal a still-valid (≤15m)
+// access token was suspended mid-session: every logged-in page calls this on
+// load, so a suspended user gets bounced back to signin with a clear reason
+// instead of pages silently half-working until the token naturally expires.
 router.get('/me', require('../middleware/auth').requireAuth, async (req, res) => {
   try {
     const r = await query('SELECT * FROM users WHERE id=$1', [req.user.id]);
     if (!r.rows.length) return res.status(404).json({ error: 'User not found.' });
+    if (isSuspended(r.rows[0])) return res.status(403).json({ error: SUSPENDED_MSG, code: 'ACCOUNT_SUSPENDED' });
     res.json({ user: safe(r.rows[0]) });
   } catch(e) { res.status(500).json({ error: 'Server error.' }); }
 });
@@ -570,6 +596,7 @@ router.get('/google', (req, res, next) => {
   })(req, res, next);
 });
 router.get('/google/callback', passport.authenticate('google', { session: false, failureRedirect: `${process.env.FRONTEND_URL}/signin?error=Google+login+failed` }), async (req, res) => {
+  if (isSuspended(req.user)) return res.redirect(`${process.env.FRONTEND_URL}/signin?error=${encodeURIComponent(SUSPENDED_MSG)}`);
   const token = await issueSession(req.user, req, res);
   const redirect = isSafeRedirectPath(req.query.state) ? `&redirect=${encodeURIComponent(req.query.state)}` : '';
   res.redirect(`${process.env.FRONTEND_URL}/signin?token=${token}${redirect}`);
@@ -616,6 +643,7 @@ router.get('/telegram/callback', async (req, res) => {
     const check = verifyTelegramAuth(req.query);
     if (!check.ok) return res.redirect(`${process.env.FRONTEND_URL}/signin.html?error=${encodeURIComponent(check.reason)}`);
     const user = await upsertTelegramUser(check.data);
+    if (isSuspended(user)) return res.redirect(`${process.env.FRONTEND_URL}/signin.html?error=${encodeURIComponent(SUSPENDED_MSG)}`);
     const token = await issueSession(user, req, res);
     res.redirect(`${process.env.FRONTEND_URL}/signin?token=${token}`);
   } catch(e) { console.error(e); res.redirect(`${process.env.FRONTEND_URL}/signin?error=Telegram+login+failed`); }
@@ -628,6 +656,7 @@ router.post('/telegram/verify', signinRateLimit, async (req, res) => {
     const check = verifyTelegramAuth(req.body || {});
     if (!check.ok) return res.status(401).json({ error: check.reason });
     const user = await upsertTelegramUser(check.data);
+    if (isSuspended(user)) return res.status(403).json({ error: SUSPENDED_MSG, code: 'ACCOUNT_SUSPENDED' });
     const token = await issueSession(user, req, res);
     res.json({ token, user: safe(user) });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }

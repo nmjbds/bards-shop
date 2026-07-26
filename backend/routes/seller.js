@@ -766,21 +766,73 @@ router.delete('/products/:id', requireAuth, requireSeller, async (req, res) => {
 });
 
 // ── GET /api/seller/customers ── customer list (name + email + order count only — no sensitive data)
+// ?search= matches name/email (ILIKE), ?status= filters active|suspended —
+// both optional, additive on top of the original unfiltered/unpaginated
+// shape (Admin UI step 5, 2026-07-26 — added `status` to SELECT + bumped
+// LIMIT 100→200; no query params behaves the same as before).
 router.get('/customers', requireAuth, requireSeller, async (req, res) => {
   try {
+    const search = (req.query.search || '').trim();
+    const statusFilter = ['active', 'suspended'].includes(req.query.status) ? req.query.status : null;
+    const conditions = [`u.role = 'customer'`];
+    const params = [];
+    let idx = 1;
+    if (search) {
+      conditions.push(`(u.name ILIKE $${idx} OR u.email ILIKE $${idx})`);
+      params.push(`%${search}%`);
+      idx++;
+    }
+    if (statusFilter) {
+      conditions.push(`u.status = $${idx}`);
+      params.push(statusFilter);
+      idx++;
+    }
     const r = await query(`
       SELECT
-        u.id, u.name, u.email, u.avatar, u.created_at AS joined,
+        u.id, u.name, u.email, u.avatar, u.status, u.created_at AS joined,
         COUNT(o.id)       AS total_orders,
         COALESCE(SUM(CASE WHEN o.status IN ('paid','processing','shipped','delivered') THEN o.total ELSE 0 END), 0) AS total_spent
       FROM users u
       LEFT JOIN orders o ON o.user_id = u.id
-      WHERE u.role = 'customer'
+      WHERE ${conditions.join(' AND ')}
       GROUP BY u.id
       ORDER BY total_spent DESC
-      LIMIT 100
-    `);
+      LIMIT 200
+    `, params);
     res.json({ customers: r.rows });
+  } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
+});
+
+const customerStatusSchema = z.object({
+  status: z.enum(['active', 'suspended'], { error: 'Invalid status.' }),
+});
+
+// Admin-only (not requireSeller — a seller must never be able to suspend a
+// customer's account, only admins). Scoped to role='customer' on purpose:
+// suspending a seller/admin account has its own path (shops.status /
+// role change) with different consequences, this endpoint isn't it.
+// Suspending immediately revokes every live refresh token for that user —
+// see routes/auth.js's isSuspended() for why that's the enforcement point
+// instead of a DB check on every authenticated request.
+router.patch('/customers/:id/status', requireAuth, requireRole('admin'), validate(customerStatusSchema), async (req, res) => {
+  try {
+    const { status } = req.body;
+    const current = await query('SELECT id, role, status FROM users WHERE id=$1', [req.params.id]);
+    if (!current.rows.length) return res.status(404).json({ error: 'Customer not found.' });
+    if (current.rows[0].role !== 'customer') {
+      return res.status(400).json({ error: 'Only customer accounts can be suspended here.' });
+    }
+    if (current.rows[0].status === status) {
+      return res.status(400).json({ error: `Account is already ${status}.` });
+    }
+    const r = await query(
+      'UPDATE users SET status=$1, updated_at=NOW() WHERE id=$2 RETURNING id, name, email, status',
+      [status, req.params.id]
+    );
+    if (status === 'suspended') {
+      await query('UPDATE refresh_tokens SET revoked_at=NOW() WHERE user_id=$1 AND revoked_at IS NULL', [req.params.id]);
+    }
+    res.json({ ok: true, user: r.rows[0] });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
 
