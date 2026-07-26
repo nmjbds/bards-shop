@@ -119,14 +119,42 @@ router.post('/create', requireAuth, validate(createOrderSchema), async (req, res
     }
     subtotal = Math.round(subtotal * 100) / 100;
 
+    // Group items by shop (Step 7b, 2026-07-27 — moved up from the Phase 5
+    // dual-write block below, which used to be the only place this grouping
+    // happened) so a shop-scoped coupon's discount/min_order can be checked
+    // against that shop's own subtotal instead of the whole cart's. Computed
+    // once here and reused both by the coupon block right below and by the
+    // order_shops insert further down — no more recomputing the same
+    // per-shop subtotal twice.
+    const shopGroups = new Map();    // shop_id (or null) -> items[]
+    const shopSubtotals = new Map(); // shop_id (or null) -> rounded subtotal for that group
+    for (const item of orderItems) {
+      const key = item.shop_id || null;
+      if (!shopGroups.has(key)) shopGroups.set(key, []);
+      shopGroups.get(key).push(item);
+    }
+    for (const [key, groupItems] of shopGroups) {
+      shopSubtotals.set(key, Math.round(
+        groupItems.reduce((s, it) => s + Number(it.price) * Number(it.quantity), 0) * 100
+      ) / 100);
+    }
+
     let discount = 0;
     let appliedCouponCode = null;
+    let couponShopId = null; // set only when a shop-scoped coupon actually applied — used below to
+                              // attribute order_shops.discount to the one matching group. Stays null
+                              // for both "no coupon" and "platform-wide coupon" (shop_id IS NULL) —
+                              // a platform-wide discount isn't attributable to any single shop, so it
+                              // keeps discounting the whole cart exactly like before, with no per-shop
+                              // split (order_shops.discount just stays 0 for every group in that case).
     if (couponCode) {
       const cr = await client.query(
-        `SELECT * FROM coupons WHERE UPPER(code)=UPPER($1) AND active=true
-           AND (start_date IS NULL OR start_date <= CURRENT_DATE)
-           AND (expiry_date IS NULL OR expiry_date >= CURRENT_DATE)
-         FOR UPDATE`,
+        `SELECT c.*, s.name AS shop_name FROM coupons c LEFT JOIN shops s ON s.id = c.shop_id
+         WHERE UPPER(c.code)=UPPER($1) AND c.active=true
+           AND (c.start_date IS NULL OR c.start_date <= CURRENT_DATE)
+           AND (c.expiry_date IS NULL OR c.expiry_date >= CURRENT_DATE)
+         FOR UPDATE OF c`, // "OF c" required — plain FOR UPDATE can't lock the nullable side of the
+                           // LEFT JOIN (shops), and we only need to lock the coupon row anyway
         [couponCode.trim()]
       );
       const c = cr.rows[0];
@@ -138,12 +166,28 @@ router.post('/create', requireAuth, validate(createOrderSchema), async (req, res
         await client.query('ROLLBACK');
         return res.status(400).json({ error: 'This coupon has reached its usage limit.' });
       }
-      if (c.min_order > 0 && subtotal < Number(c.min_order)) {
+
+      // Shop-scoped coupon: only discounts that shop's own items, and only
+      // usable when the cart actually has at least one item from that shop.
+      let discountBase = subtotal;
+      if (c.shop_id) {
+        if (!shopGroups.has(c.shop_id)) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({
+            error: `This coupon can only be used with items from ${c.shop_name || 'that shop'}.`,
+            code: 'COUPON_SHOP_MISMATCH',
+          });
+        }
+        discountBase = shopSubtotals.get(c.shop_id);
+        couponShopId = c.shop_id;
+      }
+
+      if (c.min_order > 0 && discountBase < Number(c.min_order)) {
         await client.query('ROLLBACK');
         return res.status(400).json({ error: `Minimum order $${Number(c.min_order).toFixed(2)} required for this coupon.` });
       }
-      if (c.type === 'percent') discount = subtotal * Number(c.value) / 100;
-      if (c.type === 'fixed')   discount = Math.min(Number(c.value), subtotal);
+      if (c.type === 'percent') discount = discountBase * Number(c.value) / 100;
+      if (c.type === 'fixed')   discount = Math.min(Number(c.value), discountBase);
       discount = Math.round(discount * 100) / 100;
       appliedCouponCode = c.code;
       await client.query('UPDATE coupons SET used_count = used_count + 1 WHERE id=$1', [c.id]);
@@ -184,24 +228,18 @@ router.post('/create', requireAuth, validate(createOrderSchema), async (req, res
     // records the same items in normalized, per-shop form for future
     // settlement work. shop_id is whatever the product had at purchase time
     // (already computed per line above, same value stamped into
-    // orderItems[].shop_id) — grouped here, no single-shop fallback guess
-    // like the historical backfill does, since a genuinely shop-less item on
-    // a brand new order should stay honestly unattributed (null) rather than
-    // be guessed at.
-    const shopGroups = new Map(); // shop_id (or null) -> items[]
-    for (const item of orderItems) {
-      const key = item.shop_id || null;
-      if (!shopGroups.has(key)) shopGroups.set(key, []);
-      shopGroups.get(key).push(item);
-    }
+    // orderItems[].shop_id) — no single-shop fallback guess like the
+    // historical backfill does, since a genuinely shop-less item on a brand
+    // new order should stay honestly unattributed (null) rather than be
+    // guessed at. shopGroups/shopSubtotals computed earlier (Step 7b) so
+    // this loop just reuses them instead of recomputing.
     for (const [groupShopId, groupItems] of shopGroups) {
-      const groupSubtotal = Math.round(
-        groupItems.reduce((s, it) => s + Number(it.price) * Number(it.quantity), 0) * 100
-      ) / 100;
+      const groupSubtotal = shopSubtotals.get(groupShopId);
+      const groupDiscount = (couponShopId !== null && groupShopId === couponShopId) ? discount : 0;
       const osRes = await client.query(
-        `INSERT INTO order_shops(order_id, shop_id, subtotal, status)
-         VALUES($1,$2,$3,'pending') RETURNING id`,
-        [orderId, groupShopId, groupSubtotal]
+        `INSERT INTO order_shops(order_id, shop_id, subtotal, discount, status)
+         VALUES($1,$2,$3,$4,'pending') RETURNING id`,
+        [orderId, groupShopId, groupSubtotal, groupDiscount]
       );
       const orderShopId = osRes.rows[0].id;
       for (const item of groupItems) {
