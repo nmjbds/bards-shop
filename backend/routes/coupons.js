@@ -56,17 +56,58 @@ const requireSeller = requireRole('seller', 'admin');
 // PUBLIC / CHECKOUT ROUTES
 // ════════════════════════════════════════
 
-// POST /api/coupons/validate — validate coupon at checkout
+// POST /api/coupons/validate — validate coupon at checkout (preview only —
+// POST /payment/create re-validates authoritatively in its own transaction;
+// this route never touches used_count either way).
+//
+// Step 7c (2026-07-27): prefers a new `items` array over the old `total`
+// number. With `items`, price/shop_id are re-derived from the DB per line
+// (same principle POST /payment/create already follows — never trust a
+// client-supplied price/subtotal), so a shop-scoped coupon can be checked
+// against that shop's own subtotal here too, matching what checkout will
+// actually compute — including rejecting with COUPON_SHOP_MISMATCH the same
+// way. The old `{code, total}` shape (whole-cart only, no shop-matching
+// possible without knowing what's in the cart) is kept as a fallback purely
+// so this change is safe to deploy on its own: checkout.html still sends
+// `total` until step 7d switches it to `items`, and must not break in the
+// meantime. Remove the legacy branch once 7d ships and nothing sends `total`
+// anymore.
 router.post('/validate', async (req, res) => {
   try {
-    const { code, total } = req.body;
+    const { code, total, items } = req.body;
     if (!code) return res.status(400).json({ error: 'Coupon code is required.' });
 
+    let subtotal = 0;
+    let shopSubtotals = null; // non-null only on the new `items` path
+
+    if (Array.isArray(items) && items.length) {
+      const ids = [...new Set(items.map(it => it?.id).filter(Boolean))];
+      const pr = ids.length
+        ? await query('SELECT id, price, sale_price, shop_id FROM products WHERE id = ANY($1::text[]) AND is_active=true', [ids])
+        : { rows: [] };
+      const productMap = new Map(pr.rows.map(p => [p.id, p]));
+      shopSubtotals = new Map();
+      for (const it of items) {
+        const p = productMap.get(it?.id);
+        if (!p) continue; // unknown/inactive id — ignored for preview purposes, same as elsewhere
+        const qty = Math.min(Math.max(parseInt(it.quantity) || 0, 1), 10);
+        const unitPrice = p.sale_price != null ? Number(p.sale_price) : Number(p.price);
+        const lineTotal = unitPrice * qty;
+        subtotal += lineTotal;
+        const key = p.shop_id || null;
+        shopSubtotals.set(key, (shopSubtotals.get(key) || 0) + lineTotal);
+      }
+      subtotal = Math.round(subtotal * 100) / 100;
+      for (const [key, val] of shopSubtotals) shopSubtotals.set(key, Math.round(val * 100) / 100);
+    } else {
+      subtotal = Number(total) || 0; // legacy path, unchanged from before step 7c
+    }
+
     const r = await query(
-      `SELECT * FROM coupons
-       WHERE UPPER(code)=UPPER($1) AND active=true
-         AND (start_date IS NULL OR start_date <= CURRENT_DATE)
-         AND (expiry_date IS NULL OR expiry_date >= CURRENT_DATE)`,
+      `SELECT c.*, s.name AS shop_name FROM coupons c LEFT JOIN shops s ON s.id = c.shop_id
+       WHERE UPPER(c.code)=UPPER($1) AND c.active=true
+         AND (c.start_date IS NULL OR c.start_date <= CURRENT_DATE)
+         AND (c.expiry_date IS NULL OR c.expiry_date >= CURRENT_DATE)`,
       [code.trim()]
     );
     const c = r.rows[0];
@@ -74,15 +115,32 @@ router.post('/validate', async (req, res) => {
     if (c.usage_limit > 0 && c.used_count >= c.usage_limit) {
       return res.status(400).json({ error: 'This coupon has reached its usage limit.' });
     }
-    if (c.min_order > 0 && Number(total) < Number(c.min_order)) {
+
+    let discountBase = subtotal;
+    if (c.shop_id) {
+      if (shopSubtotals) {
+        if (!shopSubtotals.has(c.shop_id)) {
+          return res.status(400).json({
+            error: `This coupon can only be used with items from ${c.shop_name || 'that shop'}.`,
+            code: 'COUPON_SHOP_MISMATCH',
+          });
+        }
+        discountBase = shopSubtotals.get(c.shop_id);
+      }
+      // else: legacy `total`-only path can't tell what's in the cart, so it
+      // can't enforce the shop match here — POST /payment/create still does
+      // authoritatively regardless of what this preview showed.
+    }
+
+    if (c.min_order > 0 && discountBase < Number(c.min_order)) {
       return res.status(400).json({
         error: `Minimum order $${Number(c.min_order).toFixed(2)} required for this coupon.`
       });
     }
 
     let discount = 0;
-    if (c.type === 'percent')  discount = Number(total) * Number(c.value) / 100;
-    if (c.type === 'fixed')    discount = Math.min(Number(c.value), Number(total));
+    if (c.type === 'percent')  discount = discountBase * Number(c.value) / 100;
+    if (c.type === 'fixed')    discount = Math.min(Number(c.value), discountBase);
     if (c.type === 'freeship') discount = 0;
 
     res.json({
