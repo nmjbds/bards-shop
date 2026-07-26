@@ -499,6 +499,12 @@ async function initDb() {
         created_at      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
         updated_at      TIMESTAMPTZ
       );
+      -- discount (เพิ่ม 2026-07-26, Coupon-per-shop Step 7a) — ส่วนลดที่แบ่งให้ร้านนี้โดยเฉพาะ แยกจาก
+      -- subtotal (gross ก่อนหักส่วนลด) เหมือน orders.subtotal/orders.discount ที่เป็นคนละคอลัมน์กันอยู่แล้ว
+      -- ค่าเริ่มต้น 0 สำหรับ order_shops แถวเก่าที่มีอยู่แล้ว (ไม่ retroactive คำนวณย้อนหลัง — ยอมรับเป็น
+      -- known limitation เหมือน shop_id backfill ตอน Phase 5 Step 1) — ยังไม่มี route ไหนเขียน/อ่านคอลัมน์
+      -- นี้จริงจนกว่าจะถึง Step 7b (แก้ payment.js's checkout math)
+      ALTER TABLE order_shops ADD COLUMN IF NOT EXISTS discount NUMERIC(10,2) NOT NULL DEFAULT 0;
       -- Not a hard uniqueness guarantee against re-running the backfill (two
       -- NULL shop_ids don't conflict under Postgres's NULL-is-distinct rule)
       -- — the real idempotency guard is the backfill script's own "does this
