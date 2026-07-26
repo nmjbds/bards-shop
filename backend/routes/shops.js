@@ -105,14 +105,23 @@ router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
 });
 
 // ── PATCH /api/shops/:id ── admin: approve / reject / suspend
+// เดิมไม่เช็คอะไรเลยนอกจาก enum ของ status — เปลี่ยนสถานะไปเป็นค่าเดิมที่มีอยู่แล้วได้เงียบๆ (คลิก
+// "approve" ซ้ำ 2 ครั้งคืน 200 ทั้งคู่ ทำให้ admin ไม่รู้ว่าคลิกครั้งที่สองมีผลจริงไหม) เพิ่มเช็คแค่
+// "ไม่ใช่สถานะเดิม" (ไม่ได้ทำ full state machine เพราะทุกการเปลี่ยนระหว่าง 4 สถานะที่เหลือเป็นการตัดสินใจ
+// ที่สมเหตุสมผลของ admin ได้จริงทั้งหมด — เช่น reinstate ร้านที่ suspended ผิดพลาด, เปลี่ยนใจจาก rejected
+// เป็น approved — ไม่มีเหตุผลจะบล็อกการเปลี่ยนเหล่านี้)
 router.patch('/:id', requireAuth, requireRole('admin'), validate(shopStatusSchema), async (req, res) => {
   try {
     const { status } = req.body;
+    const current = await query('SELECT status FROM shops WHERE id=$1', [req.params.id]);
+    if (!current.rows.length) return res.status(404).json({ error: 'Shop not found.' });
+    if (current.rows[0].status === status) {
+      return res.status(400).json({ error: `Shop is already ${status}.` });
+    }
     const r = await query(
       `UPDATE shops SET status=$1, updated_at=NOW() WHERE id=$2 RETURNING *`,
       [status, req.params.id]
     );
-    if (!r.rows.length) return res.status(404).json({ error: 'Shop not found.' });
     res.json({ ok: true, shop: r.rows[0] });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });

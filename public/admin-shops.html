@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shops — Bards Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#0A0A0A;--white:#FAFAFA;--gray-50:#F9F9F7;--gray-100:#F2F2F0;--gray-200:#E4E4E2;--gray-300:#C8C8C6;--gray-400:#8A8A88;--gray-600:#4A4A48;--orange:#FF4F00;--red:#C8001A;--green:#16A34A;--blue:#2563EB;--sidebar:220px;--radius:14px;--radius-sm:10px;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var(--black);display:flex;min-height:100vh;}
+.sidebar{width:var(--sidebar);background:var(--black);min-height:100vh;position:fixed;top:0;left:0;z-index:100;display:flex;flex-direction:column;}
+.sb-brand{padding:22px 18px 18px;border-bottom:1px solid rgba(255,255,255,.08);}
+.sb-brand .logo{font-family:'Bebas Neue';font-size:20px;letter-spacing:3px;color:#fff;}
+.sb-brand .sub{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.sb-nav{flex:1;padding:12px 10px;overflow-y:auto;}
+.sb-section{font-size:8.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:rgba(255,255,255,.25);padding:10px 8px 5px;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;color:rgba(255,255,255,.55);text-decoration:none;font-size:12.5px;font-weight:500;cursor:pointer;transition:all .15s;margin-bottom:1px;border:none;background:none;width:100%;text-align:left;white-space:nowrap;}
+.sb-item:hover{background:rgba(255,255,255,.07);color:#fff;}
+.sb-item.active{background:rgba(255,255,255,.13);color:#fff;}
+.sb-item svg{flex-shrink:0;}
+.sb-foot{padding:12px 10px;border-top:1px solid rgba(255,255,255,.07);}
+.sb-profile{display:flex;align-items:center;gap:9px;padding:9px 10px;background:rgba(255,255,255,.06);border-radius:9px;}
+.sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--orange);color:#fff;font-family:'Bebas Neue';font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+.sb-avatar img{width:100%;height:100%;object-fit:cover;}
+.sb-uname{font-size:11.5px;font-weight:600;color:#fff;line-height:1.2;}
+.sb-urole{font-size:9.5px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.8px;}
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;}
+.topbar{background:var(--white);border-bottom:1px solid var(--gray-200);height:58px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.page-title{font-family:'Bebas Neue';font-size:19px;letter-spacing:2px;}
+.content{padding:22px 24px;flex:1;}
+
+/* Filter tabs */
+.filter-row{display:flex;gap:7px;margin-bottom:18px;flex-wrap:wrap;}
+.f-chip{height:32px;padding:0 14px;border:1.5px solid var(--gray-200);border-radius:20px;background:var(--white);color:var(--gray-600);font-size:11.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:'Space Grotesk',sans-serif;transition:all .15s;}
+.f-chip:hover{border-color:var(--black);color:var(--black);}
+.f-chip.on{background:var(--black);border-color:var(--black);color:#fff;}
+.f-count{font-family:'DM Mono',monospace;font-size:9.5px;background:rgba(0,0,0,.07);border-radius:8px;padding:1px 6px;}
+.f-chip.on .f-count{background:rgba(255,255,255,.18);}
+
+/* Shop cards */
+.shop-grid{display:flex;flex-direction:column;gap:12px;}
+.shop-card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);padding:18px 20px;}
+.shop-card-top{display:flex;align-items:flex-start;gap:12px;}
+.shop-avatar{width:44px;height:44px;border-radius:12px;background:var(--gray-100);color:var(--gray-600);font-family:'Bebas Neue';font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+.shop-avatar img{width:100%;height:100%;object-fit:cover;}
+.shop-info{flex:1;min-width:0;}
+.shop-name{font-size:15px;font-weight:700;margin-bottom:2px;}
+.shop-owner{font-size:11.5px;color:var(--gray-400);}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;flex-shrink:0;}
+.b-pending{background:#FEF3C7;color:#B45309;}
+.b-approved{background:#DCFCE7;color:var(--green);}
+.b-rejected{background:#FEE2E2;color:var(--red);}
+.b-suspended{background:var(--gray-100);color:var(--gray-400);}
+.shop-desc{font-size:12.5px;color:var(--gray-600);line-height:1.5;margin-top:10px;}
+.shop-desc.empty{color:var(--gray-300);font-style:italic;}
+.shop-meta{font-size:10.5px;color:var(--gray-300);font-family:'DM Mono',monospace;margin-top:8px;}
+.shop-actions{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--gray-100);}
+.act-btn{height:34px;padding:0 16px;border-radius:var(--radius-sm);font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;border:1.5px solid transparent;transition:opacity .15s;}
+.act-btn:hover{opacity:.85;}
+.act-approve{background:var(--green);color:#fff;}
+.act-reject{background:var(--white);color:var(--red);border-color:var(--red);}
+.act-suspend{background:var(--white);color:var(--gray-600);border-color:var(--gray-200);}
+
+.empty{padding:56px 20px;text-align:center;color:var(--gray-400);}
+.empty-icon{font-size:32px;margin-bottom:10px;}
+.empty-title{font-size:14px;font-weight:600;color:var(--black);}
+
+.toast{position:fixed;bottom:20px;right:20px;background:var(--black);color:#fff;padding:11px 16px;border-radius:10px;font-size:12.5px;font-weight:500;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;transform:translateY(4px);pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25);}
+.toast.on{opacity:1;transform:translateY(0);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .32s ease both;}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sb-brand"><div class="logo">BARDS</div><div class="sub">Admin Hub</div></div>
+  <nav class="sb-nav">
+    <div class="sb-section">Platform</div>
+    <a href="/admin-shops" class="sb-item active"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Shops</a>
+    <div class="sb-section">Account</div>
+    <a href="/seller" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Seller Hub</a>
+    <a href="/" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>View Store</a>
+    <button class="sb-item" onclick="Auth.logout('/signin')"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 17H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out</button>
+  </nav>
+  <div class="sb-foot">
+    <div class="sb-profile">
+      <div class="sb-avatar" id="sbAvatar">A</div>
+      <div><div class="sb-uname" id="sbName">Loading…</div><div class="sb-urole">Admin</div></div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="page-title">Shop Applications</div>
+  </div>
+  <div class="content">
+    <div class="filter-row fu" id="filterRow"></div>
+    <div class="shop-grid fu" id="shopGrid"></div>
+    <div class="empty" id="emptyState" style="display:none">
+      <div class="empty-icon">🏬</div>
+      <div class="empty-title">No shops in this view</div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="/api.js"></script>
+<script src="/products.js"></script>
+<script>
+const FILTERS = [
+  { id:'all',       label:'All' },
+  { id:'pending',   label:'Pending' },
+  { id:'approved',  label:'Approved' },
+  { id:'rejected',  label:'Rejected' },
+  { id:'suspended', label:'Suspended' },
+];
+let _shops = [];
+let _filter = 'all';
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!Auth.isLoggedIn()) { location.href = '/signin?redirect=/admin-shops'; return; }
+  try {
+    const { user } = await AuthAPI.me();
+    if (user.role !== 'admin') { location.href = '/'; return; }
+    document.getElementById('sbName').textContent = user.name || 'Admin';
+    const av = document.getElementById('sbAvatar');
+    if (user.avatar) { av.innerHTML = `<img src="${escapeHtml(user.avatar)}" alt="">`; }
+    else { av.textContent = (user.name || 'A')[0].toUpperCase(); }
+  } catch(e) { location.href = '/signin'; return; }
+  await loadShops();
+});
+
+async function loadShops() {
+  try {
+    const d = await apiFetch('/shops', { auth:true });
+    _shops = d.shops || [];
+  } catch(e) {
+    toast('❌ Cannot load shops: ' + e.message);
+    _shops = [];
+  }
+  renderFilterRow();
+  renderGrid();
+}
+
+function renderFilterRow() {
+  const row = document.getElementById('filterRow');
+  row.innerHTML = '';
+  FILTERS.forEach(f => {
+    const count = f.id === 'all' ? _shops.length : _shops.filter(s => s.status === f.id).length;
+    const chip = document.createElement('div');
+    chip.className = 'f-chip' + (_filter === f.id ? ' on' : '');
+    chip.onclick = () => { _filter = f.id; renderFilterRow(); renderGrid(); };
+    chip.append(f.label + ' ');
+    const c = document.createElement('span');
+    c.className = 'f-count';
+    c.textContent = count;
+    chip.appendChild(c);
+    row.appendChild(chip);
+  });
+}
+
+function renderGrid() {
+  const grid = document.getElementById('shopGrid');
+  const empty = document.getElementById('emptyState');
+  const items = _filter === 'all' ? _shops : _shops.filter(s => s.status === _filter);
+  if (!items.length) { grid.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = items.map(s => cardHTML(s)).join('');
+}
+
+function initials(name) {
+  return (name || '?').trim().charAt(0).toUpperCase();
+}
+
+function fmtDate(iso) {
+  try { return new Date(iso).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' }); }
+  catch(e) { return ''; }
+}
+
+function actionButtons(s) {
+  // เมนูปุ่มที่โชว์ต่อสถานะ — เลือกเฉพาะการเปลี่ยนที่ admin น่าจะใช้จริง ไม่ใช่ทุก transition ที่ backend
+  // ยอมให้ทำได้ (backend ยอมกว้างกว่านี้ เผื่ออนาคต แต่ UI แสดงแค่ทางเลือกที่สมเหตุสมผลจริงพอ)
+  if (s.status === 'pending') {
+    return `
+      <button class="act-btn act-approve" onclick="doAction('${s.id}','approved')">Approve</button>
+      <button class="act-btn act-reject" onclick="doAction('${s.id}','rejected')">Reject</button>`;
+  }
+  if (s.status === 'approved') {
+    return `<button class="act-btn act-suspend" onclick="doAction('${s.id}','suspended')">Suspend</button>`;
+  }
+  if (s.status === 'rejected') {
+    return `<button class="act-btn act-approve" onclick="doAction('${s.id}','approved')">Approve</button>`;
+  }
+  if (s.status === 'suspended') {
+    return `
+      <button class="act-btn act-approve" onclick="doAction('${s.id}','approved')">Reinstate</button>
+      <button class="act-btn act-reject" onclick="doAction('${s.id}','rejected')">Reject</button>`;
+  }
+  return '';
+}
+
+function cardHTML(s) {
+  const desc = s.description
+    ? `<div class="shop-desc">${escapeHtml(s.description)}</div>`
+    : `<div class="shop-desc empty">No description provided.</div>`;
+  const avatar = s.logo
+    ? `<img src="${escapeHtml(s.logo)}" alt="">`
+    : escapeHtml(initials(s.name));
+  return `
+<div class="shop-card">
+  <div class="shop-card-top">
+    <div class="shop-avatar">${avatar}</div>
+    <div class="shop-info">
+      <div class="shop-name">${escapeHtml(s.name)}</div>
+      <div class="shop-owner">${escapeHtml(s.owner_name)} · ${escapeHtml(s.owner_email || '')}</div>
+    </div>
+    <span class="badge b-${s.status}">${escapeHtml(s.status)}</span>
+  </div>
+  ${desc}
+  <div class="shop-meta">Applied ${fmtDate(s.created_at)}</div>
+  <div class="shop-actions">${actionButtons(s)}</div>
+</div>`;
+}
+
+const CONFIRM_MSG = {
+  rejected:  'Reject this shop? The seller will no longer be able to sell.',
+  suspended: 'Suspend this shop? Their products will stay listed but they cannot manage them until reinstated.',
+};
+
+async function doAction(id, status) {
+  const msg = CONFIRM_MSG[status];
+  if (msg && !confirm(msg)) return;
+  try {
+    await apiFetch(`/shops/${id}`, { method:'PATCH', body:{ status }, auth:true });
+    toast(`✓ Shop ${status}`);
+    await loadShops();
+  } catch(e) {
+    toast('❌ ' + e.message);
+  }
+}
+
+let _tt;
+function toast(m) {
+  const t = document.getElementById('toast');
+  t.textContent = m;
+  t.classList.add('on');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => t.classList.remove('on'), 2400);
+}
+</script>
+</body>
+</html>
