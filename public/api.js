@@ -441,7 +441,7 @@ const PaymentAPI = {
    CouponsAPI — /api/coupons
 ═══════════════════════════════════════════════════════════════ */
 const CouponsAPI = {
-  validate(code, total) { return apiFetch('/coupons/validate', { method: 'POST', body: { code, total } }); },
+  validate(code, items) { return apiFetch('/coupons/validate', { method: 'POST', body: { code, items } }); },
   list()                { return apiFetch('/coupons/seller', { auth: true }); },
   create(data)          { return apiFetch('/coupons/seller', { method: 'POST',   body: data, auth: true }); },
   update(id, data)      { return apiFetch('/coupons/seller/' + id, { method: 'PATCH',  body: data, auth: true }); },

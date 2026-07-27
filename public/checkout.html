@@ -636,9 +636,9 @@ async function applyCoupon() {
     btn.classList.add('loading');
     errEl.classList.remove('show');
     try {
-        // ส่ง subtotal+shipCost (ก่อน discount) ให้ server ตรวจ min_order
-        const total = subtotal + shipCost;
-        const d = await CouponsAPI.validate(code, total);
+        // ส่ง items จริง (ไม่ใช่ total ตัวเลขเดียว) ให้ server re-derive ราคา/ร้านเองจาก DB — ต้องรู้ว่า
+        // ตะกร้ามีของร้านไหนบ้างถึงจะเช็คคูปองที่ผูกกับร้าน (shop-scoped) ได้ถูกต้อง (Step 7d, 2026-07-27)
+        const d = await CouponsAPI.validate(code, ITEMS.map(it => ({ id: it.id, quantity: it.quantity })));
         _coupon = d.coupon;
         document.getElementById('couponInput').classList.remove('err');
         const label = _coupon.type === 'percent'
