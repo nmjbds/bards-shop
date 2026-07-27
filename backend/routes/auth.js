@@ -203,18 +203,37 @@ async function issueRefreshToken(userId, req, replacesId = null) {
   return raw;
 }
 
+// Multi-domain step 8b (2026-07-27) — Domain=.bardskh.com (leading dot; also
+// matches the modern no-dot form per RFC 6265, kept for clarity/older client
+// compat) makes this cookie valid for bardskh.com AND every subdomain under
+// it (seller./admin.), so a refresh-token issued on one is presented on the
+// others too. Combined with apiFetch()'s existing silent-refresh-on-401,
+// this is what lets one login work across all three domains without a
+// separate cookie/session per subdomain. Production-only — undefined in dev
+// keeps the existing host-only-on-localhost behavior exactly as before (the
+// `cookie` library omits the Domain attribute entirely when this is
+// undefined, it does not send a literal "Domain=undefined"). Existing
+// cookies already in a browser aren't retroactively widened by this change;
+// they keep working host-only until they next rotate (signin, or the next
+// /auth/refresh call, whichever comes first — within 30 days at the latest).
+const REFRESH_COOKIE_DOMAIN = process.env.NODE_ENV === 'production' ? '.bardskh.com' : undefined;
+
 function setRefreshCookie(res, raw) {
   res.cookie(REFRESH_COOKIE, raw, {
     httpOnly: true,
     secure:   process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path:     '/api/auth',
+    domain:   REFRESH_COOKIE_DOMAIN,
     maxAge:   REFRESH_TTL_MS,
   });
 }
 
 function clearRefreshCookie(res) {
-  res.clearCookie(REFRESH_COOKIE, { path: '/api/auth' });
+  // Must match the Domain/Path the cookie was actually set with, or the
+  // browser treats this as a different cookie and leaves the real one in
+  // place — same reason logout wouldn't work if this drifted from setRefreshCookie() above.
+  res.clearCookie(REFRESH_COOKIE, { path: '/api/auth', domain: REFRESH_COOKIE_DOMAIN });
 }
 
 // Every login path (email, OAuth, Telegram) calls this instead of sign()
