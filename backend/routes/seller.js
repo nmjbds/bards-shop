@@ -205,6 +205,7 @@ router.get('/orders', requireAuth, requireSeller, async (req, res) => {
 
     const r = await query(
       `SELECT os.id AS order_shop_id, os.shop_id, os.subtotal AS own_subtotal,
+              os.discount AS own_discount,
               os.status, os.seller_note, os.tracking_number, os.cancelled_by, os.cancel_reason,
               o.id, o.user_id, o.subtotal, o.shipping, o.discount, o.coupon_code, o.total,
               o.address, o.payment_ref, o.qr_payload, o.expires_at, o.confirmed_at, o.pay_token,
@@ -260,6 +261,7 @@ router.get('/orders', requireAuth, requireSeller, async (req, res) => {
       customer_name: row.customer_name,
       customer_email: row.customer_email,
       own_subtotal: row.own_subtotal,
+      own_discount: row.own_discount,
       shop_id: row.shop_id,
       shop_name: row.shop_name,
     }));

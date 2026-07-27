@@ -20,7 +20,7 @@ async function attachShops(orders) {
   const orderIds = orders.map(o => o.id);
   const shopsRes = await query(
     `SELECT os.id AS order_shop_id, os.order_id, os.shop_id, os.status, os.seller_note,
-            os.tracking_number, os.cancelled_by, os.cancel_reason, os.subtotal,
+            os.tracking_number, os.cancelled_by, os.cancel_reason, os.subtotal, os.discount,
             s.name AS shop_name, s.logo AS shop_logo
      FROM order_shops os LEFT JOIN shops s ON s.id = os.shop_id
      WHERE os.order_id = ANY($1::text[])
@@ -58,6 +58,7 @@ async function attachShops(orders) {
       cancelled_by: row.cancelled_by,
       cancel_reason: row.cancel_reason,
       subtotal: row.subtotal,
+      discount: row.discount,
       items: itemsByShopRow.get(row.order_shop_id) || [],
     });
   }

@@ -360,6 +360,7 @@ function renderShopBreakdown(shops){
         <span class="sh-badge st-${st}" style="font-size:9px;flex-shrink:0;">${STATUS_LBL[st]||st}</span>
       </div>
       <div style="font-size:11px;color:var(--gray-400);margin-bottom:4px;">${items.length} item${items.length!==1?'s':''}${itemNames?' · '+escapeHtml(itemNames):''}</div>
+      ${Number(sh.discount)>0?`<div style="font-size:11px;color:#15803D;margin-bottom:2px;"><strong>Discount:</strong> -${fmtUSD(sh.discount)}</div>`:''}
       ${sh.tracking_number?`<div style="font-size:11px;color:var(--black);"><strong>Tracking:</strong> ${escapeHtml(sh.tracking_number)}</div>`:''}
       ${sh.seller_note?`<div style="font-size:11px;color:var(--gray-600);margin-top:2px;"><strong>Note:</strong> ${escapeHtml(sh.seller_note)}</div>`:''}
     </div>`;
