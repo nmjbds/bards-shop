@@ -55,6 +55,20 @@ function bardsDefaultLanding() {
   return 'account.html';
 }
 
+/* ใช้กับลิงก์ข้าม hub (View Store / Seller Hub / Admin-Shops) ในหน้า seller-*.html/
+   admin-*.html — ถ้าไม่ได้อยู่บน seller./admin. subdomain จริง (local dev, apex
+   bardskh.com, unknown host) คืน path เดิมเฉยๆ ไม่เปลี่ยนพฤติกรรมเลย (relative,
+   เหมือนก่อน multi-domain) ถ้าอยู่บน subdomain จริง คืน absolute URL ข้ามโดเมนแทน
+   กันปัญหาลิงก์ relative ที่ไปชนกับ redirect ที่ bare `/` เพิ่มไว้ตอน Step 8c
+   (ดู CLAUDE.md หัวข้อ 7 / docs/03-tasks-checklist.md Step 8d) */
+function bardsCrossHubUrl(hub, path) {
+  if (typeof location === 'undefined') return path;
+  const onRealSubdomain = location.hostname === 'seller.bardskh.com' || location.hostname === 'admin.bardskh.com';
+  if (!onRealSubdomain) return path;
+  const bases = { main: 'https://bardskh.com', seller: 'https://seller.bardskh.com', admin: 'https://admin.bardskh.com' };
+  return bases[hub] + path;
+}
+
 /* ─── normalize: แปลง DB row → format เดียวกับ static PRODUCTS ─── */
 function _normProduct(p) {
   const parseColors = v => {
