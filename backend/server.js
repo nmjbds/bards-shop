@@ -26,6 +26,28 @@ app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 const PUBLIC = path.join(__dirname, '../public');
 
+// Multi-domain (Step 8, 2026-07-27) — seller.bardskh.com and
+// admin.bardskh.com are additional Custom Domains on this exact same Render
+// Web Service (one deploy, one process, one DB connection — not separate
+// services), so there's nothing to route between at the infra level; the
+// only thing that needs to change per-domain is which page a bare `/`
+// resolves to and where signin/signup send you after logging in (step 8c).
+// req.bardsHost is detection only for now — 8a doesn't change behavior for
+// any request yet, this just makes the hostname available to later
+// middleware/routes. Exact-match on the literal production hostnames
+// (not a `startsWith('seller.')` prefix check) so a request actually has to
+// be for one of these two real subdomains, not anything that merely starts
+// with the same letters.
+function bardsHostKind(hostname) {
+  if (hostname === 'seller.bardskh.com') return 'seller';
+  if (hostname === 'admin.bardskh.com') return 'admin';
+  return 'main';
+}
+app.use((req, res, next) => {
+  req.bardsHost = bardsHostKind(req.hostname);
+  next();
+});
+
 /* Helmet — sets the usual protective headers (X-Content-Type-Options,
    X-Frame-Options, HSTS, removes X-Powered-By, etc).
    contentSecurityPolicy is OFF: the frontend is plain static HTML full of
@@ -53,6 +75,10 @@ const allowed = [
   'https://bards-shop.onrender.com',
   'https://bardskh.com',
   'https://www.bardskh.com',
+  // Multi-domain (Step 8, 2026-07-27) — seller./admin. subdomains, same
+  // Render service/deploy as the domains above, not separate services.
+  'https://seller.bardskh.com',
+  'https://admin.bardskh.com',
 ];
 app.use(cors({
   origin:(o,cb)=>(!o||allowed.includes(o))?cb(null,true):cb(new Error('CORS blocked')),
@@ -97,7 +123,11 @@ app.use('/api/categories', categoriesRouter);
 /* /api/products — handled by routes/products.js */
 
 /* ── Health ── */
-app.get('/api/health',(_,res)=>res.json({ok:true,ts:new Date().toISOString()}));
+// bardsHost included as a cheap, permanent diagnostic — once real DNS is live
+// (step 8e) this is the fastest way to confirm a subdomain is actually
+// reaching this app and being detected correctly, e.g. curl
+// https://seller.bardskh.com/api/health and check for "bardsHost":"seller".
+app.get('/api/health',(req,res)=>res.json({ok:true,ts:new Date().toISOString(),bardsHost:req.bardsHost}));
 
 /* ── Clean URLs — auto-scan PUBLIC folder ── */
 // ทุก .html ได้ clean URL อัตโนมัติ ไม่ต้องแก้เมื่อเพิ่มไฟล์ใหม่
