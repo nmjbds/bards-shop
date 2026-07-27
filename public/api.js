@@ -74,6 +74,21 @@ const Auth = {
     }
     return true;
   },
+
+  /* เหมือน isLoggedIn() แต่ถ้าไม่มี token ใน origin นี้ (เช่น เพิ่งข้ามมาจาก
+     subdomain อื่นครั้งแรก) จะลอง silent refresh จาก cookie bards_rt ที่แชร์
+     ข้ามโดเมนก่อนยอมแพ้ — ใช้แทน isLoggedIn() ในหน้าที่ auth guard ต้อง await ได้
+     (กัน user ที่ login ฝั่ง bardskh.com อยู่แล้วโดนเด้งไป signin ซ้ำตอนข้ามไป
+     seller./admin. subdomain ทั้งที่ session จริงยังไม่หมดอายุ) */
+  async ensureSession() {
+    if (this.isLoggedIn()) return true;
+    try {
+      const token = await _refreshAccessToken();
+      return !!token;
+    } catch {
+      return false;
+    }
+  },
 };
 
 /* ═══════════════════════════════════════════════════════════════

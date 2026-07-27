@@ -237,7 +237,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 let _allOrders=[], _filter='all', _search='', _page=1, _perPage=15, _currentOrder=null, _refreshTimer=null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  if (!Auth.isLoggedIn()) { location.href='/signin?redirect=/admin-orders'; return; }
+  if (!(await Auth.ensureSession())) { location.href='/signin?redirect=/admin-orders'; return; }
   try {
     const {user} = await AuthAPI.me();
     if (user.role !== 'admin') { location.href='/'; return; }

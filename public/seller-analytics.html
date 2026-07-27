@@ -171,7 +171,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 let _period=7, _lineChart, _barChart;
 
 document.addEventListener('DOMContentLoaded', async()=>{
-  if(!Auth.isLoggedIn()){location.href='signin.html';return;}
+  if(!(await Auth.ensureSession())){location.href='signin.html';return;}
   try{
     const {user}=await AuthAPI.me();
     if(!['seller','admin'].includes(user.role)){location.href='index.html';return;}

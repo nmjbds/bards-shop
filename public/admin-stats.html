@@ -183,7 +183,7 @@ let _period = 7;
 let _revenueChart, _statusChart;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  if (!Auth.isLoggedIn()) { location.href='/signin?redirect=/admin-stats'; return; }
+  if (!(await Auth.ensureSession())) { location.href='/signin?redirect=/admin-stats'; return; }
   try {
     const {user} = await AuthAPI.me();
     if (user.role !== 'admin') { location.href='/'; return; }
