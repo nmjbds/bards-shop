@@ -41,6 +41,20 @@ function safeRedirect(path) {
   return path;
 }
 
+/* Multi-domain (step 8c, 2026-07-27) — default landing page after signin/
+   signup when there's no explicit ?redirect= present, based on which of the
+   3 domains the page is being viewed from. Any page's own explicit
+   ?redirect= (passed through safeRedirect() above) always wins over this —
+   it's only the fallback when there isn't one, used by signin.html/
+   signup.html. Same login/signup mechanism and pages either way (no
+   separate signup system per domain) — just where you land afterward. */
+function bardsDefaultLanding() {
+  if (typeof location === 'undefined') return 'account.html';
+  if (location.hostname === 'seller.bardskh.com') return '/seller';
+  if (location.hostname === 'admin.bardskh.com') return '/admin-shops';
+  return 'account.html';
+}
+
 /* ─── normalize: แปลง DB row → format เดียวกับ static PRODUCTS ─── */
 function _normProduct(p) {
   const parseColors = v => {

@@ -176,7 +176,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 /* ── Auth guard ── */
 const _qs = new URLSearchParams(location.search);
 if (typeof Auth !== 'undefined' && typeof Auth.isLoggedIn === 'function' && Auth.isLoggedIn()) {
-  location.href = safeRedirect(_qs.get('redirect')) || 'account.html';
+  location.href = safeRedirect(_qs.get('redirect')) || bardsDefaultLanding();
 }
 /* Preserve ?redirect= across the "Sign in" link too */
 if (_qs.get('redirect')) {
@@ -323,7 +323,7 @@ async function handleSignUp() {
   try {
     await AuthAPI.signup((fname + ' ' + lname).trim(), email, pw);
     setLoading(false, 'success');
-    setTimeout(() => { location.href = safeRedirect(_qs.get('redirect')) || 'account.html'; }, 800);
+    setTimeout(() => { location.href = safeRedirect(_qs.get('redirect')) || bardsDefaultLanding(); }, 800);
   } catch(err) {
     setLoading(false);
     showErr(err.message || 'Could not create account. Please try again.');

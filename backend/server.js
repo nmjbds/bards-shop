@@ -104,6 +104,21 @@ app.use('/api',      rateLimit({windowMs:60*1000,   max:120,message:{error:'Too 
 if(process.env.NODE_ENV!=='production')
   app.use((req,_,next)=>{console.log(req.method,req.url);next();});
 
+// Multi-domain step 8c (2026-07-27) — bare `/` on the seller./admin.
+// subdomains lands on that dashboard instead of the customer homepage.
+// Placed before express.static() so it wins over index.html for this exact
+// path only — every other path (static assets, /seller-orders, /api/*,
+// etc.) is completely unaffected and still resolves identically no matter
+// which of the 3 domains it came in on, since it's still the same static
+// files served everywhere (see req.bardsHost above). A real redirect
+// (not serving seller.html's content silently at `/`) so the address bar,
+// bookmarks, and refresh all reflect the real page.
+app.get('/', (req, res, next) => {
+  if (req.bardsHost === 'seller') return res.redirect('/seller');
+  if (req.bardsHost === 'admin') return res.redirect('/admin-shops');
+  next();
+});
+
 /* ── Serve static files (HTML, JS, CSS, images) ── */
 app.use(express.static(PUBLIC));
 

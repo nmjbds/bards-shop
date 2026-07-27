@@ -122,7 +122,7 @@ if (new URLSearchParams(location.search).has('token')) {
 /* ── Auth guard — skip ถ้าเป็น OAuth callback ── */
 const _qs = new URLSearchParams(location.search);
 if (typeof Auth !== 'undefined' && Auth.isLoggedIn() && !_qs.has('token') && !_qs.has('error')) {
-  location.href = safeRedirect(_qs.get('redirect')) || 'account.html';
+  location.href = safeRedirect(_qs.get('redirect')) || bardsDefaultLanding();
 }
 /* Preserve ?redirect= across the "Sign up" link too */
 if (_qs.get('redirect')) {
@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       await AuthAPI.handleOAuthCallback();
       await WishlistAPI.syncOnLogin().catch(() => {});
       await Cart.syncOnLogin().catch(() => {});
-      location.href = redirect || 'account.html';
+      location.href = redirect || bardsDefaultLanding();
       /* keep the loading state up — we're navigating away */
     } catch(e) {
       document.documentElement.classList.remove('oauth-loading');
@@ -261,7 +261,7 @@ async function handleSignIn() {
     WishlistAPI.syncOnLogin().catch(() => {});
     setLoading(false, 'success');
     toast('Signed in! 👋');
-    setTimeout(() => { const p = new URLSearchParams(location.search); location.href = safeRedirect(p.get('redirect')) || 'account.html'; }, 700);
+    setTimeout(() => { const p = new URLSearchParams(location.search); location.href = safeRedirect(p.get('redirect')) || bardsDefaultLanding(); }, 700);
   } catch(e) {
     setLoading(false);
     showErr(e.message || 'Incorrect email or password.');
