@@ -9,6 +9,24 @@ const pool = new Pool({
     : false,
 });
 
+// Required by `pg`'s own docs: an idle client can be disconnected by the
+// backend at any time (Supabase's pooler recycling a connection that's sat
+// unused for a while is the common case, not an error in our own code) —
+// pg.Pool surfaces that as an 'error' event on the pool itself, and Node's
+// default behavior for an EventEmitter 'error' with no listener is to throw,
+// which crashes the whole process. Discovered 2026-07-28 while testing the
+// freshly-deployed bards-admin service: sporadic, low-traffic usage left
+// connections idle long enough to hit this, causing repeated crash/restart
+// (visible as intermittent Render "no-server" 404s even though the app code
+// itself was correct). This one listener is the fix `pg` recommends — just
+// logging and letting the pool discard the broken client, which it already
+// does automatically; no query/retry logic needed here. Affects every
+// server that requires this file (the combined service too), so fixing it
+// once here fixes it everywhere.
+pool.on('error', (err) => {
+  console.error('[PG POOL ERROR]', err.message);
+});
+
 async function query(text, params) {
   const client = await pool.connect();
   try {
