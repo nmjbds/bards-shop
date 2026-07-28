@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Categories — Bards Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#0A0A0A;--white:#FAFAFA;--gray-50:#F9F9F7;--gray-100:#F2F2F0;--gray-200:#E4E4E2;--gray-300:#C8C8C6;--gray-400:#8A8A88;--gray-600:#4A4A48;--orange:#FF4F00;--red:#C8001A;--green:#16A34A;--blue:#2563EB;--sidebar:220px;--radius:14px;--radius-sm:10px;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var(--black);display:flex;min-height:100vh;}
+.sidebar{width:var(--sidebar);background:var(--black);min-height:100vh;position:fixed;top:0;left:0;z-index:100;display:flex;flex-direction:column;}
+.sb-brand{padding:22px 18px 18px;border-bottom:1px solid rgba(255,255,255,.08);}
+.sb-brand .logo{font-family:'Bebas Neue';font-size:20px;letter-spacing:3px;color:#fff;}
+.sb-brand .sub{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.sb-nav{flex:1;padding:12px 10px;overflow-y:auto;}
+.sb-section{font-size:8.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:rgba(255,255,255,.25);padding:10px 8px 5px;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;color:rgba(255,255,255,.55);text-decoration:none;font-size:12.5px;font-weight:500;cursor:pointer;transition:all .15s;margin-bottom:1px;border:none;background:none;width:100%;text-align:left;white-space:nowrap;}
+.sb-item:hover{background:rgba(255,255,255,.07);color:#fff;}
+.sb-item.active{background:rgba(255,255,255,.13);color:#fff;}
+.sb-item svg{flex-shrink:0;}
+.sb-foot{padding:12px 10px;border-top:1px solid rgba(255,255,255,.07);}
+.sb-profile{display:flex;align-items:center;gap:9px;padding:9px 10px;background:rgba(255,255,255,.06);border-radius:9px;}
+.sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--orange);color:#fff;font-family:'Bebas Neue';font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+.sb-avatar img{width:100%;height:100%;object-fit:cover;}
+.sb-uname{font-size:11.5px;font-weight:600;color:#fff;line-height:1.2;}
+.sb-urole{font-size:9.5px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.8px;}
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;}
+.topbar{background:var(--white);border-bottom:1px solid var(--gray-200);height:58px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.page-title{font-family:'Bebas Neue';font-size:19px;letter-spacing:2px;}
+.content{padding:22px 24px;flex:1;}
+.add-btn{height:36px;padding:0 18px;background:var(--black);color:#fff;border:none;border-radius:var(--radius-sm);font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;}
+.add-btn:hover{opacity:.85;}
+
+/* Category cards */
+.cat-grid{display:flex;flex-direction:column;gap:12px;}
+.cat-card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);padding:16px 20px;display:flex;align-items:center;gap:14px;}
+.cat-card.hidden-cat{opacity:.55;}
+.cat-swatch{width:44px;height:44px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#fff;font-family:'Bebas Neue';font-size:16px;}
+.cat-swatch img{width:100%;height:100%;object-fit:cover;}
+.cat-info{flex:1;min-width:0;}
+.cat-name{font-size:14.5px;font-weight:700;}
+.cat-slug{font-size:11px;color:var(--gray-400);font-family:'DM Mono',monospace;margin-top:1px;}
+.cat-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;flex-shrink:0;}
+.b-active{background:#DCFCE7;color:var(--green);}
+.b-hidden{background:var(--gray-100);color:var(--gray-400);}
+.b-home{background:#DBEAFE;color:var(--blue);}
+.b-nohome{background:var(--gray-100);color:var(--gray-300);}
+.b-count{background:rgba(0,0,0,.06);color:var(--gray-600);}
+.cat-order{font-family:'DM Mono',monospace;font-size:10.5px;color:var(--gray-300);width:34px;text-align:center;flex-shrink:0;}
+.cat-actions{display:flex;gap:8px;flex-shrink:0;}
+.act-btn{height:32px;padding:0 14px;border-radius:var(--radius-sm);font-size:11px;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;border:1.5px solid var(--gray-200);background:var(--white);color:var(--gray-600);transition:opacity .15s;}
+.act-btn:hover{opacity:.75;}
+.act-danger{color:var(--red);border-color:var(--red);}
+
+.empty{padding:56px 20px;text-align:center;color:var(--gray-400);}
+.empty-icon{font-size:32px;margin-bottom:10px;}
+.empty-title{font-size:14px;font-weight:600;color:var(--black);}
+
+/* Modal */
+.mask{position:fixed;inset:0;background:rgba(10,10,10,.5);display:none;align-items:center;justify-content:center;z-index:500;padding:20px;}
+.mask.on{display:flex;}
+.modal{background:#fff;border-radius:16px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;padding:22px;}
+.modal-title{display:flex;align-items:center;justify-content:space-between;font-family:'Bebas Neue';font-size:18px;letter-spacing:1px;margin-bottom:16px;}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--gray-400);}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--gray-600);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
+.field input[type=text],.field input[type=number]{width:100%;height:38px;padding:0 12px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-size:13px;font-family:'Space Grotesk',sans-serif;}
+.field input:focus{outline:none;border-color:var(--black);}
+.field-hint{font-size:10.5px;color:var(--gray-400);margin-top:4px;}
+.row2{display:flex;gap:10px;}
+.row2>.field{flex:1;}
+.img-row{display:flex;gap:8px;align-items:center;}
+.img-row input{flex:1;}
+.upload-btn{height:38px;padding:0 12px;border-radius:var(--radius-sm);border:1.5px solid var(--gray-200);background:var(--white);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.color-row{display:flex;gap:8px;align-items:center;}
+.color-row input[type=color]{width:38px;height:38px;padding:0;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);cursor:pointer;}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--gray-100);}
+.toggle-row:last-of-type{border-bottom:1px solid var(--gray-100);margin-bottom:16px;}
+.toggle-row span{font-size:12.5px;font-weight:600;}
+.switch{position:relative;width:38px;height:22px;flex-shrink:0;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute;inset:0;background:var(--gray-200);border-radius:22px;cursor:pointer;transition:.15s;}
+.slider::before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s;}
+input:checked+.slider{background:var(--green);}
+input:checked+.slider::before{transform:translateX(16px);}
+.modal-actions{display:flex;gap:10px;}
+.btn{flex:1;height:42px;border-radius:var(--radius-sm);font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;border:none;}
+.btn-primary{background:var(--black);color:#fff;}
+.btn-primary:hover{opacity:.85;}
+.btn-cancel{background:var(--gray-100);color:var(--gray-600);}
+
+.toast{position:fixed;bottom:20px;right:20px;background:var(--black);color:#fff;padding:11px 16px;border-radius:10px;font-size:12.5px;font-weight:500;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;transform:translateY(4px);pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25);}
+.toast.on{opacity:1;transform:translateY(0);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .32s ease both;}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sb-brand"><div class="logo">BARDS</div><div class="sub">Admin Hub</div></div>
+  <nav class="sb-nav">
+    <div class="sb-section">Platform</div>
+    <a href="/admin-shops" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Shops</a>
+    <a href="/admin-orders" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>Orders</a>
+    <a href="/admin-stats" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Stats</a>
+    <a href="/admin-categories" class="sb-item active"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg>Categories</a>
+    <a href="/admin-customers" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Customers</a>
+    <div class="sb-section">Account</div>
+    <a href="/seller" class="sb-item" id="hubSellerLink"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Seller Hub</a>
+    <a href="/" class="sb-item" id="hubViewStoreLink"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>View Store</a>
+    <button class="sb-item" onclick="Auth.logout('/signin')"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 17H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out</button>
+  </nav>
+  <div class="sb-foot">
+    <div class="sb-profile">
+      <div class="sb-avatar" id="sbAvatar">A</div>
+      <div><div class="sb-uname" id="sbName">Loading…</div><div class="sb-urole">Admin</div></div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="page-title">Categories</div>
+    <button class="add-btn" onclick="openModal()">+ Add Category</button>
+  </div>
+  <div class="content">
+    <div class="cat-grid fu" id="catGrid"></div>
+    <div class="empty" id="emptyState" style="display:none">
+      <div class="empty-icon">🏷️</div>
+      <div class="empty-title">No categories yet</div>
+    </div>
+  </div>
+</main>
+
+<div class="mask" id="mask">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modalTitle">Add Category</span>
+      <button class="modal-close" onclick="closeMask()"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="field">
+      <label>Name</label>
+      <input type="text" id="fName" placeholder="e.g. New Arrivals" oninput="autoSlug()">
+    </div>
+    <div class="field">
+      <label>Slug</label>
+      <input type="text" id="fSlug" placeholder="e.g. new-arrivals">
+      <div class="field-hint">Lowercase letters, numbers, hyphens only. Used in URLs like /categories/new-arrivals.</div>
+    </div>
+    <div class="field">
+      <label>Image URL</label>
+      <div class="img-row">
+        <input type="text" id="fImage" placeholder="https://…">
+        <button type="button" class="upload-btn" onclick="document.getElementById('fileInput').click()">Upload</button>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleUpload(this.files)">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Color</label>
+        <div class="color-row">
+          <input type="color" id="fColorPicker" value="#2A2A2A" oninput="document.getElementById('fColor').value=this.value">
+          <input type="text" id="fColor" placeholder="#2A2A2A" oninput="syncColorPicker()">
+        </div>
+      </div>
+      <div class="field">
+        <label>Sort Order</label>
+        <input type="number" id="fSortOrder" value="0">
+      </div>
+    </div>
+    <div class="toggle-row">
+      <span>Visible in store</span>
+      <label class="switch"><input type="checkbox" id="fActive" checked><span class="slider"></span></label>
+    </div>
+    <div class="toggle-row">
+      <span>Show in filter chips/tabs</span>
+      <label class="switch"><input type="checkbox" id="fShowHome" checked><span class="slider"></span></label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeMask()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCategory()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/api.js"></script>
+<script src="/products.js"></script>
+<script>
+let _cats = [];
+let _editId = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!(await Auth.ensureSession())) { location.href = '/signin?redirect=/admin-categories'; return; }
+  try {
+    const { user } = await AuthAPI.me();
+    if (user.role !== 'admin') { location.href = bardsCrossHubUrl('main', '/'); return; }
+    document.getElementById('sbName').textContent = user.name || 'Admin';
+    const av = document.getElementById('sbAvatar');
+    if (user.avatar) { av.innerHTML = `<img src="${escapeHtml(user.avatar)}" alt="">`; }
+    else { av.textContent = (user.name || 'A')[0].toUpperCase(); }
+    document.getElementById('hubSellerLink').href = bardsCrossHubUrl('seller', '/seller');
+    document.getElementById('hubViewStoreLink').href = bardsCrossHubUrl('main', '/');
+  } catch(e) { location.href = '/signin'; return; }
+  await loadCategories();
+});
+
+async function loadCategories() {
+  try {
+    const d = await apiFetch('/categories/admin', { auth:true });
+    _cats = d.categories || [];
+  } catch(e) {
+    toast('❌ Cannot load categories: ' + e.message);
+    _cats = [];
+  }
+  renderGrid();
+}
+
+function renderGrid() {
+  const grid = document.getElementById('catGrid');
+  const empty = document.getElementById('emptyState');
+  if (!_cats.length) { grid.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = _cats.map(c => cardHTML(c)).join('');
+}
+
+function cardHTML(c) {
+  const swatch = c.image
+    ? `<img src="${escapeHtml(c.image)}" alt="">`
+    : escapeHtml((c.name || '?').trim().charAt(0).toUpperCase());
+  const swatchStyle = c.image ? '' : `background:${escapeHtml(c.color || '#2A2A2A')}`;
+  const activeBadge = c.is_active
+    ? `<span class="badge b-active">Visible</span>`
+    : `<span class="badge b-hidden">Hidden</span>`;
+  const homeBadge = c.show_on_homepage
+    ? `<span class="badge b-home">In Filters</span>`
+    : `<span class="badge b-nohome">Not in Filters</span>`;
+  const countBadge = `<span class="badge b-count">${c.product_count} product${c.product_count === 1 ? '' : 's'}</span>`;
+  return `
+<div class="cat-card${c.is_active ? '' : ' hidden-cat'}">
+  <div class="cat-swatch" style="${swatchStyle}">${swatch}</div>
+  <div class="cat-info">
+    <div class="cat-name">${escapeHtml(c.name)}</div>
+    <div class="cat-slug">/${escapeHtml(c.slug)}</div>
+    <div class="cat-badges">${activeBadge}${homeBadge}${countBadge}</div>
+  </div>
+  <div class="cat-order">#${c.sort_order}</div>
+  <div class="cat-actions">
+    <button class="act-btn" onclick="openModal('${c.id}')">Edit</button>
+    <button class="act-btn act-danger" onclick="deleteCategory('${c.id}')">Delete</button>
+  </div>
+</div>`;
+}
+
+function autoSlug() {
+  if (_editId) return; // don't clobber an existing slug on edit
+  const name = document.getElementById('fName').value;
+  document.getElementById('fSlug').value = name.trim().toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function syncColorPicker() {
+  const v = document.getElementById('fColor').value.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(v)) document.getElementById('fColorPicker').value = v;
+}
+
+function openModal(id = null) {
+  _editId = id;
+  const c = id ? _cats.find(x => x.id === id) : null;
+  document.getElementById('modalTitle').textContent = c ? 'Edit Category' : 'Add Category';
+  document.getElementById('fName').value = c?.name || '';
+  document.getElementById('fSlug').value = c?.slug || '';
+  document.getElementById('fImage').value = c?.image || '';
+  document.getElementById('fColor').value = c?.color || '#2A2A2A';
+  syncColorPicker();
+  document.getElementById('fSortOrder').value = c?.sort_order ?? 0;
+  document.getElementById('fActive').checked = c ? !!c.is_active : true;
+  document.getElementById('fShowHome').checked = c ? !!c.show_on_homepage : true;
+  document.getElementById('mask').classList.add('on');
+}
+
+function closeMask() {
+  document.getElementById('mask').classList.remove('on');
+}
+
+async function handleUpload(files) {
+  if (!files || !files.length) return;
+  const token = Auth.getToken();
+  const fd = new FormData();
+  fd.append('images', files[0]);
+  try {
+    const res = await fetch(API_BASE + '/seller/upload', {
+      method: 'POST',
+      headers: token ? { Authorization: 'Bearer ' + token } : {},
+      credentials: 'include',
+      body: fd,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    const url = (data.urls || [])[0];
+    if (url) document.getElementById('fImage').value = url;
+    toast('✓ Image uploaded');
+  } catch(e) {
+    toast('❌ ' + e.message);
+  }
+  document.getElementById('fileInput').value = '';
+}
+
+async function saveCategory() {
+  const body = {
+    name: document.getElementById('fName').value.trim(),
+    slug: document.getElementById('fSlug').value.trim(),
+    image: document.getElementById('fImage').value.trim() || null,
+    color: document.getElementById('fColor').value.trim() || null,
+    sort_order: Number(document.getElementById('fSortOrder').value) || 0,
+    is_active: document.getElementById('fActive').checked,
+    show_on_homepage: document.getElementById('fShowHome').checked,
+  };
+  if (!body.name) { toast('❌ Name is required'); return; }
+  if (!body.slug) { toast('❌ Slug is required'); return; }
+  try {
+    if (_editId) {
+      await apiFetch(`/categories/${_editId}`, { method:'PATCH', body, auth:true });
+      toast('✓ Category updated');
+    } else {
+      await apiFetch('/categories', { method:'POST', body, auth:true });
+      toast('✓ Category created');
+    }
+    closeMask();
+    await loadCategories();
+  } catch(e) {
+    toast('❌ ' + e.message);
+  }
+}
+
+async function deleteCategory(id) {
+  const c = _cats.find(x => x.id === id);
+  if (!c) return;
+  if (!confirm(`Delete "${c.name}"? This cannot be undone.`)) return;
+  try {
+    await apiFetch(`/categories/${id}`, { method:'DELETE', auth:true });
+    toast('✓ Category deleted');
+    await loadCategories();
+  } catch(e) {
+    toast('❌ ' + e.message);
+  }
+}
+
+let _tt;
+function toast(m) {
+  const t = document.getElementById('toast');
+  t.textContent = m;
+  t.classList.add('on');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => t.classList.remove('on'), 2400);
+}
+</script>
+</body>
+</html>

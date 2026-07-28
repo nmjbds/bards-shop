@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="km">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ទំនាក់ទំនង — BARDS</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Outfit:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Noto+Serif+Khmer:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0D0D0D;--paper:#FAFAF8;--white:#FFFFFF;--rule:#E2E2DE;--muted:#9A9A96;--faint:#F4F4F0;--fs-body:0.92rem;--lh:1.95;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}html{scroll-behavior:smooth;}
+body{font-family:'Noto Serif Khmer','Outfit',sans-serif;background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;}
+.top-nav{position:fixed;top:0;left:0;right:0;z-index:200;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;background:rgba(250,250,248,0.94);backdrop-filter:blur(20px);border-bottom:1px solid var(--rule);}
+.nav-brand{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:600;letter-spacing:0.38em;text-decoration:none;color:var(--ink);text-transform:uppercase;}
+.nav-right{display:flex;align-items:center;gap:20px;}
+.nav-link{font-size:0.7rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color 0.2s;}
+.nav-link:hover{color:var(--ink);}
+.lang-tag{font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.06em;color:var(--muted);padding:4px 10px;border:1px solid var(--rule);border-radius:2px;text-decoration:none;transition:all 0.2s;}
+.lang-tag:hover,.lang-tag.on{background:var(--ink);color:var(--white);border-color:var(--ink);}
+.page-wrap{padding-top:56px;}
+.hero{padding:96px 40px 72px;border-bottom:1px solid var(--rule);max-width:1100px;margin:0 auto;}
+.hero-eyebrow{font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--muted);margin-bottom:22px;display:flex;align-items:center;gap:14px;}
+.hero-eyebrow::before{content:'';display:block;width:36px;height:1px;background:var(--rule);}
+.hero-title{font-family:'Noto Serif Khmer',serif;font-size:clamp(2.4rem,5vw,3.8rem);font-weight:300;line-height:1.15;color:var(--ink);margin-bottom:24px;}
+.hero-sub{font-size:var(--fs-body);color:var(--muted);line-height:1.8;max-width:500px;}
+.main-wrap{max-width:1100px;margin:0 auto;padding:72px 40px 120px;}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;border:1px solid var(--rule);margin-bottom:80px;}
+.contact-card{padding:40px 36px;background:var(--white);display:flex;flex-direction:column;gap:20px;text-decoration:none;color:inherit;transition:background 0.2s;}
+.contact-card:hover{background:var(--faint);}
+.contact-card:first-child{border-right:1px solid var(--rule);}
+.card-eyebrow{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--muted);}
+.card-name{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,3vw,2.2rem);font-weight:300;line-height:1.1;letter-spacing:-0.01em;}
+.card-handle{font-family:'DM Mono',monospace;font-size:0.82rem;color:var(--ink);letter-spacing:0.04em;}
+.card-desc{font-size:0.84rem;color:var(--muted);line-height:1.75;margin-top:auto;}
+.card-arrow{font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;color:var(--muted);display:flex;align-items:center;gap:8px;transition:gap 0.2s;}
+.contact-card:hover .card-arrow{gap:14px;}
+.section-title{font-family:'Noto Serif Khmer',serif;font-size:clamp(1.4rem,2.5vw,1.9rem);font-weight:300;margin-bottom:40px;}
+.hours-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;border:1px solid var(--rule);margin-bottom:80px;}
+.hour-cell{padding:28px 32px;background:var(--white);}
+.hour-cell:first-child{border-right:1px solid var(--rule);}
+.hour-day{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+.hour-time{font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:300;letter-spacing:-0.01em;}
+.hour-note{font-size:0.76rem;color:var(--muted);margin-top:6px;line-height:1.6;font-family:'Noto Serif Khmer',sans-serif;}
+.status-row{display:flex;align-items:center;gap:8px;margin-bottom:24px;}
+.status-dot{width:6px;height:6px;border-radius:50%;background:#7a9e7a;animation:pulse 2.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.5;transform:scale(0.85);}}
+.status-txt{font-family:'DM Mono',monospace;font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);}
+.faq-list{border-top:1px solid var(--rule);}
+.faq-item{border-bottom:1px solid var(--rule);}
+.faq-q{width:100%;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:22px 0;background:none;border:none;cursor:pointer;text-align:left;font-family:'Noto Serif Khmer',sans-serif;font-size:0.9rem;font-weight:400;color:var(--ink);transition:color 0.2s;line-height:1.55;}
+.faq-q:hover{color:var(--muted);}
+.faq-icon{font-family:'DM Mono',monospace;font-size:1rem;font-weight:300;flex-shrink:0;transition:transform 0.25s;color:var(--muted);}
+.faq-item.open .faq-icon{transform:rotate(45deg);}
+.faq-a{font-size:0.88rem;line-height:1.85;color:#3a3a38;max-height:0;overflow:hidden;transition:max-height 0.35s ease,padding 0.3s;padding-bottom:0;font-family:'Noto Serif Khmer',sans-serif;}
+.faq-item.open .faq-a{max-height:300px;padding-bottom:22px;}
+.doc-footer{border-top:1px solid var(--rule);padding:40px;max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.footer-brand{font-family:'Cormorant Garamond',serif;font-size:0.95rem;font-weight:500;letter-spacing:0.32em;text-transform:uppercase;color:var(--muted);}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap;}
+.footer-links a{font-size:0.68rem;color:var(--muted);text-decoration:none;letter-spacing:0.06em;transition:color 0.2s;}
+.footer-links a:hover{color:var(--ink);}
+.footer-copy{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--rule);width:100%;margin-top:8px;}
+@media(max-width:768px){.top-nav{padding:0 20px;}.hero{padding:56px 24px 48px;}.main-wrap{padding:48px 24px 80px;}.contact-grid,.hours-grid{grid-template-columns:1fr;}.contact-card:first-child{border-right:none;border-bottom:1px solid var(--rule);}.hour-cell:first-child{border-right:none;border-bottom:1px solid var(--rule);}.doc-footer{padding:32px 24px;}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.fu{animation:fadeUp 0.5s ease both;}.d1{animation-delay:0.08s;}.d2{animation-delay:0.16s;}.d3{animation-delay:0.24s;}
+</style>
+</head>
+<body>
+<nav class="top-nav">
+  <a href="/" class="nav-brand">Bards</a>
+  <div class="nav-right">
+    <a href="/en/contact" class="lang-tag">EN</a>
+    <a href="/kh/contact" class="lang-tag on">ខ្មែរ</a>
+    <a href="/" class="nav-link">ហាង</a>
+  </div>
+</nav>
+
+<div class="page-wrap">
+  <div class="hero fu">
+    <div class="hero-eyebrow">ទំនាក់ទំនង</div>
+    <h1 class="hero-title">ទំនាក់ទំនង<br>យើង</h1>
+    <p class="hero-sub">យើងឆ្លើយតបនៅ Telegram ក្នុងរយៈពេលពីរបីម៉ោង។ សម្រាប់បញ្ហាផ្លូវការ Email ក៏ដំណើរការដែរ។</p>
+  </div>
+
+  <div class="main-wrap">
+
+    <div class="contact-grid fu d1">
+      <a class="contact-card" href="https://t.me/bards_official" target="_blank" rel="noopener">
+        <div class="card-eyebrow">លឿនបំផុត</div>
+        <div class="card-name">Telegram</div>
+        <div class="card-handle">@bards_official</div>
+        <div class="card-desc">សំណួរអំពីការបញ្ជាទិញ ការណែនាំទំហំ ស្ថានភាព Pre-order។ ជាធម្មតាឆ្លើយក្នុងថ្ងៃតែមួយ។</div>
+        <div class="card-arrow">បើក Telegram &nbsp;→</div>
+      </a>
+      <a class="contact-card" href="mailto:support@bardskh.com">
+        <div class="card-eyebrow">ផ្លូវការ</div>
+        <div class="card-name">Email</div>
+        <div class="card-handle">support@bardskh.com</div>
+        <div class="card-desc">ជម្លោះការបញ្ជាទិញ ការស្នើ Refund និងអ្វីៗដែលត្រូវការឯកសារ។ ឆ្លើយក្នុង ២៤–៤៨ ម៉ោង។</div>
+        <div class="card-arrow">ផ្ញើ Email &nbsp;→</div>
+      </a>
+    </div>
+
+    <div class="fu d2">
+      <h2 class="section-title">ម៉ោងឆ្លើយតប</h2>
+      <div class="status-row">
+        <div class="status-dot"></div>
+        <span class="status-txt">Currently Active</span>
+      </div>
+      <div class="hours-grid">
+        <div class="hour-cell">
+          <div class="hour-day">ច័ន្ទ – សុក្រ</div>
+          <div class="hour-time">09:00 – 20:00</div>
+          <div class="hour-note">ម៉ោងភ្នំពេញ (ICT, UTC+7)</div>
+        </div>
+        <div class="hour-cell">
+          <div class="hour-day">សៅរ៍ – អាទិត្យ</div>
+          <div class="hour-time">10:00 – 18:00</div>
+          <div class="hour-note">Telegram ត្រូវបានតាមដានក្រៅម៉ោងទាំងនេះផងដែរ</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fu d3">
+      <h2 class="section-title">សំណួរញឹកញាប់</h2>
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggle(this)">
+            Pre-order របស់ខ្ញុំចំណាយពេលប៉ុន្មាន?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-a">ទំនិញភាគច្រើនរួចរាល់ក្នុងរយៈពេល <strong>១–២ សប្ដាហ៍</strong> គិតពីថ្ងៃទូទាត់ប្រាក់។ អ្នកនឹងទទួលការជូនដំណឹង ពេលការបញ្ជាទិញត្រូវបានដឹកជញ្ជូន។ ប្រសិនបើអ្នកត្រូវការ update លឿនជាង ផ្ញើ Telegram មកយើង។</div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggle(this)">
+            តើអ្នកដឹកជញ្ជូនទៅក្រៅប្រទេសទេ?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-a">មិនទាន់ដល់ពេលនេះ។ យើងដឹកជញ្ជូន <strong>តែក្នុងប្រទេសកម្ពុជា</strong> ប៉ុណ្ណោះ។ ការដឹកជញ្ជូនអន្តរជាតិជាអ្វីដែលយើងកំពុងដំណើរការ — follow យើងដើម្បីទទួលព័ត៌មានថ្មី។</div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggle(this)">
+            តើទទួលការទូទាត់អ្វីខ្លះ?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-a">យើងទទួល <strong>KHQR ប៉ុណ្ណោះ</strong> — ប្រើបានជាមួយ ABA, Bakong, Wing និងកម្មវិធីធនាគារ KHQR-enabled ទាំងអស់។ QR Code ត្រូវបានបង្ហាញនៅ Checkout ដើម្បី Scan។</div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggle(this)">
+            ខ្ញុំអាចលុបចោលការបញ្ជាទិញបានទេ?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-a">ទំនិញទាំងអស់ត្រូវបានផលិតតាមការបញ្ជាទិញ ដូច្នេះការលុបចោលជាទូទៅមិនអាចធ្វើបានពេលការផលិតចាប់ផ្ដើម។ ប្រសិនបើអ្នកត្រូវការបន្ទាន់ ទំនាក់ទំនង Telegram <strong>@bards_official</strong> ភ្លាម — ពេលវេលាតូចណាស់។</div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggle(this)">
+            ទំនិញខ្ញុំទទួលបានខូច — ធ្វើម៉េច?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-a">យើងសូមអភ័យទោស។ ទំនាក់ទំនងយើងក្នុងរយៈពេល <strong>48 ម៉ោង</strong> ក្រោយទទួលទំនិញ ជាមួយ order ID និងរូបភាព។ យើងនឹងដោះស្រាយការជំនួស ឬ Refund។</div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-q" onclick="toggle(this)">
+            តើខ្ញុំតាមដានការបញ្ជាទិញដោយរបៀបណា?
+            <span class="faq-icon">+</span>
+          </button>
+          <div class="faq-a">ពេលការបញ្ជាទិញត្រូវបានចែកចាយ យើងនឹងផ្ញើលេខតាមដានជូន តាម Email ឬ Telegram។ អ្នកក៏អាចពិនិត្យស្ថានភាព ក្នុងទំព័រ Account នៅ bardskh.com។</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="doc-footer">
+    <div class="footer-brand">Bards</div>
+    <div class="footer-links">
+      <a href="/kh/terms">លក្ខខណ្ឌប្រើប្រាស់</a>
+      <a href="/kh/privacy">គោលការណ៍ភាពឯកជន</a>
+      <a href="/kh/refund">គោលការណ៍សងប្រាក់</a>
+    </div>
+    <div class="footer-copy">© 2026 BARDS SHOP · ភ្នំពេញ, កម្ពុជា · bardskh.com</div>
+  </footer>
+</div>
+
+<script>
+function toggle(btn) {
+  const item = btn.closest('.faq-item');
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+  if (!isOpen) item.classList.add('open');
+}
+</script>
+</body>
+</html>

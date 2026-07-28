@@ -1,0 +1,134 @@
+require('dotenv').config();
+const express   = require('express');
+const helmet    = require('helmet');
+const cors      = require('cors');
+const rateLimit = require('express-rate-limit');
+const session   = require('express-session');
+const path      = require('path');
+const fs        = require('fs');
+const { initDb } = require('./db');
+const { router: authRouter, passport } = require('./routes/auth');
+const ordersRouter   = require('./routes/orders');
+const paymentRouter  = require('./routes/payment');
+const wishlistRouter = require('./routes/wishlist');
+const addressesRouter= require('./routes/addresses');
+const couponsPublicRouter = require('./routes/couponsPublic');
+const cartRouter     = require('./routes/cart');
+const productsRouter = require('./routes/products');
+const categoriesRouter = require('./routes/categories');
+
+// ═══════════════════════════════════════════════════════════════
+// server-customer.js — Multi-domain split (2026-07-28), Phase 0/3.
+// Dedicated process for bardskh.com. Serves ONLY the customer-facing pages
+// (built into ../public-customer from ../public-shared +
+// ../public-customer-src by scripts/build-public.js) and mounts ONLY the
+// routers a shopper/account holder uses: the FULL auth.js (this is the only
+// server with signin/signup/OAuth pages — seller./admin. redirect back
+// here), orders, payment (full checkout/webhook/QR flow), wishlist,
+// addresses, cart, the public product catalog, coupon preview at checkout,
+// and categories (public GET, used by every product-listing page).
+// Deliberately NOT mounted: seller.js, shops.js, couponsSeller.js — no
+// seller/admin dashboard code exists in this process at all.
+//
+// This file does NOT touch server.js or public/ — the existing combined
+// service keeps running exactly as before until this domain is cut over
+// (Phase 3, last — after admin and seller are both live and verified).
+// ═══════════════════════════════════════════════════════════════
+
+const app  = express();
+app.set('trust proxy', 1);
+const PORT = process.env.PORT || 3000;
+const PUBLIC = path.join(__dirname, '../public-customer');
+
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+}));
+
+const allowed = [
+  process.env.FRONTEND_URL || 'http://localhost:5500',
+  'http://127.0.0.1:5500', 'http://localhost:5500',
+  'http://localhost:3000', 'http://127.0.0.1:3000',
+  'https://bardskh.com', 'https://www.bardskh.com',
+  'https://seller.bardskh.com', 'https://admin.bardskh.com',
+];
+app.use(cors({
+  origin: (o, cb) => (!o || allowed.includes(o)) ? cb(null, true) : cb(new Error('CORS blocked')),
+  credentials: true,
+}));
+
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' })); // ABA PayWay webhook may POST form-encoded
+app.use(session({
+  secret: process.env.SESSION_SECRET || process.env.JWT_SECRET || 'bards-secret',
+  resave: false, saveUninitialized: false,
+  cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 600000 },
+}));
+app.use(passport.initialize());
+app.use(passport.session());
+
+app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, max: 30, message: { error: 'Too many requests.' } }));
+app.use('/api',      rateLimit({ windowMs: 60 * 1000,      max: 120, message: { error: 'Too many requests.' } }));
+
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, _, next) => { console.log('[customer]', req.method, req.url); next(); });
+}
+
+app.use(express.static(PUBLIC));
+
+app.use('/api/auth',      authRouter);
+app.use('/api/orders',    ordersRouter);
+app.use('/api/payment',   paymentRouter);
+app.use('/api/wishlist',  wishlistRouter);
+app.use('/api/addresses', addressesRouter);
+app.use('/api/coupons',   couponsPublicRouter);
+app.use('/api/cart',      cartRouter);
+app.use('/api/products',  productsRouter);
+app.use('/api/categories', categoriesRouter);
+
+app.get('/api/health', (req, res) => res.json({ ok: true, ts: new Date().toISOString(), service: 'customer' }));
+
+// Clean URLs for every .html in public-customer/.
+try {
+  fs.readdirSync(PUBLIC)
+    .filter(f => f.endsWith('.html'))
+    .forEach(f => {
+      const route = '/' + f.replace('.html', '');
+      app.get(route, (_, res) => res.sendFile(f, { root: PUBLIC }));
+    });
+} catch (e) { console.warn('Could not scan PUBLIC folder:', e.message); }
+
+// /categories/:cat → tops.html (generic category-listing template — see
+// CLAUDE.md §10/§11). Same convention as the combined server.js.
+app.get('/categories/:cat', (_, res) => res.sendFile('tops.html', { root: PUBLIC }));
+
+// Legacy category URLs (/pants, /accessories) — same file, unchanged.
+['pants', 'accessories'].forEach(cat => {
+  app.get(`/${cat}`,      (_, res) => res.sendFile('tops.html', { root: PUBLIC }));
+  app.get(`/${cat}.html`, (_, res) => res.sendFile('tops.html', { root: PUBLIC }));
+});
+
+// /product/:id → product.html
+app.get('/product/:id', (_, res) => {
+  res.sendFile('product.html', { root: PUBLIC }, err => {
+    if (err) res.sendFile('all-products.html', { root: PUBLIC });
+  });
+});
+
+// SPA fallback — this server's audience is the whole storefront, so an
+// unmatched path still resolves to the homepage (unlike the seller/admin
+// servers, which 404 on anything outside their own pages).
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) return res.status(404).json({ error: 'Not found.' });
+  res.sendFile('index.html', { root: PUBLIC });
+});
+
+app.use((e, _, res, __) => { console.error(e); res.status(500).json({ error: 'Internal error.' }); });
+
+async function start() {
+  await initDb();
+  app.listen(PORT, () => {
+    console.log(`\nBards CUSTOMER → http://localhost:${PORT}\n`);
+  });
+}
+start().catch(e => { console.error('Start failed:', e); process.exit(1); });

@@ -68,7 +68,13 @@ const requireSeller = requireRole('seller', 'admin');
 // way. (Step 7c, 2026-07-27, briefly also accepted a legacy `{code, total}`
 // shape as a deploy-safety fallback until checkout.html was updated to send
 // `items` — step 7d did that, so the fallback was removed here.)
-router.post('/validate', async (req, res) => {
+// Extracted to named functions (2026-07-28, multi-domain split prep) so
+// routes/couponsPublic.js (customer server: just this + useHandler) and
+// routes/couponsSeller.js (seller server: the /seller CRUD group below)
+// each register the exact handler instead of a copy — routes/coupons.js
+// itself stays mounted as-is on the still-live combined service, unchanged
+// in behavior.
+async function validateHandler(req, res) {
   try {
     const { code, items } = req.body;
     if (!code) return res.status(400).json({ error: 'Coupon code is required.' });
@@ -138,12 +144,13 @@ router.post('/validate', async (req, res) => {
       }
     });
   } catch(e) { res.status(500).json({ error: 'Server error.' }); }
-});
+}
+router.post('/validate', validateHandler);
 
 // POST /api/coupons/use — increment used_count (เรียกจาก server หลัง order สร้างสำเร็จ)
 // ยังคง endpoint นี้ไว้สำหรับ backward compat แต่ไม่ควร expose ให้ client เรียกตรงๆ
 // ใน payment.js ควรเรียก incrementCouponUsage() แทน
-router.post('/use', requireAuth, async (req, res) => {
+async function useHandler(req, res) {
   try {
     const { code } = req.body;
     if (!code) return res.status(400).json({ error: 'Code required.' });
@@ -153,7 +160,8 @@ router.post('/use', requireAuth, async (req, res) => {
     );
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: 'Server error.' }); }
-});
+}
+router.post('/use', requireAuth, useHandler);
 
 // ════════════════════════════════════════
 // SELLER CRUD ROUTES (เพิ่มใหม่)
@@ -169,7 +177,7 @@ router.post('/use', requireAuth, async (req, res) => {
 // see/create/edit/delete the coupon row itself.
 
 // GET /api/coupons/seller — list coupons (seller: own shop + platform-wide only)
-router.get('/seller', requireAuth, requireSeller, async (req, res) => {
+async function sellerListHandler(req, res) {
   try {
     if (req.userRole === 'admin') {
       const r = await query('SELECT * FROM coupons ORDER BY created_at DESC');
@@ -182,7 +190,8 @@ router.get('/seller', requireAuth, requireSeller, async (req, res) => {
     );
     res.json({ coupons: r.rows });
   } catch(e) { res.status(500).json({ error: 'Server error.' }); }
-});
+}
+router.get('/seller', requireAuth, requireSeller, sellerListHandler);
 
 // POST /api/coupons/seller — create coupon. A seller's coupon always belongs
 // to their own shop (never taken from client input, never left NULL — same
@@ -190,7 +199,7 @@ router.get('/seller', requireAuth, requireSeller, async (req, res) => {
 // are platform-wide (shop_id NULL) — admin's role here is platform
 // oversight, not a specific shop, even though the account may also happen to
 // own one via the Phase-4 backfill.
-router.post('/seller', requireAuth, requireSeller, validate(couponCreateSchema), async (req, res) => {
+async function sellerCreateHandler(req, res) {
   try {
     const { code, description, type, value, min_order, usage_limit, start_date, expiry_date, active } = req.body;
     let shopId = null;
@@ -220,13 +229,14 @@ router.post('/seller', requireAuth, requireSeller, validate(couponCreateSchema),
     );
     res.status(201).json({ coupon: r.rows[0] });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
-});
+}
+router.post('/seller', requireAuth, requireSeller, validate(couponCreateSchema), sellerCreateHandler);
 
 // PATCH /api/coupons/seller/:id — update coupon (own shop + platform-wide only;
 // admin unrestricted). Cross-shop attempts get the same 404 (not 403) pattern
 // already used by routes/seller.js's product PATCH — doesn't reveal whether
 // the coupon exists at all, just belongs to someone else.
-router.patch('/seller/:id', requireAuth, requireSeller, validate(couponUpdateSchema), async (req, res) => {
+async function sellerUpdateHandler(req, res) {
   try {
     const { description, type, value, min_order, usage_limit, start_date, expiry_date, active } = req.body;
     const isAdmin = req.userRole === 'admin';
@@ -263,14 +273,15 @@ router.patch('/seller/:id', requireAuth, requireSeller, validate(couponUpdateSch
     if (!r.rows.length) return res.status(404).json({ error: 'Coupon not found.' });
     res.json({ coupon: r.rows[0] });
   } catch(e) { res.status(500).json({ error: 'Server error.' }); }
-});
+}
+router.patch('/seller/:id', requireAuth, requireSeller, validate(couponUpdateSchema), sellerUpdateHandler);
 
 // DELETE /api/coupons/seller/:id — delete coupon (own shop + platform-wide only;
 // admin unrestricted). Previously didn't check whether anything was actually
 // deleted (always returned {ok:true} even for a non-existent id) — now
 // returns 404 if nothing matched, needed to make the ownership check
 // meaningful (a cross-shop id now behaves like a not-found id, same as PATCH).
-router.delete('/seller/:id', requireAuth, requireSeller, async (req, res) => {
+async function sellerDeleteHandler(req, res) {
   try {
     const isAdmin = req.userRole === 'admin';
     let ownershipCond = '';
@@ -284,6 +295,24 @@ router.delete('/seller/:id', requireAuth, requireSeller, async (req, res) => {
     if (!r.rows.length) return res.status(404).json({ error: 'Coupon not found.' });
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: 'Server error.' }); }
-});
+}
+router.delete('/seller/:id', requireAuth, requireSeller, sellerDeleteHandler);
 
+// Additive-only exports (2026-07-28, multi-domain split prep) — everything
+// above is unchanged in behavior (routes/coupons.js stays mounted whole on
+// the still-live combined service). routes/couponsPublic.js (customer
+// server: validate/use only) and routes/couponsSeller.js (seller server:
+// the CRUD group — admin reaches these too, via the "Seller Hub" cross-hub
+// link from admin.bardskh.com, since there's no separate admin coupons
+// page) reuse these handlers plus the schemas/requireSeller gate instead of
+// redefining them.
+router.validateHandler     = validateHandler;
+router.useHandler          = useHandler;
+router.sellerListHandler   = sellerListHandler;
+router.sellerCreateHandler = sellerCreateHandler;
+router.sellerUpdateHandler = sellerUpdateHandler;
+router.sellerDeleteHandler = sellerDeleteHandler;
+router.couponCreateSchema  = couponCreateSchema;
+router.couponUpdateSchema  = couponUpdateSchema;
+router.requireSeller       = requireSeller;
 module.exports = router;

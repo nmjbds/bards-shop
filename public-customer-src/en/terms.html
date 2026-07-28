@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terms of Service — BARDS</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Outfit:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0D0D0D;--paper:#FAFAF8;--white:#FFFFFF;--rule:#E2E2DE;--muted:#9A9A96;--faint:#F4F4F0;--nav-w:240px;--fs-display:clamp(2.8rem,6vw,4.5rem);--fs-body:0.9rem;--lh:1.85;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:'Outfit',sans-serif;background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;}
+.top-nav{position:fixed;top:0;left:0;right:0;z-index:200;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;background:rgba(250,250,248,0.94);backdrop-filter:blur(20px);border-bottom:1px solid var(--rule);}
+.nav-brand{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:600;letter-spacing:0.38em;text-decoration:none;color:var(--ink);text-transform:uppercase;}
+.nav-right{display:flex;align-items:center;gap:20px;}
+.nav-link{font-size:0.7rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color 0.2s;}
+.nav-link:hover{color:var(--ink);}
+.lang-tag{font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.06em;color:var(--muted);padding:4px 10px;border:1px solid var(--rule);border-radius:2px;text-decoration:none;transition:all 0.2s;}
+.lang-tag:hover,.lang-tag.on{background:var(--ink);color:var(--white);border-color:var(--ink);}
+.page-wrap{padding-top:56px;}
+.hero{padding:96px 40px 72px;border-bottom:1px solid var(--rule);max-width:1100px;margin:0 auto;}
+.hero-eyebrow{font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--muted);margin-bottom:22px;display:flex;align-items:center;gap:14px;}
+.hero-eyebrow::before{content:'';display:block;width:36px;height:1px;background:var(--rule);}
+.hero-title{font-family:'Cormorant Garamond',serif;font-size:var(--fs-display);font-weight:300;line-height:1.0;letter-spacing:-0.01em;color:var(--ink);margin-bottom:24px;}
+.hero-meta{font-size:0.72rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.06em;}
+.doc-layout{display:grid;grid-template-columns:var(--nav-w) 1fr;max-width:1100px;margin:0 auto;}
+.side-nav{position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto;padding:48px 28px 48px 40px;border-right:1px solid var(--rule);}
+.side-nav::-webkit-scrollbar{width:0;}
+.side-label{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--rule);margin-bottom:22px;}
+.side-list{list-style:none;display:flex;flex-direction:column;gap:0;}
+.side-list li a{display:flex;align-items:baseline;gap:10px;font-size:0.76rem;font-weight:400;color:var(--muted);text-decoration:none;padding:8px 0;border-bottom:1px solid transparent;transition:color 0.18s;line-height:1.3;}
+.side-list li a:hover,.side-list li a.active{color:var(--ink);}
+.sn{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--rule);flex-shrink:0;min-width:18px;transition:color 0.18s;}
+.side-list li a:hover .sn,.side-list li a.active .sn{color:var(--muted);}
+.doc-content{padding:64px 64px 120px;}
+.doc-section{padding-bottom:72px;margin-bottom:72px;border-bottom:1px solid var(--rule);}
+.doc-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.sec-hdr{display:flex;align-items:baseline;gap:16px;margin-bottom:32px;}
+.sec-idx{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--rule);padding-top:4px;}
+.sec-title{font-family:'Cormorant Garamond',serif;font-size:clamp(1.7rem,3vw,2.3rem);font-weight:400;line-height:1.05;letter-spacing:-0.01em;}
+.body{font-size:var(--fs-body);line-height:var(--lh);color:#3a3a38;}
+.body p{margin-bottom:1.15em;}
+.body p:last-child{margin-bottom:0;}
+.body ul{list-style:none;margin:1em 0;}
+.body ul li{padding:0.55em 0 0.55em 1.3em;position:relative;border-bottom:1px solid var(--faint);font-size:var(--fs-body);line-height:1.65;}
+.body ul li::before{content:'—';position:absolute;left:0;color:var(--rule);}
+.body ul li:last-child{border-bottom:none;}
+.body strong{font-weight:600;color:var(--ink);}
+.callout{border:1px solid var(--rule);padding:24px 28px;margin:28px 0;font-size:0.84rem;line-height:1.7;color:#3a3a38;position:relative;}
+.callout::before{content:attr(data-label);position:absolute;top:-9px;left:20px;background:var(--paper);font-family:'DM Mono',monospace;font-size:0.56rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);padding:0 8px;}
+.callout.warn{border-color:#c8a96e;}.callout.warn::before{color:#c8a96e;}
+.callout.ok{border-color:#7a9e7a;}.callout.ok::before{color:#7a9e7a;}
+.doc-footer{border-top:1px solid var(--rule);padding:40px;max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.footer-brand{font-family:'Cormorant Garamond',serif;font-size:0.95rem;font-weight:500;letter-spacing:0.32em;text-transform:uppercase;color:var(--muted);}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap;}
+.footer-links a{font-size:0.68rem;color:var(--muted);text-decoration:none;letter-spacing:0.08em;transition:color 0.2s;}
+.footer-links a:hover{color:var(--ink);}
+.footer-copy{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--rule);width:100%;margin-top:8px;}
+@media(max-width:768px){.top-nav{padding:0 20px;}.hero{padding:56px 24px 48px;}.doc-layout{grid-template-columns:1fr;}.side-nav{display:none;}.doc-content{padding:40px 24px 80px;}.doc-footer{padding:32px 24px;}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.fu{animation:fadeUp 0.5s ease both;}
+.d1{animation-delay:0.08s;}.d2{animation-delay:0.16s;}
+</style>
+</head>
+<body>
+
+<nav class="top-nav">
+  <a href="/" class="nav-brand">Bards</a>
+  <div class="nav-right">
+    <a href="/en/terms" class="lang-tag on">EN</a>
+    <a href="/kh/terms" class="lang-tag">ខ្មែរ</a>
+    <a href="/" class="nav-link">Shop</a>
+    <a href="/contact" class="nav-link">Contact</a>
+  </div>
+</nav>
+
+<div class="page-wrap">
+  <div class="hero fu">
+    <div class="hero-eyebrow">Legal Documents</div>
+    <h1 class="hero-title">Terms of<br>Service</h1>
+    <div class="hero-meta">Effective 25 May 2026 &nbsp;·&nbsp; bardskh.com &nbsp;·&nbsp; Cambodia</div>
+  </div>
+
+  <div class="doc-layout">
+    <aside class="side-nav fu d1">
+      <div class="side-label">Contents</div>
+      <ul class="side-list" id="sideList">
+        <li><a href="#acceptance"><span class="sn">01</span>Acceptance</a></li>
+        <li><a href="#about"><span class="sn">02</span>About BARDS</a></li>
+        <li><a href="#preorder"><span class="sn">03</span>Pre-Order Policy</a></li>
+        <li><a href="#payments"><span class="sn">04</span>Payments</a></li>
+        <li><a href="#shipping"><span class="sn">05</span>Shipping</a></li>
+        <li><a href="#cancellations"><span class="sn">06</span>Cancellations</a></li>
+        <li><a href="#ip"><span class="sn">07</span>Intellectual Property</a></li>
+        <li><a href="#liability"><span class="sn">08</span>Liability</a></li>
+        <li><a href="#changes"><span class="sn">09</span>Changes</a></li>
+        <li><a href="#contact"><span class="sn">10</span>Contact</a></li>
+      </ul>
+    </aside>
+
+    <main class="doc-content fu d2">
+
+      <section class="doc-section" id="acceptance">
+        <div class="sec-hdr"><span class="sec-idx">01</span><h2 class="sec-title">Acceptance</h2></div>
+        <div class="body">
+          <p>By accessing or placing an order on <strong>bardskh.com</strong>, you agree to be bound by these Terms of Service. If you do not agree, please discontinue use of our website and services.</p>
+          <p>These terms apply to all visitors, users, and customers of BARDS SHOP without exception.</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="about">
+        <div class="sec-hdr"><span class="sec-idx">02</span><h2 class="sec-title">About BARDS</h2></div>
+        <div class="body">
+          <p>BARDS SHOP is a Cambodian streetwear label producing clothing and accessories — Tees, Hoodies, Pants, and limited special-drop pieces. We operate exclusively as a pre-order brand; every item is made specifically for you after your order is placed.</p>
+          <p>Product imagery is representational. Minor variations in colour and texture inherent to garment production may occur and are not considered defects.</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="preorder">
+        <div class="sec-hdr"><span class="sec-idx">03</span><h2 class="sec-title">Pre-Order Policy</h2></div>
+        <div class="body">
+          <div class="callout warn" data-label="Important">All items on bardskh.com are sold as pre-orders. Production begins only after your payment is confirmed. Please read this section carefully before purchasing.</div>
+          <ul>
+            <li>Items are <strong>made to order</strong>. No inventory is held in advance.</li>
+            <li>Estimated fulfilment time is <strong>1 to 2 weeks</strong> from the date payment clears.</li>
+            <li>Timelines are estimates. Production or logistics delays may occasionally extend this window; we will communicate any significant changes directly.</li>
+            <li>By completing a purchase, you acknowledge and accept pre-order terms in full.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="doc-section" id="payments">
+        <div class="sec-hdr"><span class="sec-idx">04</span><h2 class="sec-title">Payments</h2></div>
+        <div class="body">
+          <p>All prices are listed and charged in <strong>USD</strong>. We accept payment exclusively via <strong>KHQR</strong>, compatible with ABA Bank, Bakong, Wing, and all KHQR-enabled mobile banking applications.</p>
+          <ul>
+            <li>Full payment is required at time of order. Partial or deferred payment is not available.</li>
+            <li>Your order will not enter production until payment is confirmed by our system.</li>
+            <li>BARDS reserves the right to adjust pricing at any time. Changes do not affect orders already paid and confirmed.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="doc-section" id="shipping">
+        <div class="sec-hdr"><span class="sec-idx">05</span><h2 class="sec-title">Shipping</h2></div>
+        <div class="body">
+          <p>We currently ship <strong>within Cambodia only</strong>. International shipping is not available at this time.</p>
+          <ul>
+            <li>Once your order is ready, domestic delivery typically takes <strong>1 to 3 business days</strong> depending on your location.</li>
+            <li>A tracking reference will be provided when your order is dispatched.</li>
+            <li>Shipping fees, if applicable, are displayed at checkout prior to payment.</li>
+            <li>BARDS is not responsible for delays caused by third-party logistics providers after handover.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="doc-section" id="cancellations">
+        <div class="sec-hdr"><span class="sec-idx">06</span><h2 class="sec-title">Cancellations</h2></div>
+        <div class="body">
+          <p>Because every piece is made to order, <strong>cancellations are not accepted once production has begun</strong>. If you need to cancel before production starts, contact us immediately — the window is narrow.</p>
+          <ul>
+            <li>Pre-production cancellation requests: <strong>support@bardskh.com</strong> or Telegram <strong>@bards_official</strong>.</li>
+            <li>If BARDS is unable to fulfil your order for any reason, a full refund will be issued via bank transfer within <strong>5 to 7 business days</strong>.</li>
+            <li>We do not accept returns or exchanges for sizing errors made by the customer or change of preference.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="doc-section" id="ip">
+        <div class="sec-hdr"><span class="sec-idx">07</span><h2 class="sec-title">Intellectual Property</h2></div>
+        <div class="body">
+          <p>All content on bardskh.com — including the BARDS wordmark, logotype, garment designs, photography, and digital assets — is the exclusive intellectual property of BARDS SHOP. Nothing may be reproduced, redistributed, or used without prior written permission.</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="liability">
+        <div class="sec-hdr"><span class="sec-idx">08</span><h2 class="sec-title">Limitation of Liability</h2></div>
+        <div class="body">
+          <p>BARDS SHOP shall not be liable for indirect, incidental, or consequential damages arising from the use of our website or products. In any event, our maximum liability to a customer shall not exceed the amount paid for the relevant order.</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="changes">
+        <div class="sec-hdr"><span class="sec-idx">09</span><h2 class="sec-title">Changes to Terms</h2></div>
+        <div class="body">
+          <p>We may revise these Terms at any time. The effective date at the top of this page will be updated accordingly. Continued use of bardskh.com after changes are posted constitutes acceptance of the revised Terms.</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="contact">
+        <div class="sec-hdr"><span class="sec-idx">10</span><h2 class="sec-title">Contact</h2></div>
+        <div class="body">
+          <p>For questions regarding these Terms, reach us at:</p>
+          <ul>
+            <li><strong>Email</strong> — support@bardskh.com</li>
+            <li><strong>Telegram</strong> — @bards_official</li>
+            <li><strong>Website</strong> — bardskh.com</li>
+          </ul>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <footer class="doc-footer">
+    <div class="footer-brand">Bards</div>
+    <div class="footer-links">
+      <a href="/en/privacy">Privacy Policy</a>
+      <a href="/en/refund">Refund Policy</a>
+      <a href="/contact">Contact</a>
+    </div>
+    <div class="footer-copy">© 2026 BARDS SHOP · Phnom Penh, Cambodia · bardskh.com</div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  const sections=document.querySelectorAll('.doc-section');
+  const links=document.querySelectorAll('.side-list a');
+  if(!sections.length)return;
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        links.forEach(l=>l.classList.remove('active'));
+        const a=document.querySelector(`.side-list a[href="#${e.target.id}"]`);
+        if(a)a.classList.add('active');
+      }
+    });
+  },{rootMargin:'-15% 0px -70% 0px'});
+  sections.forEach(s=>obs.observe(s));
+})();
+</script>
+</body>
+</html>

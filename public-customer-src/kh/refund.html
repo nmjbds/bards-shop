@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="km">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>គោលការណ៍សងប្រាក់ — BARDS</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Outfit:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Noto+Serif+Khmer:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0D0D0D;--paper:#FAFAF8;--white:#FFFFFF;--rule:#E2E2DE;--muted:#9A9A96;--faint:#F4F4F0;--nav-w:240px;--fs-body:0.92rem;--lh:1.95;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}html{scroll-behavior:smooth;}
+body{font-family:'Noto Serif Khmer','Outfit',sans-serif;background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased;}
+.top-nav{position:fixed;top:0;left:0;right:0;z-index:200;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;background:rgba(250,250,248,0.94);backdrop-filter:blur(20px);border-bottom:1px solid var(--rule);}
+.nav-brand{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:600;letter-spacing:0.38em;text-decoration:none;color:var(--ink);text-transform:uppercase;}
+.nav-right{display:flex;align-items:center;gap:20px;}
+.nav-link{font-size:0.7rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color 0.2s;}
+.nav-link:hover{color:var(--ink);}
+.lang-tag{font-family:'DM Mono',monospace;font-size:0.68rem;letter-spacing:0.06em;color:var(--muted);padding:4px 10px;border:1px solid var(--rule);border-radius:2px;text-decoration:none;transition:all 0.2s;}
+.lang-tag:hover,.lang-tag.on{background:var(--ink);color:var(--white);border-color:var(--ink);}
+.page-wrap{padding-top:56px;}
+.hero{padding:96px 40px 72px;border-bottom:1px solid var(--rule);max-width:1100px;margin:0 auto;}
+.hero-eyebrow{font-family:'DM Mono',monospace;font-size:0.62rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--muted);margin-bottom:22px;display:flex;align-items:center;gap:14px;}
+.hero-eyebrow::before{content:'';display:block;width:36px;height:1px;background:var(--rule);}
+.hero-title{font-family:'Noto Serif Khmer',serif;font-size:clamp(2.2rem,5vw,3.5rem);font-weight:300;line-height:1.2;color:var(--ink);margin-bottom:24px;}
+.hero-meta{font-size:0.72rem;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.06em;}
+.doc-layout{display:grid;grid-template-columns:var(--nav-w) 1fr;max-width:1100px;margin:0 auto;}
+.side-nav{position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto;padding:48px 28px 48px 40px;border-right:1px solid var(--rule);}
+.side-nav::-webkit-scrollbar{width:0;}
+.side-label{font-family:'DM Mono',monospace;font-size:0.58rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--rule);margin-bottom:22px;}
+.side-list{list-style:none;display:flex;flex-direction:column;}
+.side-list li a{display:flex;align-items:baseline;gap:10px;font-size:0.8rem;color:var(--muted);text-decoration:none;padding:8px 0;transition:color 0.18s;line-height:1.4;font-family:'Noto Serif Khmer',sans-serif;}
+.side-list li a:hover,.side-list li a.active{color:var(--ink);}
+.sn{font-family:'DM Mono',monospace;font-size:0.58rem;color:var(--rule);flex-shrink:0;min-width:18px;transition:color 0.18s;}
+.side-list li a:hover .sn,.side-list li a.active .sn{color:var(--muted);}
+.doc-content{padding:64px 64px 120px;}
+.doc-section{padding-bottom:72px;margin-bottom:72px;border-bottom:1px solid var(--rule);}
+.doc-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.sec-hdr{display:flex;align-items:baseline;gap:16px;margin-bottom:32px;}
+.sec-idx{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--rule);padding-top:4px;}
+.sec-title{font-family:'Noto Serif Khmer',serif;font-size:clamp(1.4rem,2.6vw,1.9rem);font-weight:400;line-height:1.25;}
+.body{font-size:var(--fs-body);line-height:var(--lh);color:#3a3a38;}
+.body p{margin-bottom:1.15em;}.body p:last-child{margin-bottom:0;}
+.body ul{list-style:none;margin:1em 0;}
+.body ul li{padding:0.55em 0 0.55em 1.3em;position:relative;border-bottom:1px solid var(--faint);font-size:var(--fs-body);line-height:1.75;}
+.body ul li::before{content:'—';position:absolute;left:0;color:var(--rule);}
+.body ul li:last-child{border-bottom:none;}
+.body strong{font-weight:600;color:var(--ink);}
+.callout{border:1px solid var(--rule);padding:24px 28px;margin:28px 0;font-size:0.86rem;line-height:1.8;color:#3a3a38;position:relative;}
+.callout::before{content:attr(data-label);position:absolute;top:-9px;left:20px;background:var(--paper);font-family:'DM Mono',monospace;font-size:0.56rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);padding:0 8px;}
+.callout.warn{border-color:#c8a96e;}.callout.warn::before{color:#c8a96e;}
+.callout.ok{border-color:#7a9e7a;}.callout.ok::before{color:#7a9e7a;}
+.steps{margin:20px 0;}
+.step{display:flex;gap:20px;padding:18px 0;border-bottom:1px solid var(--faint);}
+.step:last-child{border-bottom:none;}
+.step-n{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);min-width:24px;padding-top:3px;flex-shrink:0;}
+.step-body{font-size:0.88rem;line-height:1.75;}
+.step-body strong{display:block;font-weight:600;margin-bottom:3px;font-family:'Outfit',sans-serif;}
+.doc-footer{border-top:1px solid var(--rule);padding:40px;max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+.footer-brand{font-family:'Cormorant Garamond',serif;font-size:0.95rem;font-weight:500;letter-spacing:0.32em;text-transform:uppercase;color:var(--muted);}
+.footer-links{display:flex;gap:20px;flex-wrap:wrap;}
+.footer-links a{font-size:0.68rem;color:var(--muted);text-decoration:none;letter-spacing:0.06em;transition:color 0.2s;}
+.footer-links a:hover{color:var(--ink);}
+.footer-copy{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--rule);width:100%;margin-top:8px;}
+@media(max-width:768px){.top-nav{padding:0 20px;}.hero{padding:56px 24px 48px;}.doc-layout{grid-template-columns:1fr;}.side-nav{display:none;}.doc-content{padding:40px 24px 80px;}.doc-footer{padding:32px 24px;}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.fu{animation:fadeUp 0.5s ease both;}.d1{animation-delay:0.08s;}.d2{animation-delay:0.16s;}
+</style>
+</head>
+<body>
+<nav class="top-nav">
+  <a href="/" class="nav-brand">Bards</a>
+  <div class="nav-right">
+    <a href="/en/refund" class="lang-tag">EN</a>
+    <a href="/kh/refund" class="lang-tag on">ខ្មែរ</a>
+    <a href="/" class="nav-link">ហាង</a>
+    <a href="/contact" class="nav-link">ទំនាក់ទំនង</a>
+  </div>
+</nav>
+<div class="page-wrap">
+  <div class="hero fu">
+    <div class="hero-eyebrow">ឯកសារច្បាប់</div>
+    <h1 class="hero-title">គោលការណ៍<br>សងប្រាក់</h1>
+    <div class="hero-meta">ចូលជាធរមាន ២៥ ឧសភា ២០២៦ &nbsp;·&nbsp; bardskh.com</div>
+  </div>
+  <div class="doc-layout">
+    <aside class="side-nav fu d1">
+      <div class="side-label">មាតិកា</div>
+      <ul class="side-list">
+        <li><a href="#kr-overview"><span class="sn">០១</span>ទិដ្ឋភាពទូទៅ</a></li>
+        <li><a href="#kr-noreturns"><span class="sn">០២</span>គ្មានការប្រគល់</a></li>
+        <li><a href="#kr-eligible"><span class="sn">០៣</span>ករណីសងប្រាក់</a></li>
+        <li><a href="#kr-defective"><span class="sn">០៤</span>ទំនិញខូច</a></li>
+        <li><a href="#kr-process"><span class="sn">០៥</span>របៀបស្នើសុំ</a></li>
+        <li><a href="#kr-timeline"><span class="sn">០៦</span>ពេលវេលា</a></li>
+        <li><a href="#kr-contact"><span class="sn">០៧</span>ទំនាក់ទំនង</a></li>
+      </ul>
+    </aside>
+    <main class="doc-content fu d2">
+
+      <section class="doc-section" id="kr-overview">
+        <div class="sec-hdr"><span class="sec-idx">០១</span><h2 class="sec-title">ទិដ្ឋភាពទូទៅ</h2></div>
+        <div class="body">
+          <p>BARDS piece ទุกชิ้น ត្រូវបានផលិតជា Pre-order — ផលិតជាពិសេសសម្រាប់អ្នក ក្រោយការបញ្ជាក់ការទូទាត់។ ដោយសារការផលិតចាប់ផ្ដើមភ្លាម លក្ខខណ្ឌ Refund និងការប្រគល់ទំនិញត្រូវបានកំណត់យ៉ាងតឹងរ៉ឹងខាងក្រោម។</p>
+          <p>យើងសូមអ្នកអានគោលការណ៍នេះទាំងស្រុង មុនពេលបញ្ចប់ការទិញ។</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="kr-noreturns">
+        <div class="sec-hdr"><span class="sec-idx">០២</span><h2 class="sec-title">គ្មានការប្រគល់</h2></div>
+        <div class="body">
+          <div class="callout warn" data-label="សូមកត់សម្គាល់">ការលក់ទាំងអស់គ្មានការប្រគល់ ពេលការទូទាត់ត្រូវបានបញ្ជាក់ ហើយការផលិតចាប់ផ្ដើម។ ករណីខាងក្រោមមិនមែនជាហេតុផលត្រឹមត្រូវ​ សម្រាប់ការប្រគល់ ឬ Refund ឡើយ។</div>
+          <ul>
+            <li>ការផ្លាស់ចិត្តក្រោយការទូទាត់</li>
+            <li>អតិថិជនជ្រើសរើសទំហំខុស</li>
+            <li>ការផ្លាស់ប្ដូរចំណង់ចំណូលចិត្តពណ៌ ឬការរចនា</li>
+            <li>ការដឹកជញ្ជូនក្នុងពេលវេលាផលិតកម្មដែលបានប្រកាស</li>
+            <li>ភាពខុសគ្នាបន្តិចបន្តួចក្នុងវាយនភាព ឬស្រម័យ ដែលធម្មតាក្នុងការផលិតសម្លៀកបំពាក់</li>
+          </ul>
+          <p>យើងណែនាំអ្នកឱ្យពិចារណា Size Guide មុនការបញ្ជាទិញ។ ប្រសិនបើអ្នកមានការសង្ស័យ ទំនាក់ទំនងយើង <strong>មុន</strong> ការទិញ — មិនមែនក្រោយ។</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="kr-eligible">
+        <div class="sec-hdr"><span class="sec-idx">០៣</span><h2 class="sec-title">ករណីដែលយើងសងប្រាក់</h2></div>
+        <div class="body">
+          <div class="callout ok" data-label="មានសិទ្ធិ Refund">យើងនឹងសងប្រាក់ពេញ តែក្នុងករណីខាងក្រោមប៉ុណ្ណោះ។</div>
+          <ul>
+            <li>BARDS មិនអាចបំពេញការបញ្ជាទិញ ដោយហេតុផលណាមួយ</li>
+            <li>ទំនិញដែលទទួលបានខូចខាត ដោយសារកំហុសក្នុងការផលិត</li>
+            <li> បានផ្ញើទំនិញខុសទៅឱ្យអ្នក</li>
+            <li>ការពន្យារពេលផលិតកម្មយ៉ាងខ្លាំង លើស ៤ សប្ដាហ៍ ដោយគ្មានការជូនដំណឹងជាមុន</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="doc-section" id="kr-defective">
+        <div class="sec-hdr"><span class="sec-idx">០៤</span><h2 class="sec-title">ទំនិញខូច ឬខុស</h2></div>
+        <div class="body">
+          <p>ប្រសិនបើអ្នកទទួលបានទំនិញដែលមានកំហុសផលិតកម្ម — ការcouture, ការបោះពុម្ព ឬបញ្ហារចនាសម្ព័ន្ធ — ឬបានទទួលទំនិញខុស អ្នកមានសិទ្ធិទទួលការជំនួសពេញ ឬ Refund។</p>
+          <ul>
+            <li>ទំនាក់ទំនងយើងក្នុងរយៈពេល <strong>48 ម៉ោង</strong> ក្រោយទទួលទំនិញ</li>
+            <li>ផ្ដល់ <strong>លេខបញ្ជាទិញ</strong> និងរូបភាពច្បាស់នៃការខូចខាត ឬទំនិញខុស</li>
+            <li>ទំនិញត្រូវតែ unworn ក្នុងស្ថានភាពដើម</li>
+          </ul>
+          <p>ការទាមទារក្រោយ 48 ម៉ោង អាចនឹងមិនមានសិទ្ធិទទួលការដោះស្រាយ។</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="kr-process">
+        <div class="sec-hdr"><span class="sec-idx">០៥</span><h2 class="sec-title">របៀបស្នើសុំ</h2></div>
+        <div class="body">
+          <div class="steps">
+            <div class="step"><div class="step-n">០១</div><div class="step-body"><strong>ទំនាក់ទំនង</strong>Email support@bardskh.com ឬ @bards_official នៅ Telegram។ ដាក់បញ្ចូល order ID និងការពិពណ៌នាខ្លីអំពីបញ្ហា។</div></div>
+            <div class="step"><div class="step-n">០២</div><div class="step-body"><strong>ផ្ដល់ភស្ដុតាង</strong>ភ្ជាប់រូបភាពច្បាស់នៃការខូចខាត ឬទំនិញខុស។ ព័ត៌មានលម្អិតកាន់តែច្រើន យើងអាចដំណើរការកាន់តែលឿន។</div></div>
+            <div class="step"><div class="step-n">០៣</div><div class="step-body"><strong>យើងពិនិត្យ</strong>ក្រុមការងារនឹងឆ្លើយតបក្នុងរយៈពេល ១–២ ថ្ងៃធ្វើការ ជាមួយការសម្រេចចិត្ត និងជំហានបន្ទាប់។</div></div>
+            <div class="step"><div class="step-n">០៤</div><div class="step-body"><strong>លទ្ធផល</strong>នៅពេលមានសិទ្ធិ យើងនឹងផ្ញើការជំនួស ឬដំណើរការ Refund តាម KHQR bank transfer។</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="doc-section" id="kr-timeline">
+        <div class="sec-hdr"><span class="sec-idx">០៦</span><h2 class="sec-title">ពេលវេលា Refund</h2></div>
+        <div class="body">
+          <p>ការ Refund ដែលបានអនុម័តត្រូវបានដំណើរការតាម <strong>KHQR / ABA bank transfer</strong> ក្នុងរយៈពេល <strong>៥ ទៅ ៧ ថ្ងៃធ្វើការ</strong> ក្រោយការអនុម័ត។ យើងនឹងផ្ញើការបញ្ជាក់ប្រតិបត្តិការ ពេលការផ្ទេរបានបញ្ចប់។</p>
+        </div>
+      </section>
+
+      <section class="doc-section" id="kr-contact">
+        <div class="sec-hdr"><span class="sec-idx">០៧</span><h2 class="sec-title">ទំនាក់ទំនង</h2></div>
+        <div class="body">
+          <ul>
+            <li><strong>អ៊ីមែល</strong> — support@bardskh.com</li>
+            <li><strong>Telegram</strong> — @bards_official</li>
+            <li><strong>គេហទំព័រ</strong> — bardskh.com</li>
+          </ul>
+        </div>
+      </section>
+
+    </main>
+  </div>
+  <footer class="doc-footer">
+    <div class="footer-brand">Bards</div>
+    <div class="footer-links">
+      <a href="/kh/terms">លក្ខខណ្ឌប្រើប្រាស់</a>
+      <a href="/kh/privacy">គោលការណ៍ភាពឯកជន</a>
+      <a href="/contact">ទំនាក់ទំនង</a>
+    </div>
+    <div class="footer-copy">© 2026 BARDS SHOP · ភ្នំពេញ, កម្ពុជា · bardskh.com</div>
+  </footer>
+</div>
+<script>(function(){const ss=document.querySelectorAll('.doc-section'),ll=document.querySelectorAll('.side-list a');if(!ss.length)return;const ob=new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting){ll.forEach(a=>a.classList.remove('active'));const a=document.querySelector(`.side-list a[href="#${x.target.id}"]`);if(a)a.classList.add('active');}});},{rootMargin:'-15% 0px -70% 0px'});ss.forEach(s=>ob.observe(s));})();</script>
+</body></html>

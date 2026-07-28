@@ -393,8 +393,15 @@ router.post('/link/:orderId/confirm', async (req, res) => {
 // check-transaction-2 call to ABA PayWay via settleOrderPayment(). Only the
 // order's owner or a seller/admin may trigger the check; the result always
 // comes from ABA, never from req.body.
+// Extracted to a named function (2026-07-28, multi-domain split prep) — the
+// seller/admin dashboards' "CHECK PAYMENT STATUS" button calls this exact
+// route too (seller-orders.html/admin-orders.html's quickConfirm), so
+// routes/paymentConfirm.js — the thin router mounted at /api/payment on the
+// seller./admin. servers, which don't carry the rest of payment.js's
+// checkout/webhook/QR code — registers this same handler instead of a
+// second copy. Behavior unchanged.
 // ══════════════════════════════════════════════
-router.post('/confirm/:orderId', requireAuth, async (req, res) => {
+async function confirmHandler(req, res) {
   try {
     const { orderId } = req.params;
     const orderRes = await query('SELECT user_id FROM orders WHERE id=$1', [orderId]);
@@ -418,7 +425,8 @@ router.post('/confirm/:orderId', requireAuth, async (req, res) => {
     console.error('[CONFIRM ERROR]', e.message);
     res.status(500).json({ error: 'Server error.' });
   }
-});
+}
+router.post('/confirm/:orderId', requireAuth, confirmHandler);
 
 // ══════════════════════════════════════════════
 // POST /api/payment/webhook — ABA PayWay calls this on its own when a
@@ -494,4 +502,11 @@ router.get('/verify/:orderId', requireAuth, async (req, res) => {
   res.json({ status: o.status, orderId: o.id, total: o.total });
 });
 
+// Additive-only export (2026-07-28, multi-domain split prep) — everything
+// above is unchanged in behavior; server.js's existing
+// `const paymentRouter = require('./routes/payment')` usage is a plain
+// require of the router function, and attaching an extra property to a
+// function object doesn't change how it's used as router middleware, so
+// this is safe for the still-live combined service too.
+router.confirmHandler = confirmHandler;
 module.exports = router;
