@@ -32,12 +32,35 @@ function escapeHtml(str) {
   }[c]));
 }
 
-/* only allow same-site relative paths as a post-login redirect target —
-   blocks open-redirect via a crafted ?redirect=https://evil.com or //evil.com */
+/* Only allow same-site relative paths, or an absolute URL to one of our own
+   known hosts, as a post-login redirect target — blocks open-redirect via a
+   crafted ?redirect=https://evil.com or //evil.com. The absolute-URL
+   allowance was added 2026-07-28 for the multi-domain split: a signed-out
+   visitor on admin.bardskh.com (no signin page of its own there anymore,
+   now that it's a dedicated server) is bounced HERE to sign in, then needs
+   to land back on admin.bardskh.com afterward — that redirect target is a
+   full cross-origin URL, which the old version of this function rejected
+   outright. This file (public/products.js) is what bardskh.com/signin
+   actually loads until the customer server itself is split out in Phase 3
+   — public-shared/products.js has the same fix for the new split servers.
+   Keep both in sync until this file is retired in the Phase 4 cleanup. */
+const BARDS_SAFE_REDIRECT_ORIGINS = new Set([
+  'https://bardskh.com', 'https://www.bardskh.com',
+  'https://seller.bardskh.com', 'https://admin.bardskh.com',
+  'https://bards-shop.onrender.com',
+  'https://bards-customer.onrender.com',
+  'https://bards-seller.onrender.com',
+  'https://bards-admin.onrender.com',
+]);
 function safeRedirect(path) {
   if (!path || typeof path !== 'string') return null;
   if (path.startsWith('//')) return null;
-  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(path)) return null;
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(path)) {
+    try {
+      const u = new URL(path);
+      return (u.protocol === 'https:' && BARDS_SAFE_REDIRECT_ORIGINS.has(u.origin)) ? path : null;
+    } catch { return null; }
+  }
   return path;
 }
 
