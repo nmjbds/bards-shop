@@ -12,11 +12,33 @@ const router = express.Router();
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
-// Only allow same-site relative paths as an OAuth post-login redirect target —
-// blocks open-redirect via a crafted ?redirect=https://evil.com or //evil.com.
+// Only allow same-site relative paths, or an absolute URL to one of our own
+// known hosts, as an OAuth post-login redirect target — blocks
+// open-redirect via a crafted ?redirect=https://evil.com or //evil.com.
+// The absolute-URL allowance was added for the multi-domain split
+// (2026-07-28): a signed-out visitor on seller.bardskh.com/admin.bardskh.com
+// is bounced here to sign in, then needs to land back on THEIR origin, not
+// this one, so ?redirect=/state carries a full cross-origin URL in that
+// case. Keep BARDS_SAFE_REDIRECT_ORIGINS in sync with the matching list in
+// public-shared/products.js's safeRedirect() (same purpose, browser side).
+const BARDS_SAFE_REDIRECT_ORIGINS = new Set([
+  'https://bardskh.com', 'https://www.bardskh.com',
+  'https://seller.bardskh.com', 'https://admin.bardskh.com',
+  'https://bards-shop.onrender.com',
+  'https://bards-customer.onrender.com',
+  'https://bards-seller.onrender.com',
+  'https://bards-admin.onrender.com',
+]);
 function isSafeRedirectPath(p) {
-  return typeof p === 'string' && p.length > 0 && p.length < 500
-    && !p.startsWith('//') && !/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(p);
+  if (typeof p !== 'string' || !p.length || p.length >= 500) return false;
+  if (p.startsWith('//')) return false;
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(p)) {
+    try {
+      const u = new URL(p);
+      return u.protocol === 'https:' && BARDS_SAFE_REDIRECT_ORIGINS.has(u.origin);
+    } catch { return false; }
+  }
+  return true;
 }
 
 // ── Validation schemas ──────────────────────────────────────────

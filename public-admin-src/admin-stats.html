@@ -97,7 +97,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
     <div class="sb-section">Account</div>
     <a href="/seller" class="sb-item" id="hubSellerLink"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Seller Hub</a>
     <a href="/" class="sb-item" id="hubViewStoreLink"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>View Store</a>
-    <button class="sb-item" onclick="Auth.logout('/signin')"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 17H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out</button>
+    <button class="sb-item" onclick="Auth.logout()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 17H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out</button>
   </nav>
   <div class="sb-foot">
     <div class="sb-profile">
@@ -183,7 +183,7 @@ let _period = 7;
 let _revenueChart, _statusChart;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  if (!(await Auth.ensureSession())) { location.href='/signin?redirect=/admin-stats'; return; }
+  if (!(await Auth.ensureSession())) { location.href=bardsSigninUrl('/admin-stats'); return; }
   try {
     const {user} = await AuthAPI.me();
     if (user.role !== 'admin') { location.href=bardsCrossHubUrl('main', '/'); return; }
@@ -192,7 +192,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(user.avatar){av.innerHTML=`<img src="${escapeHtml(user.avatar)}" alt="">`;} else {av.textContent=(user.name||'A')[0].toUpperCase();}
     document.getElementById('hubSellerLink').href = bardsCrossHubUrl('seller', '/seller');
     document.getElementById('hubViewStoreLink').href = bardsCrossHubUrl('main', '/');
-  } catch(e){location.href='/signin';return;}
+  } catch(e){location.href=bardsSigninUrl();return;}
   loadStats();
 });
 

@@ -32,12 +32,63 @@ function escapeHtml(str) {
   }[c]));
 }
 
-/* only allow same-site relative paths as a post-login redirect target —
-   blocks open-redirect via a crafted ?redirect=https://evil.com or //evil.com */
+/* Multi-domain split (2026-07-28) — hostnames known to be served by their
+   own dedicated seller/admin server (real production subdomains, plus the
+   temporary Render URLs used to test each one before its domain is cut
+   over — see the multi-domain split plan). Every function below that needs
+   to know "am I on seller/admin, and if so where's home base" reads from
+   this one table — add a new temp URL here (not scattered across
+   functions) the moment a new bards-* Render service is created for
+   testing. Anything NOT in this table is treated as "has its own signin
+   page" (the customer server, or local dev on the old combined server) —
+   the safe default. */
+const BARDS_HUB_BY_HOST = {
+  'seller.bardskh.com':        'seller',
+  'admin.bardskh.com':         'admin',
+  'bards-seller.onrender.com': 'seller',
+  'bards-admin.onrender.com':  'admin',
+};
+const BARDS_HUB_BASE = {
+  main:   'https://bardskh.com',
+  seller: 'https://seller.bardskh.com',
+  admin:  'https://admin.bardskh.com',
+};
+function _bardsCurrentHub() {
+  if (typeof location === 'undefined') return null;
+  return BARDS_HUB_BY_HOST[location.hostname] || null;
+}
+
+/* Every https:// origin our own redirect flows are ever allowed to point
+   at — used by safeRedirect() below to allow a cross-domain ?redirect=
+   (needed for the seller/admin → bardskh.com/signin → back round trip,
+   since those two servers have no signin page of their own) while still
+   rejecting a real open-redirect attempt to an outside domain. Keep this
+   in sync with the matching list in backend/routes/auth.js's
+   isSafeRedirectPath() (same purpose, server side — used for the Google
+   OAuth ?redirect=/state round trip). */
+const BARDS_SAFE_REDIRECT_ORIGINS = new Set([
+  'https://bardskh.com', 'https://www.bardskh.com',
+  'https://seller.bardskh.com', 'https://admin.bardskh.com',
+  'https://bards-shop.onrender.com',
+  'https://bards-customer.onrender.com',
+  'https://bards-seller.onrender.com',
+  'https://bards-admin.onrender.com',
+]);
+
+/* Only allow same-site relative paths, or an absolute URL to one of our own
+   known hosts (BARDS_SAFE_REDIRECT_ORIGINS above), as a post-login redirect
+   target — blocks open-redirect via a crafted ?redirect=https://evil.com or
+   //evil.com. The absolute-URL allowance was added for the multi-domain
+   split (2026-07-28) — see bardsSigninUrl() below for why one is needed. */
 function safeRedirect(path) {
   if (!path || typeof path !== 'string') return null;
   if (path.startsWith('//')) return null;
-  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(path)) return null;
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(path)) {
+    try {
+      const u = new URL(path);
+      return (u.protocol === 'https:' && BARDS_SAFE_REDIRECT_ORIGINS.has(u.origin)) ? path : null;
+    } catch { return null; }
+  }
   return path;
 }
 
@@ -49,9 +100,9 @@ function safeRedirect(path) {
    signup.html. Same login/signup mechanism and pages either way (no
    separate signup system per domain) — just where you land afterward. */
 function bardsDefaultLanding() {
-  if (typeof location === 'undefined') return 'account.html';
-  if (location.hostname === 'seller.bardskh.com') return '/seller';
-  if (location.hostname === 'admin.bardskh.com') return '/admin-shops';
+  const hub = _bardsCurrentHub();
+  if (hub === 'seller') return '/seller';
+  if (hub === 'admin')  return '/admin-shops';
   return 'account.html';
 }
 
@@ -62,11 +113,31 @@ function bardsDefaultLanding() {
    กันปัญหาลิงก์ relative ที่ไปชนกับ redirect ที่ bare `/` เพิ่มไว้ตอน Step 8c
    (ดู CLAUDE.md หัวข้อ 7 / docs/03-tasks-checklist.md Step 8d) */
 function bardsCrossHubUrl(hub, path) {
-  if (typeof location === 'undefined') return path;
-  const onRealSubdomain = location.hostname === 'seller.bardskh.com' || location.hostname === 'admin.bardskh.com';
-  if (!onRealSubdomain) return path;
-  const bases = { main: 'https://bardskh.com', seller: 'https://seller.bardskh.com', admin: 'https://admin.bardskh.com' };
-  return bases[hub] + path;
+  if (!_bardsCurrentHub()) return path;
+  return BARDS_HUB_BASE[hub] + path;
+}
+
+/* Multi-domain split (2026-07-28) — every seller-*.html/admin-*.html page's
+   "not signed in" guard calls this instead of hardcoding a relative
+   '/signin' path. Those two servers have no signin/signup pages of their
+   own (see backend/server-seller.js / server-admin.js) — a signed-out
+   visitor there needs an absolute URL to the customer server's real signin
+   page, with `redirect` itself turned into a full URL BACK to this origin
+   (not just a path), so the round trip lands back on the right server
+   instead of on bardskh.com itself. Found via a real test: the old
+   hardcoded `location.href='/signin?redirect=/admin-shops'` 404'd the
+   moment admin.bardskh.com (and its temp Render URL) stopped being the same
+   process as the customer pages. On the customer server (or local dev on
+   the old combined server), this is unchanged — a plain relative
+   'signin.html'. */
+function bardsSigninUrl(redirectPath) {
+  if (!_bardsCurrentHub()) {
+    return redirectPath ? `signin.html?redirect=${encodeURIComponent(redirectPath)}` : 'signin.html';
+  }
+  const backTo = redirectPath ? location.origin + redirectPath : null;
+  return backTo
+    ? `${BARDS_HUB_BASE.main}/signin?redirect=${encodeURIComponent(backTo)}`
+    : `${BARDS_HUB_BASE.main}/signin`;
 }
 
 /* ─── normalize: แปลง DB row → format เดียวกับ static PRODUCTS ─── */

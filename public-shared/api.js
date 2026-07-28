@@ -58,18 +58,33 @@ const Auth = {
     localStorage.removeItem(this.USER_KEY);
   },
 
-  logout(to = '/signin') {
+  // `to` left undefined (not defaulted to a hardcoded '/signin') so the
+  // multi-domain-aware fallback below only kicks in when a caller doesn't
+  // pass one — every onclick="Auth.logout('/signin')" /
+  // Auth.logout('signin.html') call site across seller-*.html/admin-*.html
+  // was updated (2026-07-28) to just Auth.logout() with no argument, so
+  // this default is what actually runs there now; account.html's explicit
+  // Auth.logout('signin.html') calls are untouched and still work exactly
+  // as before (customer server always has its own signin.html).
+  logout(to) {
     // Best-effort — revoke the refresh cookie server-side. Fire-and-forget
     // so every existing onclick="Auth.logout(...)" call site keeps working
     // without needing to become async.
     fetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     this.clearSession();
-    if (typeof location !== 'undefined') location.href = to;
+    const target = to || (typeof bardsSigninUrl === 'function' ? bardsSigninUrl() : '/signin');
+    if (typeof location !== 'undefined') location.href = target;
   },
 
+  // Unused elsewhere in the codebase currently (no page calls this), but
+  // fixed alongside logout()/ensureSession() for the same reason: a
+  // hardcoded '/signin' 404s on the seller/admin servers, which have no
+  // signin page of their own.
   require() {
     if (!this.isLoggedIn()) {
-      location.href = '/signin?redirect=' + encodeURIComponent(location.href);
+      location.href = (typeof bardsSigninUrl === 'function')
+        ? bardsSigninUrl(location.pathname + location.search)
+        : '/signin?redirect=' + encodeURIComponent(location.href);
       return false;
     }
     return true;
