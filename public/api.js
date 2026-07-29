@@ -88,9 +88,16 @@ const Auth = {
 
   logout(to = '/signin') {
     // Best-effort — revoke the refresh cookie server-side. Fire-and-forget
-    // so every existing onclick="Auth.logout(...)" call site keeps working
-    // without needing to become async.
-    fetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+    // (keepalive:true, not awaited) so every existing
+    // onclick="Auth.logout(...)" call site keeps working without needing
+    // to become async — but keepalive matters here specifically: the very
+    // next line navigates away (location.href), and a plain fetch with no
+    // keepalive flag can be silently cancelled mid-flight by that
+    // navigation, meaning the server never actually revokes the refresh
+    // token (found 2026-07-29 while debugging a "logout doesn't fully
+    // stick" report during multi-domain testing — same fix applied to
+    // public-shared/api.js).
+    fetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include', keepalive: true }).catch(() => {});
     this.clearSession();
     if (typeof location !== 'undefined') location.href = to;
   },
