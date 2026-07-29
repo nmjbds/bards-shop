@@ -40,7 +40,35 @@ const Auth = {
 
   getToken()  { return localStorage.getItem(this.TOKEN_KEY); },
   getUser()   { try { return JSON.parse(localStorage.getItem(this.USER_KEY) || 'null'); } catch { return null; } },
-  isLoggedIn(){ return !!this.getToken(); },
+
+  // Presence AND expiry (2026-07-28, multi-domain split debugging) — a
+  // token sitting in localStorage past its 15-minute lifetime used to still
+  // count as "logged in" here, since this only ever checked presence. That
+  // self-healed invisibly almost everywhere else: the first authenticated
+  // apiFetch() call gets a 401, silently refreshes, and retries. But
+  // signin.html's "already signed in, skip the form" shortcut calls this
+  // directly and immediately navigates on a true result — no apiFetch
+  // round trip in between to catch a dead token. Combined with the
+  // multi-domain split's cross-origin signin redirect (bardsSigninUrl()),
+  // a stale token on bardskh.com and a stale token on admin.bardskh.com
+  // could each trust the other's bounce and loop indefinitely — reported
+  // and reproduced 2026-07-29. Decoding the JWT payload here only reads
+  // its `exp` claim for this UX shortcut; it's never a substitute for real
+  // signature verification, which the server still does on every request.
+  isLoggedIn(){
+    const t = this.getToken();
+    if (!t) return false;
+    const exp = this._tokenExpiry(t);
+    return exp === null || exp > Date.now();
+  },
+  _tokenExpiry(token) {
+    try {
+      const payload = token.split('.')[1];
+      const b64 = payload.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - payload.length % 4) % 4);
+      const json = JSON.parse(atob(b64));
+      return typeof json.exp === 'number' ? json.exp * 1000 : null;
+    } catch { return null; } // malformed/undecodable — let the server be the judge, same as before
+  },
 
   /* เวอร์ชันเก่า (backward-compat) */
   setToken(t) { localStorage.setItem(this.TOKEN_KEY, t); },
