@@ -121,7 +121,16 @@ if (new URLSearchParams(location.search).has('token')) {
 <script>
 /* ── Auth guard — skip ถ้าเป็น OAuth callback ── */
 const _qs = new URLSearchParams(location.search);
-if (typeof Auth !== 'undefined' && Auth.isLoggedIn() && !_qs.has('token') && !_qs.has('error')) {
+if (_qs.has('loggedout')) {
+  /* Just arrived via an explicit logout elsewhere (2026-07-29, multi-domain
+     debugging) — possibly from a different domain (e.g. admin.bardskh.com),
+     which can only clear ITS OWN localStorage, not this origin's. A token
+     stored here from an earlier sign-in is still technically valid for up
+     to 15 minutes and would otherwise make the check below auto-bounce
+     right back to where the user just explicitly logged out from — clear
+     it too instead of trusting it, and fall through to show the form. */
+  if (typeof Auth !== 'undefined') Auth.clearSession();
+} else if (typeof Auth !== 'undefined' && Auth.isLoggedIn() && !_qs.has('token') && !_qs.has('error')) {
   location.href = safeRedirect(_qs.get('redirect')) || bardsDefaultLanding();
 }
 /* Preserve ?redirect= across the "Sign up" link too */

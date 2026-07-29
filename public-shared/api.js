@@ -107,7 +107,19 @@ const Auth = {
     // "logout doesn't fully stick" report during multi-domain testing).
     fetch(API_BASE + '/auth/logout', { method: 'POST', credentials: 'include', keepalive: true }).catch(() => {});
     this.clearSession();
-    const target = to || (typeof bardsSigninUrl === 'function' ? bardsSigninUrl() : '/signin');
+    let target = to || (typeof bardsSigninUrl === 'function' ? bardsSigninUrl() : '/signin');
+    // Cross-domain logout gap (found 2026-07-29): clearSession() above only
+    // clears THIS origin's localStorage. Logging out on admin.bardskh.com
+    // does nothing to a still-unexpired token sitting in bardskh.com's own
+    // localStorage from an earlier sign-in there — so landing on
+    // bardskh.com/signin (via bardsSigninUrl() above) would find that
+    // stale-but-valid token, believe it's still logged in, and immediately
+    // bounce right back, which can loop against the destination's own "not
+    // signed in" guard. Only added when `to` wasn't explicitly passed (the
+    // multi-domain redirect path) — account.html's same-origin
+    // Auth.logout('signin.html') never had this problem since
+    // clearSession() already covers that single origin.
+    if (!to) target += (target.includes('?') ? '&' : '?') + 'loggedout=1';
     if (typeof location !== 'undefined') location.href = target;
   },
 
