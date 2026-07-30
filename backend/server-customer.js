@@ -51,6 +51,19 @@ const allowed = [
   'http://localhost:3000', 'http://127.0.0.1:3000',
   'https://bardskh.com', 'https://www.bardskh.com',
   'https://seller.bardskh.com', 'https://admin.bardskh.com',
+  // Temporary Render URLs, used to test each split server before its real
+  // domain is cut over (multi-domain split, Phase 1-3) — a credentialed
+  // fetch() from a page loaded on e.g. bards-customer.onrender.com sends
+  // that as its Origin header, which the cors package rejects with a
+  // thrown 'CORS blocked' error (surfacing as a bare "Internal error." to
+  // the browser) if it's not in this list. Missed initially because
+  // admin/seller both had their real custom domain attached before any
+  // credentialed fetch was tested on the temp URL — found 2026-07-30 while
+  // testing sign-in on bards-customer.onrender.com pre-cutover.
+  'https://bards-shop.onrender.com',
+  'https://bards-customer.onrender.com',
+  'https://bards-seller.onrender.com',
+  'https://bards-admin.onrender.com',
 ];
 app.use(cors({
   origin: (o, cb) => (!o || allowed.includes(o)) ? cb(null, true) : cb(new Error('CORS blocked')),
