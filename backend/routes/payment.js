@@ -445,12 +445,21 @@ router.post('/confirm/:orderId', requireAuth, confirmHandler);
 router.post('/webhook', async (req, res) => {
   const tranId = req.body?.tran_id || req.body?.tranId
     || req.body?.data?.tran_id || req.body?.data?.tranId;
+  // Unconditional arrival log (2026-07-31) — the success path below used to
+  // log nothing at all, which made "no [WEBHOOK] lines in the logs"
+  // ambiguous between "ABA never called this" and "ABA called it and it
+  // just worked silently." Needed to answer that definitively while
+  // verifying the multi-domain cutover's return_url (built from
+  // API_PUBLIC_URL, sent fresh per-transaction — not a fixed URL
+  // registered on ABA's side) actually reaches this server post-cutover.
+  console.log('[WEBHOOK] received, tran_id=', tranId || '(none)');
   if (!tranId) {
     console.error('[WEBHOOK] No tran_id found in payload:', JSON.stringify(req.body).slice(0, 500));
     return res.status(200).json({ received: true });
   }
   try {
     await settleOrderPayment(tranId);
+    console.log('[WEBHOOK] settleOrderPayment done for', tranId);
   } catch(e) {
     console.error('[WEBHOOK ERROR]', e.message);
   }
