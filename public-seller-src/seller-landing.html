@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sell on Bards — Partner With Us</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#0A0A0A;--white:#FAFAFA;--gray-50:#F9F9F7;--gray-100:#F2F2F0;--gray-200:#E4E4E2;--gray-300:#C8C8C6;--gray-400:#8A8A88;--gray-600:#4A4A48;--orange:#FF4F00;--red:#C8001A;--green:#16A34A;--radius:14px;--radius-sm:10px;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{scroll-behavior:smooth;}
+body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--black);line-height:1.5;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px;}
+a{color:inherit;}
+
+/* ── Nav ── */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;max-width:1080px;margin:0 auto;}
+.nav .brand{font-family:'Bebas Neue';font-size:22px;letter-spacing:4px;text-decoration:none;color:var(--black);}
+.nav-links{display:flex;align-items:center;gap:20px;}
+.nav-signin{font-size:12.5px;font-weight:600;text-decoration:none;color:var(--gray-600);}
+.nav-signin:hover{color:var(--black);}
+.nav-cta{height:38px;padding:0 18px;background:var(--black);color:#fff;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.5px;display:flex;align-items:center;text-decoration:none;}
+.nav-cta:hover{background:var(--orange);}
+
+/* ── Hero ── */
+.hero{background:var(--black);color:var(--white);padding:64px 24px 72px;text-align:center;}
+.hero-eyebrow{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--orange);font-weight:700;margin-bottom:14px;}
+.hero h1{font-family:'Bebas Neue';font-size:clamp(40px,8vw,72px);letter-spacing:3px;line-height:1.05;margin-bottom:18px;}
+.hero p{font-size:15px;color:rgba(255,255,255,.65);max-width:520px;margin:0 auto 30px;}
+.btn{display:inline-flex;align-items:center;gap:8px;height:52px;padding:0 30px;border-radius:var(--radius-sm);font-family:'Bebas Neue';font-size:17px;letter-spacing:2px;text-decoration:none;border:none;cursor:pointer;transition:transform .12s,opacity .18s;}
+.btn:active{transform:scale(.98);}
+.btn-primary{background:var(--orange);color:#fff;}
+.btn-primary:hover{opacity:.9;}
+
+/* ── Section shell ── */
+.section{padding:64px 24px;}
+.section-head{text-align:center;max-width:560px;margin:0 auto 40px;}
+.section-eyebrow{font-size:10.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--gray-400);font-weight:700;margin-bottom:10px;}
+.section h2{font-family:'Bebas Neue';font-size:clamp(26px,4vw,34px);letter-spacing:1.5px;margin-bottom:10px;}
+.section-sub{font-size:13.5px;color:var(--gray-600);}
+
+/* ── Value prop cards ── */
+.value-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:1080px;margin:0 auto;}
+.value-card{border:1.5px solid var(--gray-200);border-radius:var(--radius);padding:24px 20px;}
+.value-icon{width:38px;height:38px;border-radius:10px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:18px;}
+.value-title{font-size:14px;font-weight:700;margin-bottom:6px;}
+.value-body{font-size:12.5px;color:var(--gray-600);line-height:1.55;}
+
+/* ── Categories ── */
+.cat-section{background:var(--gray-50);}
+.cat-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:760px;margin:0 auto;}
+.cat-chip{height:34px;padding:0 16px;border-radius:20px;background:var(--white);border:1.5px solid var(--gray-200);font-size:12px;font-weight:600;display:flex;align-items:center;}
+
+/* ── Fees ── */
+.fees-card{max-width:640px;margin:0 auto;text-align:center;border:1.5px solid var(--gray-200);border-radius:var(--radius);padding:36px 30px;}
+.fees-card p{font-size:13.5px;color:var(--gray-600);line-height:1.7;}
+
+/* ── How it works ── */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:900px;margin:0 auto;}
+.step{text-align:center;}
+.step-n{width:40px;height:40px;border-radius:50%;background:var(--black);color:#fff;font-family:'Bebas Neue';font-size:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;}
+.step-title{font-size:14px;font-weight:700;margin-bottom:6px;}
+.step-body{font-size:12.5px;color:var(--gray-600);line-height:1.55;}
+
+/* ── Contact ── */
+.contact-section{background:var(--black);color:#fff;text-align:center;}
+.contact-section .section-sub{color:rgba(255,255,255,.55);}
+.contact-links{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:8px;}
+.contact-link{display:flex;align-items:center;gap:9px;height:46px;padding:0 20px;border:1.5px solid rgba(255,255,255,.18);border-radius:24px;text-decoration:none;color:#fff;font-size:13px;font-weight:600;transition:border-color .15s,background .15s;}
+.contact-link:hover{border-color:#fff;background:rgba(255,255,255,.06);}
+
+/* ── Final CTA ── */
+.final-cta{text-align:center;padding:70px 24px;}
+.final-cta h2{font-family:'Bebas Neue';font-size:clamp(28px,5vw,40px);letter-spacing:1.5px;margin-bottom:20px;}
+
+/* ── Footer ── */
+.footer{border-top:1px solid var(--gray-200);padding:26px 24px;display:flex;align-items:center;justify-content:space-between;max-width:1080px;margin:0 auto;font-size:11.5px;color:var(--gray-400);flex-wrap:wrap;gap:10px;}
+.footer a{text-decoration:none;color:var(--gray-400);margin-left:16px;}
+.footer a:hover{color:var(--black);}
+
+@media (max-width: 860px){
+  .value-grid{grid-template-columns:repeat(2,1fr);}
+  .steps{grid-template-columns:1fr;gap:32px;}
+}
+@media (max-width: 520px){
+  .value-grid{grid-template-columns:1fr;}
+  .nav-signin{display:none;}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="https://bardskh.com" class="brand">BARDS</a>
+  <div class="nav-links">
+    <a href="#" id="signinLink" class="nav-signin">Already applied? Sign in</a>
+    <a href="/apply" class="nav-cta">Start Selling</a>
+  </div>
+</nav>
+
+<!-- ══════ Hero ══════ -->
+<section class="hero">
+  <div class="hero-eyebrow">BARDS PARTNERS</div>
+  <h1>SELL ON<br>BARDS</h1>
+  <p>Cambodia's streetwear marketplace. Reach shoppers who are already browsing — no storefront to build, no ads to buy.</p>
+  <a href="/apply" class="btn btn-primary">Start Selling →</a>
+</section>
+
+<!-- ══════ Why Sell on Bards ══════ -->
+<section class="section">
+  <div class="section-head">
+    <div class="section-eyebrow">Why Bards</div>
+    <h2>Built for Sellers</h2>
+  </div>
+  <div class="value-grid">
+    <div class="value-card">
+      <div class="value-icon">👥</div>
+      <div class="value-title">Built-in Audience</div>
+      <div class="value-body">Your products show up to customers already shopping on bardskh.com. No separate marketing to get discovered.</div>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">🎛️</div>
+      <div class="value-title">You're in Control</div>
+      <div class="value-body">Manage your own products, pricing, and stock from your own seller dashboard.</div>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">🔒</div>
+      <div class="value-title">We Handle Payments</div>
+      <div class="value-body">Secure checkout via ABA PayWay. You never touch payment infrastructure.</div>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">💸</div>
+      <div class="value-title">Fast Payouts</div>
+      <div class="value-body">Get paid straight to your bank account — ABA, ACLEDA, Wing, or Chip Mong.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ Categories ══════ -->
+<section class="section cat-section">
+  <div class="section-head">
+    <div class="section-eyebrow">Product Categories</div>
+    <h2>What You Can Sell</h2>
+    <div class="section-sub">Streetwear, accessories, and more.</div>
+  </div>
+  <div class="cat-chips" id="catChips">
+    <div class="cat-chip">Loading categories…</div>
+  </div>
+</section>
+
+<!-- ══════ Fees ══════ -->
+<section class="section">
+  <div class="section-head">
+    <div class="section-eyebrow">Pricing</div>
+    <h2>Simple, Competitive Fees</h2>
+  </div>
+  <div class="fees-card">
+    <p>We charge a competitive commission per sale — no monthly fees, no listing fees. Exact rates depend on your category and volume. Reach out to our partner team and we'll walk you through the details.</p>
+  </div>
+</section>
+
+<!-- ══════ How It Works ══════ -->
+<section class="section cat-section">
+  <div class="section-head">
+    <div class="section-eyebrow">Getting Started</div>
+    <h2>How It Works</h2>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-n">1</div>
+      <div class="step-title">Apply</div>
+      <div class="step-body">Tell us about your business. Takes a few minutes.</div>
+    </div>
+    <div class="step">
+      <div class="step-n">2</div>
+      <div class="step-title">Get Approved</div>
+      <div class="step-body">Our team reviews your application.</div>
+    </div>
+    <div class="step">
+      <div class="step-n">3</div>
+      <div class="step-title">Start Selling</div>
+      <div class="step-body">List your first product and go live.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ Contact ══════ -->
+<section class="section contact-section">
+  <div class="section-head">
+    <div class="section-eyebrow">Get In Touch</div>
+    <h2>Questions Before You Apply?</h2>
+    <div class="section-sub">Talk to our partner team any time.</div>
+  </div>
+  <div class="contact-links">
+    <a class="contact-link" href="https://t.me/bards_official" target="_blank" rel="noopener">
+      <svg width="16" height="16" viewBox="0 0 240 240"><circle cx="120" cy="120" r="120" fill="#2AABEE"/><path fill="#fff" d="M180.5 72.3 158 179.2c-1.7 7.6-6.2 9.5-12.5 5.9l-34.6-25.5-16.7 16.1c-1.8 1.8-3.4 3.4-6.9 3.4l2.5-35.1 63.9-57.7c2.8-2.5-.6-3.9-4.3-1.4L69 138.6l-34.3-10.7c-7.5-2.3-7.6-7.5 1.6-11.1l134-51.7c6.2-2.3 11.7 1.5 9.7 11.2z"/></svg>
+      @bards_official
+    </a>
+    <a class="contact-link" href="mailto:support@bardskh.com">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      support@bardskh.com
+    </a>
+  </div>
+</section>
+
+<!-- ══════ Final CTA ══════ -->
+<section class="final-cta">
+  <h2>Ready to grow with Bards?</h2>
+  <a href="/apply" class="btn btn-primary">Start Selling →</a>
+</section>
+
+<footer class="footer">
+  <div>© <span id="year"></span> Bards</div>
+  <div>
+    <a href="https://bardskh.com">bardskh.com</a>
+    <a href="https://bardskh.com/en/terms.html">Terms</a>
+    <a href="https://bardskh.com/en/privacy.html">Privacy</a>
+  </div>
+</footer>
+
+<script src="products.js"></script>
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
+// bardsSigninUrl() (public-shared/products.js) — this server has no signin
+// page of its own (see backend/server-seller.js's header comment), so the
+// link has to point cross-domain at the customer server's real signin page.
+document.getElementById('signinLink').href = bardsSigninUrl('/seller');
+
+// Live categories — same GET /api/categories every other catalog page uses.
+// Falls back to leaving the "Loading…" chip out entirely rather than
+// erroring — this is marketing copy, not a functional catalog listing.
+(async () => {
+  try {
+    const cats = await CategoriesAPI.fetch();
+    const el = document.getElementById('catChips');
+    if (!cats.length) { el.innerHTML = ''; return; }
+    el.innerHTML = cats.map(c => `<div class="cat-chip">${escapeHtml(c.name)}</div>`).join('');
+  } catch(e) {
+    document.getElementById('catChips').innerHTML = '';
+  }
+})();
+</script>
+</body>
+</html>

@@ -92,8 +92,15 @@ if (process.env.NODE_ENV !== 'production') {
   app.use((req, _, next) => { console.log('[seller]', req.method, req.url); next(); });
 }
 
-// Bare `/` always lands on the seller dashboard.
-app.get('/', (_, res) => res.redirect('/seller'));
+// Bare `/` (revised 2026-08-01, seller onboarding plan change) — no longer
+// redirects straight to the /seller dashboard. It's now a public
+// partner-facing landing page (seller-landing.html, built from
+// public-seller-src same as everything else here) explaining why to sell
+// on Bards, with its own "Start Selling" CTA to /apply. Someone landing
+// here has no account yet — redirecting into the dashboard first would
+// just bounce them straight back out via its own auth guard. Served
+// directly (not a redirect) so the URL bar stays at the bare domain.
+app.get('/', (_, res) => res.sendFile('seller-landing.html', { root: PUBLIC }));
 
 app.use(express.static(PUBLIC));
 
