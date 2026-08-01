@@ -67,31 +67,14 @@ const changePasswordSchema = z.object({
 // exposed to any logged-in user — avatars aren't seller-only, so this can't
 // reuse seller.js's requireSeller-gated /upload route.
 let _avatarUploadReady = false;
-let multer, S3Client, PutObjectCommand;
+let multer, PutObjectCommand, getR2Client;
 try {
   multer           = require('multer');
-  const s3mod      = require('@aws-sdk/client-s3');
-  S3Client         = s3mod.S3Client;
-  PutObjectCommand = s3mod.PutObjectCommand;
+  PutObjectCommand = require('@aws-sdk/client-s3').PutObjectCommand;
+  getR2Client      = require('../services/r2').getR2Client;
   _avatarUploadReady = true;
 } catch(e) {
   console.warn('[R2] Missing packages — avatar upload disabled. Run: npm install @aws-sdk/client-s3 multer');
-}
-
-function getR2Client() {
-  const https = require('https');
-  const { NodeHttpHandler } = require('@smithy/node-http-handler');
-  return new S3Client({
-    region: 'auto',
-    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    credentials: {
-      accessKeyId:     process.env.R2_ACCESS_KEY_ID,
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-    },
-    requestHandler: new NodeHttpHandler({
-      httpsAgent: new https.Agent({ secureProtocol: 'TLSv1_2_method', rejectUnauthorized: true }),
-    }),
-  });
 }
 
 // Single-file, image-only, 3MB max (matches the client-side check in account.html)

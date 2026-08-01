@@ -45,6 +45,15 @@ const productUpdateSchema = z.object({
   is_new:    z.boolean().optional(),
   is_active: z.boolean().optional(),
 });
+// Seller Onboarding Blueprint (2026-07-31) — admin approve/reject for a
+// product sitting at review_status='pending_review'. Only these two
+// outcomes: a product that needs changes just gets rejected with the
+// seller expected to edit + it goes back to pending_review naturally via
+// the next PATCH (no separate "needs_info" state for products, unlike shops).
+const productReviewSchema = z.object({
+  review_status: z.enum(['approved', 'rejected']),
+});
+
 const orderUpdateSchema = z.object({
   status:          z.string().max(50).optional(),
   seller_note:     z.string().trim().max(2000).optional().nullable(),
@@ -78,34 +87,14 @@ function secretMatches(provided, expected) {
 //   R2_PUBLIC_URL=https://cdn.bardskh.com   ← domain CDN ของคุณ
 // ─────────────────────────────────────────────────────────────
 let _uploadReady = false;
-let multer, S3Client, PutObjectCommand;
+let multer, PutObjectCommand, getR2Client;
 try {
-  multer        = require('multer');
-  const s3mod   = require('@aws-sdk/client-s3');
-  S3Client      = s3mod.S3Client;
-  PutObjectCommand = s3mod.PutObjectCommand;
+  multer            = require('multer');
+  PutObjectCommand  = require('@aws-sdk/client-s3').PutObjectCommand;
+  getR2Client       = require('../services/r2').getR2Client;
   _uploadReady  = true;
 } catch(e) {
   console.warn('[R2] Missing packages — upload disabled. Run: npm install @aws-sdk/client-s3 multer');
-}
-
-function getR2Client() {
-  const https = require('https');
-  const { NodeHttpHandler } = require('@smithy/node-http-handler');
-  return new S3Client({
-    region: 'auto',
-    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    credentials: {
-      accessKeyId:     process.env.R2_ACCESS_KEY_ID,
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-    },
-    requestHandler: new NodeHttpHandler({
-      httpsAgent: new https.Agent({
-        secureProtocol: 'TLSv1_2_method',
-        rejectUnauthorized: true,
-      }),
-    }),
-  });
 }
 
 // multer: รับไฟล์ใน memory (ไม่บันทึก disk) จำกัด 10MB ต่อไฟล์, max 17 ไฟล์
@@ -661,15 +650,35 @@ router.get('/stats', requireAuth, requireSeller, async (req, res) => {
 // ── GET /api/seller/products ── list products — admin sees everything
 // (platform oversight), seller sees only their own shop's products. A
 // seller with no approved shop yet just sees an empty list, not an error.
+// ?review_status= (Seller Onboarding Blueprint, 2026-07-31) lets either side
+// filter into pending_review/approved/rejected tabs.
 router.get('/products', requireAuth, requireSeller, async (req, res) => {
   try {
+    const reviewStatus = req.query.review_status || null;
+    if (reviewStatus && !['pending_review', 'approved', 'rejected'].includes(reviewStatus)) {
+      return res.status(400).json({ error: 'Invalid review_status.' });
+    }
     if (req.userRole === 'admin') {
-      const r = await query(`SELECT * FROM products ORDER BY created_at DESC`);
+      // LEFT JOIN shops for shop_name (2026-07-31, product review UI needs
+      // to show which shop a pending product belongs to, not just its raw
+      // shop_id) — LEFT not INNER since shop_id is nullable on products.
+      const r = reviewStatus
+        ? await query(
+            `SELECT p.*, s.name AS shop_name FROM products p LEFT JOIN shops s ON s.id = p.shop_id
+             WHERE p.review_status=$1 ORDER BY p.created_at DESC`,
+            [reviewStatus]
+          )
+        : await query(
+            `SELECT p.*, s.name AS shop_name FROM products p LEFT JOIN shops s ON s.id = p.shop_id
+             ORDER BY p.created_at DESC`
+          );
       return res.json({ products: r.rows });
     }
     const shopId = await getOwnApprovedShop(req.user.id);
     if (!shopId) return res.json({ products: [] });
-    const r = await query(`SELECT * FROM products WHERE shop_id=$1 ORDER BY created_at DESC`, [shopId]);
+    const r = reviewStatus
+      ? await query(`SELECT * FROM products WHERE shop_id=$1 AND review_status=$2 ORDER BY created_at DESC`, [shopId, reviewStatus])
+      : await query(`SELECT * FROM products WHERE shop_id=$1 ORDER BY created_at DESC`, [shopId]);
     res.json({ products: r.rows });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
@@ -678,6 +687,15 @@ router.get('/products', requireAuth, requireSeller, async (req, res) => {
 // caller's own approved shop (never a client-supplied shop_id). Applies to
 // admins too, since every product needs a shop; admins get one via the
 // Phase-4-Step-1 backfill so this doesn't block existing usage.
+// Seller Onboarding Blueprint (2026-07-31): is_active/review_status are no
+// longer settable by the client at create time (client's `is_active` field
+// is accepted for backward compat but ignored here — see productCreateSchema)
+// — a new product from a seller starts is_active=false, review_status=
+// 'pending_review' unless the shop has auto_approve_products=true, in which
+// case it's live immediately (review_status='approved', reviewed_by stays
+// NULL — nobody actually reviewed it, the shop's track record did). Admins
+// creating directly always publish immediately; the review gate exists for
+// unreviewed sellers, not platform staff.
 router.post('/products', requireAuth, requireSeller, validate(productCreateSchema), async (req, res) => {
   try {
     const shopId = await getOwnApprovedShop(req.user.id);
@@ -685,8 +703,17 @@ router.post('/products', requireAuth, requireSeller, validate(productCreateSchem
 
     const {
       name, description, price, sale_price,
-      category, images, colors, sizes, stock, is_new, is_active
+      category, images, colors, sizes, stock, is_new
     } = req.body;
+
+    let isActive, reviewStatus;
+    if (req.userRole === 'admin') {
+      isActive = true; reviewStatus = 'approved';
+    } else {
+      const shopRow = await query('SELECT auto_approve_products FROM shops WHERE id=$1', [shopId]);
+      const autoApprove = shopRow.rows[0]?.auto_approve_products === true;
+      isActive = autoApprove; reviewStatus = autoApprove ? 'approved' : 'pending_review';
+    }
 
     // parse ถ้า client ส่งมาเป็น JSON string แล้ว stringify กลับ
     // เพื่อให้ pg ส่งเป็น JSON string เข้า column json/jsonb ได้ถูกต้อง
@@ -709,8 +736,8 @@ router.post('/products', requireAuth, requireSeller, validate(productCreateSchem
 
     const r = await query(
       `INSERT INTO products
-         (id, name, description, price, sale_price, category, category_id, images, colors, sizes, stock, is_new, is_active, shop_id)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+         (id, name, description, price, sale_price, category, category_id, images, colors, sizes, stock, is_new, is_active, shop_id, review_status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
        RETURNING *`,
       [
         newId,
@@ -725,8 +752,9 @@ router.post('/products', requireAuth, requireSeller, validate(productCreateSchem
         parseArr(sizes),
         stock != null ? parseInt(stock) : null,
         is_new === true,
-        is_active !== false,
+        isActive,
         shopId,
+        reviewStatus,
       ]
     );
     res.status(201).json({ product: r.rows[0] });
@@ -770,6 +798,18 @@ router.patch('/products/:id', requireAuth, requireSeller, validate(productUpdate
     if (is_new      !== undefined) { updates.push(`is_new=$${idx++}`);      params.push(!!is_new); }
     if (is_active   !== undefined) { updates.push(`is_active=$${idx++}`);   params.push(!!is_active); }
 
+    // A seller editing a rejected product counts as an implicit resubmit —
+    // there's no separate "resubmit" action for products the way shops have
+    // POST /me/resubmit, so re-entering the review queue happens on the next
+    // edit instead. Only for the seller path; admin edits never touch
+    // review_status (they already have full authority over it via the
+    // dedicated /review endpoint below).
+    if (updates.length && req.userRole !== 'admin') {
+      updates.push(`review_status = CASE WHEN review_status='rejected' THEN 'pending_review' ELSE review_status END`);
+      updates.push(`reviewed_by    = CASE WHEN review_status='rejected' THEN NULL ELSE reviewed_by END`);
+      updates.push(`reviewed_at    = CASE WHEN review_status='rejected' THEN NULL ELSE reviewed_at END`);
+    }
+
     if (!updates.length) return res.status(400).json({ error: 'No fields to update.' });
 
     params.push(req.params.id);
@@ -796,6 +836,28 @@ router.delete('/products/:id', requireAuth, requireSeller, async (req, res) => {
       await query('DELETE FROM products WHERE id=$1 AND shop_id=$2', [req.params.id, shopId]);
     }
     res.json({ ok: true });
+  } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
+});
+
+// ── POST /api/seller/products/:id/review ── admin-only: approve or reject a
+// product sitting in the review queue (review_status='pending_review',
+// though this works from any current status — no same-status guard, since
+// re-approving/re-rejecting is harmless idempotent overwrite here, unlike
+// shops' status transitions which have real side effects like the role flip).
+// Approving flips is_active=true (goes live); rejecting sets is_active=false
+// (stays hidden — the seller sees it land in their "Rejected" tab via
+// GET /products?review_status=rejected and can edit it, which re-queues it —
+// see PATCH /products/:id above).
+router.post('/products/:id/review', requireAuth, requireRole('admin'), validate(productReviewSchema), async (req, res) => {
+  try {
+    const { review_status } = req.body;
+    const r = await query(
+      `UPDATE products SET review_status=$1, is_active=$2, reviewed_by=$3, reviewed_at=NOW()
+       WHERE id=$4 RETURNING *`,
+      [review_status, review_status === 'approved', req.user.id, req.params.id]
+    );
+    if (!r.rows.length) return res.status(404).json({ error: 'Product not found.' });
+    res.json({ product: r.rows[0] });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
 

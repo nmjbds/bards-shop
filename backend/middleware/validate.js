@@ -22,10 +22,11 @@ function validate(schema, source = 'body') {
 // from the already-validated mimetype instead of the client-controlled
 // original filename, which could otherwise inject arbitrary characters.
 const MIME_EXT = {
-  'image/jpeg': 'jpg',
-  'image/png':  'png',
-  'image/webp': 'webp',
-  'image/gif':  'gif',
+  'image/jpeg':      'jpg',
+  'image/png':       'png',
+  'image/webp':      'webp',
+  'image/gif':       'gif',
+  'application/pdf': 'pdf', // seller_documents (ID card/business license/tax doc) accepts PDF too
 };
 
 module.exports = { validate, MIME_EXT };

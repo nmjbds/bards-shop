@@ -459,6 +459,72 @@ async function initDb() {
         AND id NOT IN (SELECT owner_user_id FROM shops)
       ON CONFLICT (owner_user_id) DO NOTHING;
 
+      -- Seller Onboarding Blueprint (2026-07-31, docs/05-seller-onboarding-
+      -- blueprint.md) — extends the existing shops table instead of adding
+      -- separate seller_applications/sellers tables: shops.id is already
+      -- what products/order_shops/coupons reference everywhere, so the
+      -- application *is* the shop row from the moment someone applies, not
+      -- a separate pre-approval record that gets promoted later. All
+      -- columns nullable — every shop row that predates this has none of it.
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS business_type         TEXT; -- 'individual' | 'business' — TEXT, no CHECK, same convention as role/status everywhere else
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS full_name             TEXT;
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS phone                 TEXT;
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS country               TEXT;
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS province              TEXT;
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS address               TEXT;
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS store_slug            TEXT;
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS cover_url             TEXT;
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS category_id           UUID REFERENCES categories(id); -- shop-level category — separate concept from products.category_id
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS bank_name             TEXT; -- 'ABA' | 'ACLEDA' | 'Wing' | 'Chip Mong'
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS bank_account_name     TEXT;
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS bank_account_number   TEXT;
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS currency              TEXT; -- 'KHR' | 'USD'
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS rejection_reason      TEXT;
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS info_requested_note   TEXT;
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS onboarding_checklist  JSONB NOT NULL DEFAULT '{}';
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS auto_approve_products BOOLEAN NOT NULL DEFAULT false;
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS submitted_at          TIMESTAMPTZ;
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS reviewed_at           TIMESTAMPTZ;
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS reviewed_by           UUID REFERENCES users(id);
+      -- Minimal shipping/return-address info (blueprint §9's "out of scope,
+      -- do a low-effort version" item) — one plain-text field covers both the
+      -- "shipping" and "return_address" onboarding checklist keys for now;
+      -- no separate warehouse/courier tables until that's actually designed.
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS return_address        TEXT;
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_shops_store_slug ON shops(store_slug) WHERE store_slug IS NOT NULL;
+      -- shops.status ('pending'|'approved'|'rejected'|'suspended', TEXT, no
+      -- CHECK — see comment above) now also accepts 'needs_info', enforced
+      -- at the app layer only (routes/shops.js's zod schema), same as every
+      -- other status column in this project.
+
+      -- seller_documents — ID card / business license / tax document
+      -- uploads, one row per file. FK's shops.id (not a separate
+      -- seller_applications table — see note above). file_url actually
+      -- stores the R2 *object key*, not a literal URL: presigned GET URLs
+      -- expire, so nothing durable can be stored in this column — a fresh
+      -- signed URL is generated per request instead (see routes/shops.js's
+      -- GET /:id and GET /me). Column kept named file_url to match the
+      -- already-approved design doc; the meaning is "key", not "URL".
+      CREATE TABLE IF NOT EXISTS seller_documents (
+        id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+        shop_id     UUID        NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+        doc_type    TEXT        NOT NULL, -- 'id_card' | 'business_license' | 'tax_document'
+        file_url    TEXT        NOT NULL, -- R2 object key, not a URL — see comment above
+        uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_seller_documents_shop ON seller_documents(shop_id);
+
+      -- Product review (Seller Onboarding Blueprint) — new products default
+      -- to is_active=false at insert time (routes/seller.js's POST
+      -- /products) until an admin approves them, unless the owning shop has
+      -- auto_approve_products=true. The DB-level default for is_active
+      -- itself is untouched (stays true) so this only affects the one
+      -- insert path that opts in explicitly, not any other writer of
+      -- products.is_active.
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS review_status TEXT NOT NULL DEFAULT 'pending_review'; -- 'pending_review' | 'approved' | 'rejected'
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS reviewed_by   UUID REFERENCES users(id);
+      ALTER TABLE products ADD COLUMN IF NOT EXISTS reviewed_at   TIMESTAMPTZ;
+
       -- Phase 4 Step 3: products belong to a shop. Nullable (not every
       -- product is guaranteed a shop the instant this column appears) —
       -- app code (routes/seller.js) enforces "must have an approved shop"
@@ -571,6 +637,14 @@ async function initDb() {
     for (const row of untokenized.rows) {
       await query('UPDATE orders SET pay_token=$1 WHERE id=$2', [crypto.randomBytes(32).toString('hex'), row.id]);
     }
+
+    // One-time backfill: products that already existed (and were already
+    // is_active=true) before review_status existed never went through the
+    // review flow — they must not retroactively become 'pending_review' and
+    // vanish from GET /api/products just because the column showed up.
+    // Idempotent: rows already flipped to 'approved' no longer match the
+    // WHERE clause on subsequent boots.
+    await query("UPDATE products SET review_status='approved' WHERE is_active=true AND review_status='pending_review'");
 
     // Phase 5 Step 1 backfill — safe to run every boot (idempotent, skips
     // anything already done in one query up front — see backfillOrderShops()).
