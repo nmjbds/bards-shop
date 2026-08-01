@@ -17,6 +17,7 @@
  *   CouponsAPI   — /api/coupons endpoints
  *   AddressesAPI — /api/addresses endpoints
  *   Addresses    — local address store
+ *   ShopsAPI     — /api/shops endpoints (seller onboarding + admin review)
  *   updateBadge()— sync cart badge ทุก .cart-badge
  *   togglePw()   — toggle password visibility
  *   fmtUSD()     — format USD
@@ -535,6 +536,62 @@ const AddressesAPI = {
   update(id, data) { return apiFetch('/addresses/' + id, { method: 'PATCH',  body: data, auth: true }); },
   remove(id)       { return apiFetch('/addresses/' + id, { method: 'DELETE', auth: true }); },
   setDefault(id)   { return apiFetch('/addresses/' + id + '/set-default', { method: 'POST', auth: true }); },
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   ShopsAPI — /api/shops (seller onboarding self-serve + admin review)
+═══════════════════════════════════════════════════════════════ */
+const ShopsAPI = {
+  /* ── seller/self ── */
+  me()                  { return apiFetch('/shops/me', { auth: true }); },
+  apply(data)            { return apiFetch('/shops/apply', { method: 'POST', body: data, auth: true }); },
+  update(data)           { return apiFetch('/shops/me', { method: 'PATCH', body: data, auth: true }); },
+  resubmit()             { return apiFetch('/shops/me/resubmit', { method: 'POST', auth: true }); },
+  updateChecklist(data)  { return apiFetch('/shops/me/onboarding-checklist', { method: 'PATCH', body: data, auth: true }); },
+
+  /* Document upload — multipart, not through apiFetch() (same reason as
+     AuthAPI.uploadAvatar above: always sends JSON). doc_type must be one of
+     id_card | business_license | tax_document. */
+  uploadDocument(file, docType) {
+    const token = Auth.getToken();
+    const fd = new FormData();
+    fd.append('document', file);
+    fd.append('doc_type', docType);
+    return fetch(API_BASE + '/shops/me/documents', {
+      method: 'POST',
+      headers: token ? { Authorization: 'Bearer ' + token } : {},
+      credentials: 'include',
+      body: fd,
+    }).then(async res => {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Upload failed (${res.status})`);
+      return data;
+    });
+  },
+
+  /* Logo/cover upload — separate from uploadDocument() above (public bucket,
+     no doc_type, returns a URL immediately instead of a DB row). */
+  uploadBranding(file) {
+    const token = Auth.getToken();
+    const fd = new FormData();
+    fd.append('image', file);
+    return fetch(API_BASE + '/shops/me/branding', {
+      method: 'POST',
+      headers: token ? { Authorization: 'Bearer ' + token } : {},
+      credentials: 'include',
+      body: fd,
+    }).then(async res => {
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Upload failed (${res.status})`);
+      return data;
+    });
+  },
+
+  /* ── admin ── */
+  list(status)     { return apiFetch('/shops' + (status ? '?status=' + encodeURIComponent(status) : ''), { auth: true }); },
+  get(id)          { return apiFetch('/shops/' + id, { auth: true }); },
+  setStatus(id, data) { return apiFetch('/shops/' + id, { method: 'PATCH', body: data, auth: true }); },
+  setAutoApprove(id, on) { return apiFetch('/shops/' + id + '/auto-approve-products', { method: 'PATCH', body: { auto_approve_products: on }, auth: true }); },
 };
 
 const Addresses = {

@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Products — Bards Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#0A0A0A;--white:#FAFAFA;--gray-50:#F9F9F7;--gray-100:#F2F2F0;--gray-200:#E4E4E2;--gray-300:#C8C8C6;--gray-400:#8A8A88;--gray-600:#4A4A48;--orange:#FF4F00;--red:#C8001A;--green:#16A34A;--blue:#2563EB;--sidebar:220px;--radius:14px;--radius-sm:10px;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var(--black);display:flex;min-height:100vh;}
+.sidebar{width:var(--sidebar);background:var(--black);min-height:100vh;position:fixed;top:0;left:0;z-index:100;display:flex;flex-direction:column;}
+.sb-brand{padding:22px 18px 18px;border-bottom:1px solid rgba(255,255,255,.08);}
+.sb-brand .logo{font-family:'Bebas Neue';font-size:20px;letter-spacing:3px;color:#fff;}
+.sb-brand .sub{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px;}
+.sb-nav{flex:1;padding:12px 10px;overflow-y:auto;}
+.sb-section{font-size:8.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;color:rgba(255,255,255,.25);padding:10px 8px 5px;}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;color:rgba(255,255,255,.55);text-decoration:none;font-size:12.5px;font-weight:500;cursor:pointer;transition:all .15s;margin-bottom:1px;border:none;background:none;width:100%;text-align:left;white-space:nowrap;}
+.sb-item:hover{background:rgba(255,255,255,.07);color:#fff;}
+.sb-item.active{background:rgba(255,255,255,.13);color:#fff;}
+.sb-item svg{flex-shrink:0;}
+.sb-foot{padding:12px 10px;border-top:1px solid rgba(255,255,255,.07);}
+.sb-profile{display:flex;align-items:center;gap:9px;padding:9px 10px;background:rgba(255,255,255,.06);border-radius:9px;}
+.sb-avatar{width:30px;height:30px;border-radius:50%;background:var(--orange);color:#fff;font-family:'Bebas Neue';font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+.sb-avatar img{width:100%;height:100%;object-fit:cover;}
+.sb-uname{font-size:11.5px;font-weight:600;color:#fff;line-height:1.2;}
+.sb-urole{font-size:9.5px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.8px;}
+.main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;}
+.topbar{background:var(--white);border-bottom:1px solid var(--gray-200);height:58px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+.page-title{font-family:'Bebas Neue';font-size:19px;letter-spacing:2px;}
+.content{padding:22px 24px;flex:1;}
+
+.filter-row{display:flex;gap:7px;margin-bottom:18px;flex-wrap:wrap;}
+.f-chip{height:32px;padding:0 14px;border:1.5px solid var(--gray-200);border-radius:20px;background:var(--white);color:var(--gray-600);font-size:11.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:'Space Grotesk',sans-serif;transition:all .15s;}
+.f-chip:hover{border-color:var(--black);color:var(--black);}
+.f-chip.on{background:var(--black);border-color:var(--black);color:#fff;}
+.f-count{font-family:'DM Mono',monospace;font-size:9.5px;background:rgba(0,0,0,.07);border-radius:8px;padding:1px 6px;}
+.f-chip.on .f-count{background:rgba(255,255,255,.18);}
+
+.prod-grid{display:flex;flex-direction:column;gap:12px;}
+.prod-card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);padding:16px 18px;display:flex;gap:14px;align-items:flex-start;}
+.prod-thumb{width:64px;height:64px;border-radius:10px;background:var(--gray-100);object-fit:cover;flex-shrink:0;}
+.prod-info{flex:1;min-width:0;}
+.prod-name{font-size:14px;font-weight:700;margin-bottom:2px;}
+.prod-shop{font-size:11.5px;color:var(--gray-400);}
+.prod-price{font-family:'DM Mono',monospace;font-size:12.5px;margin-top:4px;}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;flex-shrink:0;}
+.b-pending_review{background:#FEF3C7;color:#B45309;}
+.b-approved{background:#DCFCE7;color:var(--green);}
+.b-rejected{background:#FEE2E2;color:var(--red);}
+.prod-actions{display:flex;gap:8px;margin-top:10px;}
+.act-btn{height:32px;padding:0 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;border:1.5px solid transparent;transition:opacity .15s;}
+.act-btn:hover{opacity:.85;}
+.act-approve{background:var(--green);color:#fff;}
+.act-reject{background:var(--white);color:var(--red);border-color:var(--red);}
+
+.empty{padding:56px 20px;text-align:center;color:var(--gray-400);}
+.empty-icon{font-size:32px;margin-bottom:10px;}
+.empty-title{font-size:14px;font-weight:600;color:var(--black);}
+
+.toast{position:fixed;bottom:20px;right:20px;background:var(--black);color:#fff;padding:11px 16px;border-radius:10px;font-size:12.5px;font-weight:500;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;transform:translateY(4px);pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25);}
+.toast.on{opacity:1;transform:translateY(0);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .32s ease both;}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sb-brand"><div class="logo">BARDS</div><div class="sub">Admin Hub</div></div>
+  <nav class="sb-nav">
+    <div class="sb-section">Platform</div>
+    <a href="/admin-shops" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Shops</a>
+    <a href="/admin-orders" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>Orders</a>
+    <a href="/admin-stats" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Stats</a>
+    <a href="/admin-categories" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg>Categories</a>
+    <a href="/admin-customers" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Customers</a>
+    <a href="/admin-products" class="sb-item active"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Products</a>
+    <div class="sb-section">Account</div>
+    <a href="/seller" class="sb-item" id="hubSellerLink"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Seller Hub</a>
+    <a href="/" class="sb-item" id="hubViewStoreLink"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>View Store</a>
+    <button class="sb-item" onclick="Auth.logout()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 17H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out</button>
+  </nav>
+  <div class="sb-foot">
+    <div class="sb-profile">
+      <div class="sb-avatar" id="sbAvatar">A</div>
+      <div><div class="sb-uname" id="sbName">Loading…</div><div class="sb-urole">Admin</div></div>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div class="page-title">Product Review</div>
+  </div>
+  <div class="content">
+    <div class="filter-row fu" id="filterRow"></div>
+    <div class="prod-grid fu" id="prodGrid"></div>
+    <div class="empty" id="emptyState" style="display:none">
+      <div class="empty-icon">📦</div>
+      <div class="empty-title">No products in this view</div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="/api.js"></script>
+<script src="/products.js"></script>
+<script>
+const FILTERS = [
+  { id:'pending_review', label:'Pending' },
+  { id:'approved',       label:'Approved' },
+  { id:'rejected',       label:'Rejected' },
+];
+let _products = [];
+let _filter = 'pending_review';
+
+document.addEventListener('DOMContentLoaded', async () => {
+  if (!(await Auth.ensureSession())) { location.href = bardsSigninUrl('/admin-products'); return; }
+  try {
+    const { user } = await AuthAPI.me();
+    if (user.role !== 'admin') { location.href = bardsCrossHubUrl('main', '/'); return; }
+    document.getElementById('sbName').textContent = user.name || 'Admin';
+    const av = document.getElementById('sbAvatar');
+    if (user.avatar) { av.innerHTML = `<img src="${escapeHtml(user.avatar)}" alt="">`; }
+    else { av.textContent = (user.name || 'A')[0].toUpperCase(); }
+    document.getElementById('hubSellerLink').href = bardsCrossHubUrl('seller', '/seller');
+    document.getElementById('hubViewStoreLink').href = bardsCrossHubUrl('main', '/');
+  } catch(e) { location.href = bardsSigninUrl(); return; }
+  await loadProducts();
+});
+
+async function loadProducts() {
+  try {
+    const d = await apiFetch('/seller/products?review_status=' + _filter, { auth:true });
+    _products = d.products || [];
+  } catch(e) {
+    toast('❌ Cannot load products: ' + e.message);
+    _products = [];
+  }
+  renderFilterRow();
+  renderGrid();
+}
+
+function renderFilterRow() {
+  const row = document.getElementById('filterRow');
+  row.innerHTML = '';
+  FILTERS.forEach(f => {
+    const chip = document.createElement('div');
+    chip.className = 'f-chip' + (_filter === f.id ? ' on' : '');
+    chip.onclick = () => { _filter = f.id; loadProducts(); };
+    chip.textContent = f.label;
+    row.appendChild(chip);
+  });
+}
+
+function renderGrid() {
+  const grid = document.getElementById('prodGrid');
+  const empty = document.getElementById('emptyState');
+  if (!_products.length) { grid.innerHTML = ''; empty.style.display = ''; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = _products.map(p => cardHTML(p)).join('');
+}
+
+function cardHTML(p) {
+  const img = Array.isArray(p.images) && p.images[0] ? p.images[0] : '';
+  const actions = p.review_status === 'pending_review'
+    ? `<button class="act-btn act-approve" onclick="doReview('${p.id}','approved')">Approve</button>
+       <button class="act-btn act-reject" onclick="doReview('${p.id}','rejected')">Reject</button>`
+    : p.review_status === 'rejected'
+    ? `<button class="act-btn act-approve" onclick="doReview('${p.id}','approved')">Approve</button>`
+    : `<button class="act-btn act-reject" onclick="doReview('${p.id}','rejected')">Reject</button>`;
+  return `
+<div class="prod-card">
+  <img class="prod-thumb" src="${escapeHtml(img)}" alt="" onerror="this.style.visibility='hidden'">
+  <div class="prod-info">
+    <div class="prod-name">${escapeHtml(p.name)}</div>
+    <div class="prod-shop">${escapeHtml(p.shop_name || 'Unknown shop')}</div>
+    <div class="prod-price">$${Number(p.sale_price || p.price || 0).toFixed(2)}</div>
+    <div class="prod-actions">${actions}</div>
+  </div>
+  <span class="badge b-${p.review_status}">${escapeHtml(p.review_status).replace('_',' ')}</span>
+</div>`;
+}
+
+async function doReview(id, review_status) {
+  try {
+    await apiFetch(`/seller/products/${id}/review`, { method:'POST', body:{ review_status }, auth:true });
+    toast(`✓ Product ${review_status}`);
+    await loadProducts();
+  } catch(e) {
+    toast('❌ ' + e.message);
+  }
+}
+
+let _tt;
+function toast(m) {
+  const t = document.getElementById('toast');
+  t.textContent = m;
+  t.classList.add('on');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => t.classList.remove('on'), 2400);
+}
+</script>
+</body>
+</html>

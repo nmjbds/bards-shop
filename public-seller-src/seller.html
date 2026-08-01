@@ -47,6 +47,22 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .content{padding:22px 24px;flex:1;}
 
 /* ── Stat cards ── */
+/* Onboarding checklist */
+.checklist-card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);padding:18px 20px;margin-bottom:20px;display:none;}
+.checklist-card.show{display:block;}
+.cl-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.cl-title{font-family:'Bebas Neue';font-size:15px;letter-spacing:1.5px;}
+.cl-pct{font-family:'DM Mono',monospace;font-size:12px;color:var(--gray-400);}
+.cl-bar{height:6px;border-radius:4px;background:var(--gray-100);overflow:hidden;margin-bottom:14px;}
+.cl-fill{height:100%;background:var(--green);border-radius:4px;transition:width .3s;}
+.cl-items{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.cl-item{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 8px;border-radius:8px;}
+.cl-item.done{color:var(--gray-400);}
+.cl-item .dot{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--gray-300);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.cl-item.done .dot{background:var(--green);border-color:var(--green);color:#fff;}
+.cl-item a{color:var(--black);font-weight:600;text-decoration:none;}
+.cl-item a:hover{text-decoration:underline;}
+
 .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:20px;}
 .stat-card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);padding:18px 20px;position:relative;overflow:hidden;}
 .stat-card::after{content:'';position:absolute;top:0;right:0;width:3px;height:100%;background:var(--gray-200);border-radius:0 var(--radius) var(--radius) 0;}
@@ -206,6 +222,17 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 
   <div class="content">
 
+    <!-- Onboarding checklist (Seller Onboarding Blueprint) — hidden once
+         every item is done, or if this account has no shop at all yet. -->
+    <div class="checklist-card fu" id="checklistCard">
+      <div class="cl-head">
+        <div class="cl-title">Finish Setting Up Your Shop</div>
+        <div class="cl-pct" id="clPct">0%</div>
+      </div>
+      <div class="cl-bar"><div class="cl-fill" id="clFill" style="width:0%"></div></div>
+      <div class="cl-items" id="clItems"></div>
+    </div>
+
     <!-- Stats -->
     <div class="stats-grid fu d1">
       <div class="stat-card c-orange">
@@ -288,11 +315,60 @@ document.addEventListener('DOMContentLoaded', async () => {
       const adminLink = document.getElementById('adminNavLink');
       adminLink.style.display = '';
       adminLink.href = bardsCrossHubUrl('admin', '/admin-shops');
+    } else {
+      loadChecklist(); // seller-only nudge — admins have their own oversight view, not a shop to onboard
     }
     document.getElementById('hubViewStoreLink').href = bardsCrossHubUrl('main', '/');
   } catch(e) { location.href = bardsSigninUrl(); return; }
   loadAll();
 });
+
+// ── Onboarding checklist (Seller Onboarding Blueprint, 2026-07-31) ──
+// Computed live from real shop/product data rather than trusted from
+// shops.onboarding_checklist — that stored JSONB flag set exists for a
+// future step to write to, but deriving straight from the actual fields
+// here can't drift out of sync with them (e.g. seller clears their phone
+// number after "profile" was marked done).
+const CHECKLIST_DEFS = [
+  { key: 'profile',        label: 'Complete your profile',   href: '/apply' },
+  { key: 'store',          label: 'Set up your store info',  href: '/apply' },
+  { key: 'bank',           label: 'Add a payout account',    href: '/apply' },
+  { key: 'return_address', label: 'Add a return address',    href: '/apply' },
+  { key: 'add_product',    label: 'Add your first product',  href: 'seller-products.html' },
+  { key: 'first_product',  label: 'Get a product approved',  href: 'seller-products.html' },
+];
+
+async function loadChecklist() {
+  try {
+    const [{ shop }, prodRes] = await Promise.all([
+      ShopsAPI.me(),
+      apiFetch('/seller/products', { auth: true }).catch(() => ({ products: [] })),
+    ]);
+    if (!shop) return; // no shop at all yet — dashboard shouldn't be reachable without one anyway
+    const products = prodRes.products || [];
+
+    const done = {
+      profile:        !!(shop.full_name && shop.phone && shop.address),
+      store:           !!(shop.name && shop.store_slug),
+      bank:            !!(shop.bank_name && shop.bank_account_number),
+      return_address:  !!shop.return_address,
+      add_product:     products.length > 0,
+      first_product:   products.some(p => p.is_active),
+    };
+    const doneCount = Object.values(done).filter(Boolean).length;
+    const pct = Math.round(doneCount / CHECKLIST_DEFS.length * 100);
+
+    if (pct >= 100) return; // fully set up — don't keep nagging
+    document.getElementById('checklistCard').classList.add('show');
+    document.getElementById('clPct').textContent = pct + '%';
+    document.getElementById('clFill').style.width = pct + '%';
+    document.getElementById('clItems').innerHTML = CHECKLIST_DEFS.map(d => `
+      <div class="cl-item ${done[d.key] ? 'done' : ''}">
+        <span class="dot">${done[d.key] ? '✓' : ''}</span>
+        ${done[d.key] ? escapeHtml(d.label) : `<a href="${d.href}">${escapeHtml(d.label)}</a>`}
+      </div>`).join('');
+  } catch(e) { /* non-critical widget — fail silently */ }
+}
 
 async function loadAll() {
   await Promise.all([loadStats(), loadRecentOrders()]);

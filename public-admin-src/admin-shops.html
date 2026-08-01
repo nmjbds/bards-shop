@@ -49,18 +49,34 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .shop-owner{font-size:11.5px;color:var(--gray-400);}
 .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;flex-shrink:0;}
 .b-pending{background:#FEF3C7;color:#B45309;}
+.b-needs_info{background:#FEF9C3;color:#854D0E;}
 .b-approved{background:#DCFCE7;color:var(--green);}
 .b-rejected{background:#FEE2E2;color:var(--red);}
 .b-suspended{background:var(--gray-100);color:var(--gray-400);}
 .shop-desc{font-size:12.5px;color:var(--gray-600);line-height:1.5;margin-top:10px;}
 .shop-desc.empty{color:var(--gray-300);font-style:italic;}
 .shop-meta{font-size:10.5px;color:var(--gray-300);font-family:'DM Mono',monospace;margin-top:8px;}
-.shop-actions{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--gray-100);}
+.shop-note{font-size:11.5px;line-height:1.5;margin-top:10px;padding:9px 11px;border-radius:8px;}
+.shop-note.rejected{background:#FEF2F2;color:#991B1B;}
+.shop-note.needs_info{background:#FEFCE8;color:#854D0E;}
+.shop-actions{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--gray-100);flex-wrap:wrap;}
 .act-btn{height:34px;padding:0 16px;border-radius:var(--radius-sm);font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Space Grotesk',sans-serif;border:1.5px solid transparent;transition:opacity .15s;}
 .act-btn:hover{opacity:.85;}
 .act-approve{background:var(--green);color:#fff;}
 .act-reject{background:var(--white);color:var(--red);border-color:var(--red);}
 .act-suspend{background:var(--white);color:var(--gray-600);border-color:var(--gray-200);}
+.act-info{background:var(--white);color:#B45309;border-color:#FDE68A;}
+.act-details{background:var(--white);color:var(--gray-600);border-color:var(--gray-200);margin-left:auto;}
+.detail-panel{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-100);font-size:12px;}
+.detail-panel.show{display:block;}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-bottom:10px;}
+.detail-row .dk{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--gray-400);}
+.detail-row .dv{font-size:12px;margin-top:2px;word-break:break-word;}
+.doc-list{margin-top:8px;}
+.doc-item{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--gray-100);font-size:12px;}
+.doc-item:last-child{border-bottom:none;}
+.doc-item a{color:var(--blue);text-decoration:none;font-weight:600;}
+.doc-empty{color:var(--gray-300);font-style:italic;font-size:11.5px;}
 
 .empty{padding:56px 20px;text-align:center;color:var(--gray-400);}
 .empty-icon{font-size:32px;margin-bottom:10px;}
@@ -83,6 +99,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
     <a href="/admin-stats" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Stats</a>
     <a href="/admin-categories" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 3h7v7H3z"/><path d="M14 3h7v7h-7z"/><path d="M14 14h7v7h-7z"/><path d="M3 14h7v7H3z"/></svg>Categories</a>
     <a href="/admin-customers" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Customers</a>
+    <a href="/admin-products" class="sb-item"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>Products</a>
     <div class="sb-section">Account</div>
     <a href="/seller" class="sb-item" id="hubSellerLink"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Seller Hub</a>
     <a href="/" class="sb-item" id="hubViewStoreLink"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>View Store</a>
@@ -116,14 +133,16 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 <script src="/products.js"></script>
 <script>
 const FILTERS = [
-  { id:'all',       label:'All' },
-  { id:'pending',   label:'Pending' },
-  { id:'approved',  label:'Approved' },
-  { id:'rejected',  label:'Rejected' },
-  { id:'suspended', label:'Suspended' },
+  { id:'all',        label:'All' },
+  { id:'pending',    label:'Pending' },
+  { id:'needs_info', label:'Needs Info' },
+  { id:'approved',   label:'Approved' },
+  { id:'rejected',   label:'Rejected' },
+  { id:'suspended',  label:'Suspended' },
 ];
 let _shops = [];
 let _filter = 'all';
+const _docsCache = {}; // shop id -> documents[] (fetched lazily, on "Details" open)
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!(await Auth.ensureSession())) { location.href = bardsSigninUrl('/admin-shops'); return; }
@@ -142,7 +161,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadShops() {
   try {
-    const d = await apiFetch('/shops', { auth:true });
+    const d = await ShopsAPI.list();
     _shops = d.shops || [];
   } catch(e) {
     toast('❌ Cannot load shops: ' + e.message);
@@ -190,23 +209,26 @@ function fmtDate(iso) {
 function actionButtons(s) {
   // เมนูปุ่มที่โชว์ต่อสถานะ — เลือกเฉพาะการเปลี่ยนที่ admin น่าจะใช้จริง ไม่ใช่ทุก transition ที่ backend
   // ยอมให้ทำได้ (backend ยอมกว้างกว่านี้ เผื่ออนาคต แต่ UI แสดงแค่ทางเลือกที่สมเหตุสมผลจริงพอ)
+  let btns = '';
   if (s.status === 'pending') {
-    return `
+    btns = `
+      <button class="act-btn act-approve" onclick="doAction('${s.id}','approved')">Approve</button>
+      <button class="act-btn act-info" onclick="doAction('${s.id}','needs_info')">Request Info</button>
+      <button class="act-btn act-reject" onclick="doAction('${s.id}','rejected')">Reject</button>`;
+  } else if (s.status === 'needs_info') {
+    btns = `
       <button class="act-btn act-approve" onclick="doAction('${s.id}','approved')">Approve</button>
       <button class="act-btn act-reject" onclick="doAction('${s.id}','rejected')">Reject</button>`;
-  }
-  if (s.status === 'approved') {
-    return `<button class="act-btn act-suspend" onclick="doAction('${s.id}','suspended')">Suspend</button>`;
-  }
-  if (s.status === 'rejected') {
-    return `<button class="act-btn act-approve" onclick="doAction('${s.id}','approved')">Approve</button>`;
-  }
-  if (s.status === 'suspended') {
-    return `
+  } else if (s.status === 'approved') {
+    btns = `<button class="act-btn act-suspend" onclick="doAction('${s.id}','suspended')">Suspend</button>`;
+  } else if (s.status === 'rejected') {
+    btns = `<button class="act-btn act-approve" onclick="doAction('${s.id}','approved')">Approve</button>`;
+  } else if (s.status === 'suspended') {
+    btns = `
       <button class="act-btn act-approve" onclick="doAction('${s.id}','approved')">Reinstate</button>
       <button class="act-btn act-reject" onclick="doAction('${s.id}','rejected')">Reject</button>`;
   }
-  return '';
+  return btns + `<button class="act-btn act-details" onclick="toggleDetails('${s.id}')">Details</button>`;
 }
 
 function cardHTML(s) {
@@ -216,33 +238,118 @@ function cardHTML(s) {
   const avatar = s.logo
     ? `<img src="${escapeHtml(s.logo)}" alt="">`
     : escapeHtml(initials(s.name));
+  const note = s.status === 'rejected' && s.rejection_reason
+    ? `<div class="shop-note rejected"><b>Rejection reason:</b> ${escapeHtml(s.rejection_reason)}</div>`
+    : s.status === 'needs_info' && s.info_requested_note
+    ? `<div class="shop-note needs_info"><b>Asked seller for:</b> ${escapeHtml(s.info_requested_note)}</div>`
+    : '';
   return `
-<div class="shop-card">
+<div class="shop-card" id="shopCard_${s.id}">
   <div class="shop-card-top">
     <div class="shop-avatar">${avatar}</div>
     <div class="shop-info">
       <div class="shop-name">${escapeHtml(s.name)}</div>
       <div class="shop-owner">${escapeHtml(s.owner_name)} · ${escapeHtml(s.owner_email || '')}</div>
     </div>
-    <span class="badge b-${s.status}">${escapeHtml(s.status)}</span>
+    <span class="badge b-${s.status}">${escapeHtml(s.status).replace('_',' ')}</span>
   </div>
   ${desc}
+  ${note}
   <div class="shop-meta">Applied ${fmtDate(s.created_at)}</div>
   <div class="shop-actions">${actionButtons(s)}</div>
+  <div class="detail-panel" id="detailPanel_${s.id}">${detailPanelHTML(s)}</div>
 </div>`;
 }
 
+function detailField(label, value) {
+  return `<div class="detail-row"><div class="dk">${escapeHtml(label)}</div><div class="dv">${value ? escapeHtml(value) : '—'}</div></div>`;
+}
+
+function detailPanelHTML(s) {
+  return `
+    <div class="detail-grid">
+      ${detailField('Business Type', s.business_type)}
+      ${detailField('Full Name', s.full_name)}
+      ${detailField('Phone', s.phone)}
+      ${detailField('Address', [s.address, s.province, s.country].filter(Boolean).join(', '))}
+      ${detailField('Store URL', s.store_slug)}
+      ${detailField('Bank', s.bank_name)}
+      ${detailField('Account Name', s.bank_account_name)}
+      ${detailField('Account Number', s.bank_account_number)}
+      ${detailField('Currency', s.currency)}
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:12px;cursor:pointer;">
+      <input type="checkbox" id="autoApprove_${s.id}" ${s.auto_approve_products ? 'checked' : ''} onchange="setAutoApprove('${s.id}', this.checked)">
+      <span style="font-size:12px;">Auto-approve new products from this shop</span>
+    </label>
+    <div class="dk" style="margin-bottom:6px;">Documents</div>
+    <div class="doc-list" id="docList_${s.id}"><div class="doc-empty">Loading…</div></div>
+  `;
+}
+
+async function setAutoApprove(id, on) {
+  try {
+    await ShopsAPI.setAutoApprove(id, on);
+    const shop = _shops.find(x => x.id === id);
+    if (shop) shop.auto_approve_products = on;
+    toast(on ? '✓ Auto-approve enabled' : '✓ Auto-approve disabled');
+  } catch(e) {
+    toast('❌ ' + e.message);
+    const box = document.getElementById('autoApprove_' + id);
+    if (box) box.checked = !on;
+  }
+}
+
+const DOC_LABELS = { id_card:'ID Card / Passport', business_license:'Business License', tax_document:'Tax Document' };
+
+async function toggleDetails(id) {
+  const panel = document.getElementById('detailPanel_' + id);
+  const opening = !panel.classList.contains('show');
+  panel.classList.toggle('show', opening);
+  if (!opening) return;
+
+  const listEl = document.getElementById('docList_' + id);
+  try {
+    if (!_docsCache[id]) {
+      const d = await ShopsAPI.get(id);
+      _docsCache[id] = d.documents || [];
+    }
+    const docs = _docsCache[id];
+    listEl.innerHTML = docs.length
+      ? docs.map(doc => `
+          <div class="doc-item">
+            <span>${escapeHtml(DOC_LABELS[doc.doc_type] || doc.doc_type)} <span style="color:var(--gray-300);">— ${fmtDate(doc.uploaded_at)}</span></span>
+            ${doc.url ? `<a href="${escapeHtml(doc.url)}" target="_blank" rel="noopener">View</a>` : '<span class="doc-empty">Link unavailable</span>'}
+          </div>`).join('')
+      : '<div class="doc-empty">No documents uploaded.</div>';
+  } catch(e) {
+    listEl.innerHTML = `<div class="doc-empty">Could not load documents.</div>`;
+  }
+}
+
 const CONFIRM_MSG = {
-  rejected:  'Reject this shop? The seller will no longer be able to sell.',
   suspended: 'Suspend this shop? Their products will stay listed but they cannot manage them until reinstated.',
 };
 
 async function doAction(id, status) {
-  const msg = CONFIRM_MSG[status];
-  if (msg && !confirm(msg)) return;
+  const body = { status };
+  if (status === 'rejected') {
+    const reason = prompt('Reason for rejecting this application (shown to the seller):');
+    if (reason === null) return;
+    if (!reason.trim()) { toast('❌ A rejection reason is required.'); return; }
+    body.rejection_reason = reason.trim();
+  } else if (status === 'needs_info') {
+    const note = prompt('What do you need from the seller? (shown to them):');
+    if (note === null) return;
+    if (!note.trim()) { toast('❌ A note is required.'); return; }
+    body.info_requested_note = note.trim();
+  } else {
+    const msg = CONFIRM_MSG[status];
+    if (msg && !confirm(msg)) return;
+  }
   try {
-    await apiFetch(`/shops/${id}`, { method:'PATCH', body:{ status }, auth:true });
-    toast(`✓ Shop ${status}`);
+    await ShopsAPI.setStatus(id, body);
+    toast(`✓ Shop ${status.replace('_',' ')}`);
     await loadShops();
   } catch(e) {
     toast('❌ ' + e.message);

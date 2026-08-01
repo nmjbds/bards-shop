@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Become a Seller — Bards</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#0A0A0A;--white:#FAFAFA;--gray-50:#F9F9F7;--gray-100:#F2F2F0;--gray-200:#E4E4E2;--gray-300:#C8C8C6;--gray-400:#8A8A88;--gray-600:#4A4A48;--orange:#FF4F00;--red:#C8001A;--green:#16A34A;--yellow:#CA8A04;--radius:14px;--radius-sm:10px;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var(--black);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px 60px;}
+.logo-wrap{text-align:center;margin-bottom:24px;}
+.brand{font-family:'Bebas Neue';font-size:32px;letter-spacing:5px;color:var(--black);text-decoration:none;display:block;}
+.brand-sub{font-size:11px;color:var(--gray-400);letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
+
+.wrap{width:100%;max-width:560px;}
+
+/* status banners */
+.status-banner{border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:18px;font-size:12.5px;line-height:1.6;display:none;}
+.status-banner.show{display:block;}
+.status-banner b{display:block;font-size:13px;margin-bottom:3px;}
+.status-banner.pending{background:#FFF7ED;border:1.5px solid #FED7AA;color:#9A3412;}
+.status-banner.needs_info{background:#FEFCE8;border:1.5px solid #FEF08A;color:#854D0E;}
+.status-banner.rejected{background:#FEF2F2;border:1.5px solid #FECACA;color:#991B1B;}
+.status-banner.suspended{background:#F3F4F6;border:1.5px solid #D1D5DB;color:#374151;}
+.status-banner.approved{background:#F0FDF4;border:1.5px solid #BBF7D0;color:#166534;}
+
+/* step indicator */
+.steps{display:flex;justify-content:space-between;margin-bottom:20px;gap:4px;}
+.step-dot{flex:1;text-align:center;}
+.step-dot .num{width:26px;height:26px;border-radius:50%;background:var(--gray-200);color:var(--gray-400);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 5px;transition:all .2s;}
+.step-dot.active .num{background:var(--black);color:#fff;}
+.step-dot.done .num{background:var(--green);color:#fff;}
+.step-dot .lbl{font-size:8.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--gray-400);}
+.step-dot.active .lbl{color:var(--black);font-weight:700;}
+
+.card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);padding:28px 22px 24px;box-shadow:0 4px 24px rgba(0,0,0,.06);}
+.card-title{font-family:'Bebas Neue';font-size:22px;letter-spacing:2.5px;margin-bottom:4px;}
+.card-sub{font-size:12px;color:var(--gray-400);margin-bottom:22px;}
+
+.step-panel{display:none;}
+.step-panel.active{display:block;}
+
+.form-group{margin-bottom:14px;}
+.form-row-two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.f-label{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-400);margin-bottom:6px;display:block;}
+.f-req{color:var(--red);}
+.f-input,.f-select,.f-textarea{width:100%;height:46px;padding:0 14px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);font-family:'Space Grotesk',sans-serif;font-size:13px;background:var(--white);color:var(--black);outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none;}
+.f-textarea{height:auto;padding:10px 14px;min-height:80px;resize:vertical;}
+.f-input:focus,.f-select:focus,.f-textarea:focus{border-color:var(--black);}
+.f-input::placeholder,.f-textarea::placeholder{color:var(--gray-300);}
+.f-hint{font-size:10px;color:var(--gray-400);margin-top:4px;}
+
+/* radio tiles (business type) */
+.tile-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.tile{border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);padding:14px 12px;cursor:pointer;text-align:center;transition:all .15s;}
+.tile.on{border-color:var(--black);background:var(--gray-50);}
+.tile .t-name{font-size:12.5px;font-weight:700;}
+.tile .t-sub{font-size:10px;color:var(--gray-400);margin-top:2px;}
+
+/* upload rows */
+.upload-row{display:flex;align-items:center;gap:10px;border:1.5px dashed var(--gray-300);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:10px;}
+.upload-row.done{border-style:solid;border-color:var(--green);background:#F0FDF4;}
+.upload-icon{width:34px;height:34px;border-radius:8px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--gray-400);}
+.upload-row.done .upload-icon{background:var(--green);color:#fff;}
+.upload-info{flex:1;min-width:0;}
+.upload-name{font-size:12px;font-weight:700;}
+.upload-sub{font-size:10px;color:var(--gray-400);margin-top:1px;}
+.upload-btn{height:34px;padding:0 14px;border:1.5px solid var(--gray-200);border-radius:8px;background:#fff;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0;}
+.upload-btn:hover{background:var(--gray-50);}
+.upload-preview{width:56px;height:56px;border-radius:10px;object-fit:cover;flex-shrink:0;background:var(--gray-100);}
+
+.terms-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;cursor:pointer;}
+.checkbox{width:18px;height:18px;border-radius:5px;border:2px solid var(--gray-300);background:var(--white);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.checkbox.on{background:var(--black);border-color:var(--black);}
+.checkbox svg{display:none;}
+.checkbox.on svg{display:block;}
+.terms-text{font-size:11.5px;color:var(--gray-400);line-height:1.5;}
+
+.btn-row{display:flex;gap:10px;margin-top:22px;}
+.btn{flex:1;height:50px;border:none;border-radius:var(--radius-sm);font-family:'Bebas Neue';font-size:16px;letter-spacing:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .18s,transform .12s;}
+.btn:active{opacity:.82;transform:scale(.98);}
+.btn.primary{background:var(--black);color:#fff;}
+.btn.ghost{background:var(--gray-100);color:var(--black);flex:0 0 110px;}
+.btn.loading{background:var(--gray-200);color:var(--gray-400);pointer-events:none;}
+.btn.success{background:var(--green);color:#fff;pointer-events:none;}
+
+.err-banner{background:#FEF2F2;border:1.5px solid #FECACA;border-radius:var(--radius-sm);padding:11px 13px;font-size:12px;color:var(--red);margin-bottom:16px;display:none;align-items:center;gap:8px;}
+.err-banner.show{display:flex;}
+
+.done-state{text-align:center;padding:20px 0;}
+.done-icon{width:60px;height:60px;border-radius:50%;background:#F0FDF4;color:var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
+.done-title{font-family:'Bebas Neue';font-size:20px;letter-spacing:2px;margin-bottom:8px;}
+.done-sub{font-size:12.5px;color:var(--gray-400);line-height:1.6;max-width:340px;margin:0 auto;}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(4px);background:var(--black);color:#fff;padding:11px 16px;border-radius:10px;font-size:12.5px;font-weight:600;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25);}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.fu{animation:fadeUp .32s ease both;}
+</style>
+</head>
+<body>
+
+<div class="logo-wrap fu">
+  <a href="/" class="brand">BARDS</a>
+  <div class="brand-sub">Become a Seller</div>
+</div>
+
+<div class="wrap fu">
+
+  <div class="status-banner" id="statusBanner"></div>
+
+  <div class="steps" id="stepsNav"></div>
+
+  <div class="card">
+    <div class="err-banner" id="errBanner">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span id="errMsg"></span>
+    </div>
+
+    <!-- ══════ Suspended (no form) ══════ -->
+    <div class="step-panel" id="panelSuspended">
+      <div class="done-state">
+        <div class="done-title">Shop Suspended</div>
+        <div class="done-sub">Your shop has been suspended. Please contact support for more information.</div>
+      </div>
+    </div>
+
+    <!-- ══════ Step 1 — Account ══════ -->
+    <div class="step-panel active" id="panel1">
+      <div class="card-title">Your Account</div>
+      <div class="card-sub">You're applying as this signed-in account.</div>
+      <div class="form-group">
+        <label class="f-label">Signed In As</label>
+        <input class="f-input" id="acctEmail" disabled>
+      </div>
+      <div class="f-hint">This account will become your seller account once approved — no separate seller login needed.</div>
+      <div class="btn-row"><button class="btn primary" onclick="goStep(2)">Continue</button></div>
+    </div>
+
+    <!-- ══════ Step 2 — Seller info ══════ -->
+    <div class="step-panel" id="panel2">
+      <div class="card-title">Seller Info</div>
+      <div class="card-sub">Tell us about yourself.</div>
+
+      <div class="f-label">Business Type</div>
+      <div class="tile-row">
+        <div class="tile" id="tileIndividual" onclick="setBusinessType('individual')">
+          <div class="t-name">Individual</div>
+          <div class="t-sub">Selling as yourself</div>
+        </div>
+        <div class="tile" id="tileBusiness" onclick="setBusinessType('business')">
+          <div class="t-name">Business</div>
+          <div class="t-sub">Registered company</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="f-label">Full Name <span class="f-req">*</span></label>
+        <input class="f-input" id="fFullName" placeholder="Your full legal name">
+      </div>
+      <div class="form-row-two">
+        <div>
+          <label class="f-label">Phone <span class="f-req">*</span></label>
+          <input class="f-input" id="fPhone" placeholder="012 345 678">
+        </div>
+        <div>
+          <label class="f-label">Country</label>
+          <input class="f-input" id="fCountry" placeholder="Cambodia" value="Cambodia">
+        </div>
+      </div>
+      <div class="form-row-two">
+        <div>
+          <label class="f-label">Province</label>
+          <input class="f-input" id="fProvince" placeholder="Phnom Penh">
+        </div>
+        <div>
+          <label class="f-label">Address</label>
+          <input class="f-input" id="fAddress" placeholder="Street, house #">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn ghost" onclick="goStep(1)">Back</button>
+        <button class="btn primary" onclick="goStep(3)">Continue</button>
+      </div>
+    </div>
+
+    <!-- ══════ Step 3 — Store info ══════ -->
+    <div class="step-panel" id="panel3">
+      <div class="card-title">Store Info</div>
+      <div class="card-sub">This is what customers will see.</div>
+
+      <div class="form-group">
+        <label class="f-label">Store Name <span class="f-req">*</span></label>
+        <input class="f-input" id="fName" placeholder="My Cool Shop">
+      </div>
+      <div class="form-group">
+        <label class="f-label">Store URL</label>
+        <input class="f-input" id="fSlug" placeholder="my-cool-shop" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'-')">
+        <div class="f-hint">Lowercase letters, numbers and hyphens only.</div>
+      </div>
+      <div class="form-group">
+        <label class="f-label">Category</label>
+        <select class="f-select" id="fCategory"><option value="">— Select —</option></select>
+      </div>
+      <div class="form-group">
+        <label class="f-label">Description</label>
+        <textarea class="f-textarea" id="fDescription" placeholder="What do you sell?"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="f-label">Store Logo</label>
+        <div class="upload-row" id="logoRow">
+          <div class="upload-icon" id="logoIcon">🖼️</div>
+          <div class="upload-info">
+            <div class="upload-name">No logo uploaded</div>
+            <div class="upload-sub">PNG/JPG, up to 10MB</div>
+          </div>
+          <button class="upload-btn" onclick="document.getElementById('logoFile').click()">Upload</button>
+          <input type="file" id="logoFile" accept="image/*" style="display:none" onchange="handleBrandingUpload(this,'logo')">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="f-label">Store Cover</label>
+        <div class="upload-row" id="coverRow">
+          <div class="upload-icon" id="coverIcon">🖼️</div>
+          <div class="upload-info">
+            <div class="upload-name">No cover uploaded</div>
+            <div class="upload-sub">PNG/JPG, up to 10MB</div>
+          </div>
+          <button class="upload-btn" onclick="document.getElementById('coverFile').click()">Upload</button>
+          <input type="file" id="coverFile" accept="image/*" style="display:none" onchange="handleBrandingUpload(this,'cover')">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn ghost" onclick="goStep(2)">Back</button>
+        <button class="btn primary" id="step3NextBtn" onclick="saveStep3AndContinue()">Continue</button>
+      </div>
+    </div>
+
+    <!-- ══════ Step 4 — Documents ══════ -->
+    <div class="step-panel" id="panel4">
+      <div class="card-title">Documents</div>
+      <div class="card-sub">Required for identity verification.</div>
+
+      <div class="upload-row" id="docRow_id_card">
+        <div class="upload-icon" id="docIcon_id_card">📄</div>
+        <div class="upload-info">
+          <div class="upload-name">ID Card / Passport <span class="f-req">*</span></div>
+          <div class="upload-sub" id="docSub_id_card">Not uploaded yet</div>
+        </div>
+        <button class="upload-btn" onclick="document.getElementById('docFile_id_card').click()">Upload</button>
+        <input type="file" id="docFile_id_card" accept="image/*,application/pdf" style="display:none" onchange="handleDocUpload(this,'id_card')">
+      </div>
+      <div class="upload-row" id="docRow_business_license">
+        <div class="upload-icon" id="docIcon_business_license">📄</div>
+        <div class="upload-info">
+          <div class="upload-name">Business License <span id="bizLicenseReq" class="f-req">*</span></div>
+          <div class="upload-sub" id="docSub_business_license">Not uploaded yet</div>
+        </div>
+        <button class="upload-btn" onclick="document.getElementById('docFile_business_license').click()">Upload</button>
+        <input type="file" id="docFile_business_license" accept="image/*,application/pdf" style="display:none" onchange="handleDocUpload(this,'business_license')">
+      </div>
+      <div class="upload-row" id="docRow_tax_document">
+        <div class="upload-icon" id="docIcon_tax_document">📄</div>
+        <div class="upload-info">
+          <div class="upload-name">Tax Document <span class="f-hint" style="display:inline">(optional)</span></div>
+          <div class="upload-sub" id="docSub_tax_document">Not uploaded yet</div>
+        </div>
+        <button class="upload-btn" onclick="document.getElementById('docFile_tax_document').click()">Upload</button>
+        <input type="file" id="docFile_tax_document" accept="image/*,application/pdf" style="display:none" onchange="handleDocUpload(this,'tax_document')">
+      </div>
+
+      <div class="btn-row">
+        <button class="btn ghost" onclick="goStep(3)">Back</button>
+        <button class="btn primary" onclick="goStep(5)">Continue</button>
+      </div>
+    </div>
+
+    <!-- ══════ Step 5 — Bank ══════ -->
+    <div class="step-panel" id="panel5">
+      <div class="card-title">Payout Account</div>
+      <div class="card-sub">Where we'll send your earnings.</div>
+
+      <div class="form-group">
+        <label class="f-label">Bank <span class="f-req">*</span></label>
+        <select class="f-select" id="fBankName">
+          <option value="">— Select —</option>
+          <option value="ABA">ABA</option>
+          <option value="ACLEDA">ACLEDA</option>
+          <option value="Wing">Wing</option>
+          <option value="Chip Mong">Chip Mong</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="f-label">Account Name <span class="f-req">*</span></label>
+        <input class="f-input" id="fBankAccountName" placeholder="Name on the account">
+      </div>
+      <div class="form-row-two">
+        <div>
+          <label class="f-label">Account Number <span class="f-req">*</span></label>
+          <input class="f-input" id="fBankAccountNumber" placeholder="000 000 000">
+        </div>
+        <div>
+          <label class="f-label">Currency</label>
+          <select class="f-select" id="fCurrency">
+            <option value="USD">USD</option>
+            <option value="KHR">KHR</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="f-label">Return Address</label>
+        <textarea class="f-textarea" id="fReturnAddress" placeholder="Where customers should send returns — street, city, province"></textarea>
+        <div class="f-hint">Needed before your first product can go live.</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn ghost" onclick="goStep(4)">Back</button>
+        <button class="btn primary" onclick="saveStep5AndContinue()">Continue</button>
+      </div>
+    </div>
+
+    <!-- ══════ Step 6 — Terms + Submit ══════ -->
+    <div class="step-panel" id="panel6">
+      <div class="card-title">Review &amp; Submit</div>
+      <div class="card-sub">Last step.</div>
+
+      <div class="terms-row" onclick="toggleTerm(this,'agreement')">
+        <div class="checkbox" id="boxAgreement"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div class="terms-text">I agree to the Bards Marketplace Agreement</div>
+      </div>
+      <div class="terms-row" onclick="toggleTerm(this,'privacy')">
+        <div class="checkbox" id="boxPrivacy"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div class="terms-text">I agree to the Privacy Policy</div>
+      </div>
+      <div class="terms-row" onclick="toggleTerm(this,'commission')">
+        <div class="checkbox" id="boxCommission"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div class="terms-text">I understand and accept the commission structure</div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn ghost" onclick="goStep(5)">Back</button>
+        <button class="btn primary" id="submitBtn" onclick="handleFinalSubmit()">Submit Application</button>
+      </div>
+    </div>
+
+    <!-- ══════ Done state ══════ -->
+    <div class="step-panel" id="panelDone">
+      <div class="done-state">
+        <div class="done-icon">
+          <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="done-title">Application Submitted</div>
+        <div class="done-sub">We're reviewing your application. You'll get an email once it's approved — you can also come back to this page any time to check your status.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="products.js"></script>
+<script src="api.js"></script>
+<script>
+const STEP_LABELS = ['Account','Seller','Store','Docs','Bank','Review'];
+let STATE = { shop: null, documents: [], categories: [], step: 1, terms: { agreement:false, privacy:false, commission:false } };
+
+/* ── Auth guard — any logged-in role (customer/seller/admin) can apply,
+   unlike seller.html's dashboard guard which requires role seller/admin.
+   ensureSession() also silent-refreshes if crossing from another subdomain.
+   Uses bardsSigninUrl() (not a relative 'signin.html') — this server has no
+   signin page of its own, see backend/server-seller.js's header comment. */
+(async function init() {
+  if (!(await Auth.ensureSession())) {
+    location.href = bardsSigninUrl(location.pathname + location.search);
+    return;
+  }
+  try {
+    const [{ user }, meRes, cats] = await Promise.all([
+      AuthAPI.me(),
+      ShopsAPI.me(),
+      CategoriesAPI.fetch().catch(() => []),
+    ]);
+    document.getElementById('acctEmail').value = user.email || user.name || '';
+    STATE.categories = cats;
+    const catSel = document.getElementById('fCategory');
+    cats.forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.id; o.textContent = c.name;
+      catSel.appendChild(o);
+    });
+
+    STATE.shop = meRes.shop;
+    STATE.documents = meRes.documents || [];
+
+    // Approved shops are NOT redirected away (a previous version of this
+    // page did that) — this page doubles as the shop's profile editor after
+    // approval too, since it's the only place bank/return-address/etc. can
+    // be edited, and the onboarding checklist on seller.html links back
+    // here for whichever fields are still missing.
+    if (STATE.shop && STATE.shop.status === 'suspended') {
+      showOnly('panelSuspended');
+      document.getElementById('stepsNav').style.display = 'none';
+      showBanner('suspended', 'Shop Suspended', 'Contact support for more information.');
+      return;
+    }
+
+    if (STATE.shop) prefillFromShop(STATE.shop);
+    renderDocs();
+    if (STATE.shop && STATE.shop.status === 'pending') {
+      showBanner('pending', 'Application Under Review', 'You can still edit your info below — we’ll review the latest version.');
+    } else if (STATE.shop && STATE.shop.status === 'needs_info') {
+      showBanner('needs_info', 'More Information Needed', escapeHtml(STATE.shop.info_requested_note || 'Please review and update your application.'));
+    } else if (STATE.shop && STATE.shop.status === 'rejected') {
+      showBanner('rejected', 'Application Rejected', escapeHtml(STATE.shop.rejection_reason || 'Please review and resubmit your application.'));
+    } else if (STATE.shop && STATE.shop.status === 'approved') {
+      showBanner('approved', 'Shop Approved', `Your shop is live. <a href="${bardsCrossHubUrl('seller', '/seller')}" style="color:inherit;font-weight:700;text-decoration:underline;">Go to Dashboard →</a>`);
+      document.getElementById('submitBtn').textContent = 'Save Changes';
+    }
+    renderSteps();
+    goStep(1, true);
+  } catch(e) {
+    showErr(e.message || 'Failed to load your application.');
+  }
+})();
+
+function showBanner(kind, title, sub) {
+  const el = document.getElementById('statusBanner');
+  el.className = 'status-banner show ' + kind;
+  el.innerHTML = `<b>${title}</b>${sub}`;
+}
+
+function prefillFromShop(s) {
+  document.getElementById('fFullName').value = s.full_name || '';
+  document.getElementById('fPhone').value = s.phone || '';
+  document.getElementById('fCountry').value = s.country || 'Cambodia';
+  document.getElementById('fProvince').value = s.province || '';
+  document.getElementById('fAddress').value = s.address || '';
+  if (s.business_type) setBusinessType(s.business_type, true);
+  document.getElementById('fName').value = s.name || '';
+  document.getElementById('fSlug').value = s.store_slug || '';
+  document.getElementById('fCategory').value = s.category_id || '';
+  document.getElementById('fDescription').value = s.description || '';
+  document.getElementById('fBankName').value = s.bank_name || '';
+  document.getElementById('fBankAccountName').value = s.bank_account_name || '';
+  document.getElementById('fBankAccountNumber').value = s.bank_account_number || '';
+  document.getElementById('fCurrency').value = s.currency || 'USD';
+  document.getElementById('fReturnAddress').value = s.return_address || '';
+  if (s.logo) markUploaded('logo', s.logo);
+  if (s.cover_url) markUploaded('cover', s.cover_url);
+}
+
+function renderDocs() {
+  ['id_card', 'business_license', 'tax_document'].forEach(type => {
+    const doc = STATE.documents.find(d => d.doc_type === type);
+    const row = document.getElementById('docRow_' + type);
+    const sub = document.getElementById('docSub_' + type);
+    const icon = document.getElementById('docIcon_' + type);
+    if (doc) {
+      row.classList.add('done');
+      icon.textContent = '✓';
+      sub.textContent = 'Uploaded — ' + fmtDate(doc.uploaded_at);
+    }
+  });
+  const bizReq = document.getElementById('bizLicenseReq');
+  const isBusiness = document.querySelector('#tileBusiness.on');
+  bizReq.style.display = isBusiness ? 'inline' : 'none';
+}
+
+/* ── Step navigation ── */
+function renderSteps() {
+  const nav = document.getElementById('stepsNav');
+  nav.innerHTML = STEP_LABELS.map((lbl, i) => {
+    const n = i + 1;
+    const cls = n === STATE.step ? 'active' : (n < STATE.step ? 'done' : '');
+    return `<div class="step-dot ${cls}" data-step="${n}"><div class="num">${n < STATE.step ? '✓' : n}</div><div class="lbl">${lbl}</div></div>`;
+  }).join('');
+}
+
+function showOnly(id) {
+  document.querySelectorAll('.step-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goStep(n, skipRender) {
+  STATE.step = n;
+  showOnly('panel' + n);
+  clearErr();
+  if (!skipRender) renderSteps();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ── Business type tiles ── */
+function setBusinessType(type, silent) {
+  document.getElementById('tileIndividual').classList.toggle('on', type === 'individual');
+  document.getElementById('tileBusiness').classList.toggle('on', type === 'business');
+  STATE._businessType = type;
+  if (!silent) renderDocs();
+}
+
+/* ── Terms checkboxes ── */
+function toggleTerm(row, key) {
+  STATE.terms[key] = !STATE.terms[key];
+  const boxId = 'box' + key.charAt(0).toUpperCase() + key.slice(1);
+  document.getElementById(boxId).classList.toggle('on', STATE.terms[key]);
+}
+
+/* ── Collect field values from steps 1-3 (used for the very first save,
+   which also happens to be when the shop row itself gets created) ── */
+function collectFields() {
+  return {
+    business_type: STATE._businessType || null,
+    full_name: document.getElementById('fFullName').value.trim() || null,
+    phone: document.getElementById('fPhone').value.trim() || null,
+    country: document.getElementById('fCountry').value.trim() || null,
+    province: document.getElementById('fProvince').value.trim() || null,
+    address: document.getElementById('fAddress').value.trim() || null,
+    name: document.getElementById('fName').value.trim(),
+    store_slug: document.getElementById('fSlug').value.trim() || null,
+    category_id: document.getElementById('fCategory').value || null,
+    description: document.getElementById('fDescription').value.trim() || null,
+    logo: STATE._logoUrl || null,
+    cover_url: STATE._coverUrl || null,
+  };
+}
+
+/* ── Step 3 → 4: this is the first point enough info exists (a store name)
+   to actually create the shop row (POST /apply requires `name`) — earlier
+   steps just hold their values in the DOM/STATE until now. If the shop
+   already exists (resuming a pending/rejected/needs_info application),
+   PATCH instead. ── */
+async function saveStep3AndContinue() {
+  const btn = document.getElementById('step3NextBtn');
+  const fields = collectFields();
+  if (!fields.name) { showErr('Store name is required.'); return; }
+  btn.classList.add('loading');
+  try {
+    if (STATE.shop) {
+      const { shop } = await ShopsAPI.update(fields);
+      STATE.shop = shop;
+    } else {
+      const { shop } = await ShopsAPI.apply(fields);
+      STATE.shop = shop;
+    }
+    btn.classList.remove('loading');
+    goStep(4);
+  } catch(e) {
+    btn.classList.remove('loading');
+    showErr(e.message || 'Could not save — please check your info.');
+  }
+}
+
+function collectStep5Fields() {
+  return {
+    bank_name: document.getElementById('fBankName').value || null,
+    bank_account_name: document.getElementById('fBankAccountName').value.trim() || null,
+    bank_account_number: document.getElementById('fBankAccountNumber').value.trim() || null,
+    currency: document.getElementById('fCurrency').value || null,
+    return_address: document.getElementById('fReturnAddress').value.trim() || null,
+  };
+}
+
+async function saveStep5AndContinue() {
+  try {
+    const { shop } = await ShopsAPI.update(collectStep5Fields());
+    STATE.shop = shop;
+    goStep(6);
+  } catch(e) {
+    showErr(e.message || 'Could not save — please try again.');
+  }
+}
+
+/* ── Branding (logo/cover) upload — public bucket, returns a URL immediately ── */
+async function handleBrandingUpload(input, which) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!STATE.shop) {
+    // Not created yet (still on step 3, first time through) — create a
+    // minimal shop row first so there's something to attach the upload to.
+    const name = document.getElementById('fName').value.trim();
+    if (!name) { showErr('Enter a store name first.'); input.value = ''; return; }
+    try {
+      const { shop } = await ShopsAPI.apply({ name });
+      STATE.shop = shop;
+    } catch(e) { showErr(e.message || 'Could not start application.'); input.value = ''; return; }
+  }
+  try {
+    const { url } = await ShopsAPI.uploadBranding(file);
+    if (which === 'logo') STATE._logoUrl = url; else STATE._coverUrl = url;
+    await ShopsAPI.update(which === 'logo' ? { logo: url } : { cover_url: url });
+    markUploaded(which, url);
+  } catch(e) {
+    showErr(e.message || 'Upload failed.');
+  }
+  input.value = '';
+}
+
+function markUploaded(which, url) {
+  const row = document.getElementById(which + 'Row');
+  const icon = document.getElementById(which + 'Icon');
+  row.classList.add('done');
+  row.querySelector('.upload-name').textContent = which === 'logo' ? 'Logo uploaded' : 'Cover uploaded';
+  icon.innerHTML = '';
+  icon.style.background = 'transparent';
+  const img = document.createElement('img');
+  img.src = url; img.className = 'upload-preview';
+  icon.replaceWith(img);
+  img.id = which + 'Icon';
+  if (which === 'logo') STATE._logoUrl = url; else STATE._coverUrl = url;
+}
+
+/* ── Document upload ── */
+async function handleDocUpload(input, docType) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!STATE.shop) { showErr('Please finish Step 3 (Store Info) first.'); input.value = ''; return; }
+  const row = document.getElementById('docRow_' + docType);
+  const sub = document.getElementById('docSub_' + docType);
+  sub.textContent = 'Uploading…';
+  try {
+    const { document: doc } = await ShopsAPI.uploadDocument(file, docType);
+    STATE.documents = STATE.documents.filter(d => d.doc_type !== docType).concat(doc);
+    renderDocs();
+  } catch(e) {
+    sub.textContent = 'Not uploaded yet';
+    showErr(e.message || 'Document upload failed.');
+  }
+  input.value = '';
+}
+
+/* ── Final submit / resubmit / save-changes (already approved) ── */
+async function handleFinalSubmit() {
+  const alreadyApproved = STATE.shop && STATE.shop.status === 'approved';
+
+  // Terms/documents are first-application requirements only — an already-
+  // approved seller editing their profile already agreed to these once.
+  if (!alreadyApproved) {
+    if (!STATE.terms.agreement || !STATE.terms.privacy || !STATE.terms.commission) {
+      showErr('Please accept all three agreements to continue.');
+      return;
+    }
+    const isBusiness = document.querySelector('#tileBusiness.on');
+    const hasIdCard = STATE.documents.some(d => d.doc_type === 'id_card');
+    const hasBizLicense = STATE.documents.some(d => d.doc_type === 'business_license');
+    if (!hasIdCard) { showErr('Please upload your ID card / passport (Step 4).'); return; }
+    if (isBusiness && !hasBizLicense) { showErr('Please upload your business license (Step 4).'); return; }
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.classList.add('loading');
+  try {
+    if (alreadyApproved) {
+      // Final save of anything from step 5 (bank/return address) that may
+      // not have been saved yet if the seller jumped straight to step 6.
+      await ShopsAPI.update(collectStep5Fields());
+      btn.classList.remove('loading');
+      toast('✓ Changes saved');
+      return;
+    }
+    const resubmit = STATE.shop && ['rejected', 'needs_info'].includes(STATE.shop.status);
+    if (resubmit) await ShopsAPI.resubmit();
+    btn.classList.remove('loading');
+    document.getElementById('statusBanner').classList.remove('show');
+    document.getElementById('stepsNav').style.display = 'none';
+    showOnly('panelDone');
+  } catch(e) {
+    btn.classList.remove('loading');
+    showErr(e.message || 'Could not submit — please try again.');
+  }
+}
+
+/* ── Helpers ── */
+function showErr(msg) {
+  document.getElementById('errMsg').textContent = msg;
+  document.getElementById('errBanner').classList.add('show');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function clearErr() { document.getElementById('errBanner').classList.remove('show'); }
+
+let _tt;
+function toast(m) {
+  const t = document.getElementById('toast');
+  t.textContent = m;
+  t.classList.add('on');
+  clearTimeout(_tt);
+  _tt = setTimeout(() => t.classList.remove('on'), 2200);
+}
+</script>
+</body>
+</html>
