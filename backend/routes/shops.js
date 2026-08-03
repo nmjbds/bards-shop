@@ -1,7 +1,7 @@
 const express = require('express');
 const { z } = require('zod');
 const { query, pool } = require('../db');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, revokeUserSessions } = require('../middleware/auth');
 const { validate, MIME_EXT } = require('../middleware/validate');
 const { getSignedGetUrl } = require('../services/r2');
 const { sendEmail, sendTelegramToAdmin } = require('../services/notify');
@@ -458,10 +458,15 @@ router.patch('/:id', requireAuth, requireRole('admin'), validate(shopStatusSchem
            WHERE id=$2 RETURNING *`,
           [req.user.id, req.params.id]
         );
-        await client.query(
+        const roleUpdate = await client.query(
           `UPDATE users SET role='seller' WHERE id=$1 AND role='customer'`,
           [current.rows[0].owner_user_id]
         );
+        // Only if the role actually changed (rowCount 0 means they were
+        // already seller/admin — nothing to force a re-login over).
+        if (roleUpdate.rowCount > 0) {
+          await revokeUserSessions(current.rows[0].owner_user_id, client.query.bind(client));
+        }
         await client.query('COMMIT');
         const shop = r.rows[0];
         const t = STATUS_EMAIL.approved;

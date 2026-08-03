@@ -54,4 +54,19 @@ async function getOwnApprovedShop(userId) {
   return r.rows[0]?.id || null;
 }
 
-module.exports = { requireAuth, requireRole, getUserRole, getOwnApprovedShop };
+// Revoke every live refresh token for a user — call this alongside ANY
+// `UPDATE users SET role=...`, not just the suspend flow (which already did
+// this). Found 2026-08-03: promoting/demoting a role left old refresh
+// tokens live, so a browser holding a pre-change cookie would keep getting
+// fresh access tokens stamped with the OLD role indefinitely (up to 30
+// days) instead of being forced to re-authenticate. Accepts an optional
+// queryFn so a caller already inside a client.query() transaction (e.g.
+// shops.js's approve-shop transaction, which updates users.role and
+// shops.status atomically) can pass `client.query.bind(client)` to keep
+// the revoke in the same transaction; defaults to the plain query() helper
+// for call sites that aren't already in one.
+async function revokeUserSessions(userId, queryFn = query) {
+  await queryFn('UPDATE refresh_tokens SET revoked_at=NOW() WHERE user_id=$1 AND revoked_at IS NULL', [userId]);
+}
+
+module.exports = { requireAuth, requireRole, getUserRole, getOwnApprovedShop, revokeUserSessions };

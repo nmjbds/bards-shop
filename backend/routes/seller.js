@@ -2,7 +2,7 @@ const express = require('express');
 const crypto  = require('crypto');
 const { z } = require('zod');
 const { query, pool } = require('../db');
-const { requireAuth, requireRole, getOwnApprovedShop } = require('../middleware/auth');
+const { requireAuth, requireRole, getOwnApprovedShop, revokeUserSessions } = require('../middleware/auth');
 const { validate, MIME_EXT } = require('../middleware/validate');
 const { restoreStock } = require('../services/stock');
 const router = express.Router();
@@ -926,7 +926,7 @@ router.patch('/customers/:id/status', requireAuth, requireRole('admin'), validat
       [status, req.params.id]
     );
     if (status === 'suspended') {
-      await query('UPDATE refresh_tokens SET revoked_at=NOW() WHERE user_id=$1 AND revoked_at IS NULL', [req.params.id]);
+      await revokeUserSessions(req.params.id);
     }
     res.json({ ok: true, user: r.rows[0] });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
@@ -947,6 +947,7 @@ router.post('/make-seller', requireAuth, requireRole('admin'), validate(makeSell
       [email.toLowerCase()]
     );
     if (!r.rows.length) return res.status(404).json({ error: 'User not found.' });
+    await revokeUserSessions(r.rows[0].id);
     res.json({ ok: true, user: r.rows[0] });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
