@@ -98,15 +98,28 @@ app.use('/api/categories', categoriesRouter);
 
 app.get('/api/health', (req, res) => res.json({ ok: true, ts: new Date().toISOString(), service: 'admin' }));
 
-// Clean URLs for every .html in public-admin/ (same auto-scan convention as
-// the combined server.js).
+// Clean URLs for every .html in public-admin/. No nested subfolders exist
+// here today, but this walks recursively anyway for the same reason as
+// server-customer.js (consistency + future-proofing, not a bug fix on this
+// server specifically) — manual walk rather than fs.readdirSync's
+// `recursive: true` (Node ≥20.1 only; no engines version pinned).
+function walkHtmlFiles(dir, base = '') {
+  let files = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const rel = base ? `${base}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      files = files.concat(walkHtmlFiles(path.join(dir, entry.name), rel));
+    } else if (entry.name.endsWith('.html')) {
+      files.push(rel);
+    }
+  }
+  return files;
+}
 try {
-  fs.readdirSync(PUBLIC)
-    .filter(f => f.endsWith('.html'))
-    .forEach(f => {
-      const route = '/' + f.replace('.html', '');
-      app.get(route, (_, res) => res.sendFile(f, { root: PUBLIC }));
-    });
+  walkHtmlFiles(PUBLIC).forEach(rel => {
+    const route = '/' + rel.replace(/\.html$/, '');
+    app.get(route, (_, res) => res.sendFile(rel, { root: PUBLIC }));
+  });
 } catch (e) { console.warn('Could not scan PUBLIC folder:', e.message); }
 
 // No SPA fallback to a customer homepage — this server only ever serves

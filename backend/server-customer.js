@@ -101,14 +101,32 @@ app.use('/api/categories', categoriesRouter);
 
 app.get('/api/health', (req, res) => res.json({ ok: true, ts: new Date().toISOString(), service: 'customer' }));
 
-// Clean URLs for every .html in public-customer/.
+// Clean URLs for every .html in public-customer/, including nested
+// subfolders (en/, kh/ — the static-page translations). The old version of
+// this scan only read the top level, so /en/contact (no .html) never
+// matched any real route and silently fell through to the SPA fallback
+// below instead (serving the homepage, not the contact page — worse than a
+// 404 since it looked like it worked). Walking manually rather than using
+// fs.readdirSync's built-in `recursive: true` option (Node ≥20.1 only —
+// package.json doesn't pin an engines version, so that flag isn't
+// guaranteed to exist wherever this actually runs).
+function walkHtmlFiles(dir, base = '') {
+  let files = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const rel = base ? `${base}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      files = files.concat(walkHtmlFiles(path.join(dir, entry.name), rel));
+    } else if (entry.name.endsWith('.html')) {
+      files.push(rel);
+    }
+  }
+  return files;
+}
 try {
-  fs.readdirSync(PUBLIC)
-    .filter(f => f.endsWith('.html'))
-    .forEach(f => {
-      const route = '/' + f.replace('.html', '');
-      app.get(route, (_, res) => res.sendFile(f, { root: PUBLIC }));
-    });
+  walkHtmlFiles(PUBLIC).forEach(rel => {
+    const route = '/' + rel.replace(/\.html$/, '');
+    app.get(route, (_, res) => res.sendFile(rel, { root: PUBLIC }));
+  });
 } catch (e) { console.warn('Could not scan PUBLIC folder:', e.message); }
 
 // /categories/:cat → tops.html (generic category-listing template — see
