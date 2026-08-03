@@ -942,11 +942,23 @@ router.post('/make-seller', requireAuth, requireRole('admin'), validate(makeSell
     if (!secretMatches(secret, process.env.ADMIN_SECRET)) {
       return res.status(403).json({ error: 'Wrong secret.' });
     }
+    // Found 2026-08-03: the UPDATE below used to have no role guard at all,
+    // so calling this on an email that was already 'seller' or (worse)
+    // 'admin' would silently downgrade them to 'seller' with no warning —
+    // same class of bug as shops.js's approve-shop transaction already
+    // guarded against. Checking current role first gives a clear 400
+    // instead of a silent downgrade or a misleading 404.
+    const existing = await query('SELECT id, role FROM users WHERE email=$1', [email.toLowerCase()]);
+    if (!existing.rows.length) return res.status(404).json({ error: 'User not found.' });
+    if (existing.rows[0].role !== 'customer') {
+      return res.status(400).json({ error: `Cannot promote — this account is already role='${existing.rows[0].role}'.` });
+    }
     const r = await query(
-      "UPDATE users SET role='seller' WHERE email=$1 RETURNING id, email, role",
-      [email.toLowerCase()]
+      "UPDATE users SET role='seller' WHERE id=$1 AND role='customer' RETURNING id, email, role",
+      [existing.rows[0].id]
     );
-    if (!r.rows.length) return res.status(404).json({ error: 'User not found.' });
+    // Role changed between the SELECT and UPDATE above (concurrent request) — rare, but don't silently no-op.
+    if (!r.rows.length) return res.status(409).json({ error: 'Role changed concurrently — please try again.' });
     await revokeUserSessions(r.rows[0].id);
     res.json({ ok: true, user: r.rows[0] });
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
