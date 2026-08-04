@@ -132,6 +132,9 @@ function walkHtmlFiles(dir, base = '') {
 }
 try {
   walkHtmlFiles(PUBLIC).forEach(rel => {
+    // No index.html exists on this server today, but guard it the same way
+    // as server-customer.js anyway — consistency + future-proofing.
+    if (rel === 'index.html') return;
     const route = '/' + rel.replace(/\.html$/, '');
     app.get(route, (_, res) => res.sendFile(rel, { root: PUBLIC }));
   });

@@ -124,6 +124,11 @@ function walkHtmlFiles(dir, base = '') {
 }
 try {
   walkHtmlFiles(PUBLIC).forEach(rel => {
+    // index.html is deliberately NOT given its own /index route — bare `/`
+    // (served by express.static's default directory-index behavior) is the
+    // only way in; a professional site shouldn't have two working URLs for
+    // the same homepage.
+    if (rel === 'index.html') return;
     const route = '/' + rel.replace(/\.html$/, '');
     app.get(route, (_, res) => res.sendFile(rel, { root: PUBLIC }));
   });
@@ -145,6 +150,14 @@ app.get('/product/:id', (_, res) => {
     if (err) res.sendFile('all-products.html', { root: PUBLIC });
   });
 });
+
+// Explicitly reject /index (no extension) — omitting it from the
+// walkHtmlFiles scan above isn't enough on its own: without this, the
+// request would just fall through to the SPA fallback below and get
+// index.html served anyway (200, silently the wrong outcome) — the exact
+// same class of bug the recursive-walk fix corrected for /en/*, /kh/*.
+// Registered before the fallback so it actually wins.
+app.get('/index', (_, res) => res.status(404).send('Not found.'));
 
 // SPA fallback — this server's audience is the whole storefront, so an
 // unmatched path still resolves to the homepage (unlike the seller/admin
