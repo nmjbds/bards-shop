@@ -132,7 +132,7 @@ function bardsCrossHubUrl(hub, path) {
    'signin.html'. */
 function bardsSigninUrl(redirectPath) {
   if (!_bardsCurrentHub()) {
-    return redirectPath ? `signin.html?redirect=${encodeURIComponent(redirectPath)}` : 'signin.html';
+    return redirectPath ? `/signin?redirect=${encodeURIComponent(redirectPath)}` : '/signin';
   }
   const backTo = redirectPath ? location.origin + redirectPath : null;
   return backTo
@@ -284,7 +284,7 @@ async function fetchCategories() {
     CATEGORIES = rows.map(c => ({
       id:             c.slug,
       label:          c.name,
-      url:            `categories/${c.slug}.html`,
+      url:            `/categories/${c.slug}`,
       color:          c.color || '#2A2A2A',
       showOnHomepage: c.show_on_homepage !== false,
     }));
