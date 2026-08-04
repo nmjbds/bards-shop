@@ -158,24 +158,24 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
   </div>
   <nav class="sb-nav">
     <div class="sb-section">Main</div>
-    <a href="seller.html" class="sb-item active">
+    <a href="/seller" class="sb-item active">
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
       Overview
     </a>
-    <a href="seller-orders.html" class="sb-item">
+    <a href="/seller-orders" class="sb-item">
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
       Orders
     </a>
-    <a href="seller-analytics.html" class="sb-item">
+    <a href="/seller-analytics" class="sb-item">
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Analytics
     </a>
     <div class="sb-section">Store</div>
-    <a href="seller-products.html" class="sb-item">
+    <a href="/seller-products" class="sb-item">
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
       Products
     </a>
-    <a href="seller-coupons.html" class="sb-item">
+    <a href="/seller-coupons" class="sb-item">
       <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
       Coupons
     </a>
@@ -214,7 +214,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
         <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         Refresh
       </button>
-      <a href="seller-orders.html" class="tb-btn primary">
+      <a href="/seller-orders" class="tb-btn primary">
         View Orders →
       </a>
     </div>
@@ -278,14 +278,14 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       <div class="panel">
         <div class="panel-head">
           <div class="panel-title">Recent Orders</div>
-          <a href="seller-orders.html" class="panel-link">View all →</a>
+          <a href="/seller-orders" class="panel-link">View all →</a>
         </div>
         <div id="recentOrders"><div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Loading…</div></div></div>
       </div>
       <div class="panel">
         <div class="panel-head">
           <div class="panel-title">Top Products</div>
-          <a href="seller-analytics.html" class="panel-link">Details →</a>
+          <a href="/seller-analytics" class="panel-link">Details →</a>
         </div>
         <div id="topProducts"><div class="empty"><div class="empty-icon">📦</div><div class="empty-title">Loading…</div></div></div>
       </div>
@@ -334,8 +334,8 @@ const CHECKLIST_DEFS = [
   { key: 'store',          label: 'Set up your store info',  href: '/apply' },
   { key: 'bank',           label: 'Add a payout account',    href: '/apply' },
   { key: 'return_address', label: 'Add a return address',    href: '/apply' },
-  { key: 'add_product',    label: 'Add your first product',  href: 'seller-products.html' },
-  { key: 'first_product',  label: 'Get a product approved',  href: 'seller-products.html' },
+  { key: 'add_product',    label: 'Add your first product',  href: '/seller-products' },
+  { key: 'first_product',  label: 'Get a product approved',  href: '/seller-products' },
 ];
 
 async function loadChecklist() {
