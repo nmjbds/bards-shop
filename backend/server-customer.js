@@ -87,6 +87,17 @@ if (process.env.NODE_ENV !== 'production') {
   app.use((req, _, next) => { console.log('[customer]', req.method, req.url); next(); });
 }
 
+// Clean URLs Phase 2 (2026-08-05) — .html is no longer reachable at all, not
+// just "not recommended". Registered before express.static so static never
+// gets a chance to serve the real file by its literal .html path. Project
+// has no live users and no SEO to preserve, so a hard 404 (not a 301) is
+// fine here. req.path excludes the query string, so ?foo=bar on a .html
+// request is still caught correctly.
+app.use((req, res, next) => {
+  if (req.path.toLowerCase().endsWith('.html')) return res.status(404).send('Not found.');
+  next();
+});
+
 app.use(express.static(PUBLIC));
 
 app.use('/api/auth',      authRouter);
@@ -138,10 +149,12 @@ try {
 // CLAUDE.md §10/§11). Same convention as the combined server.js.
 app.get('/categories/:cat', (_, res) => res.sendFile('tops.html', { root: PUBLIC }));
 
-// Legacy category URLs (/pants, /accessories) — same file, unchanged.
+// Legacy category URLs (/pants, /accessories) — same file, unchanged. No
+// .html variant registered anymore (Clean URLs Phase 2, 2026-08-05) — the
+// blanket .html block above would have shadowed it anyway, so it's removed
+// outright rather than left as dead code.
 ['pants', 'accessories'].forEach(cat => {
-  app.get(`/${cat}`,      (_, res) => res.sendFile('tops.html', { root: PUBLIC }));
-  app.get(`/${cat}.html`, (_, res) => res.sendFile('tops.html', { root: PUBLIC }));
+  app.get(`/${cat}`, (_, res) => res.sendFile('tops.html', { root: PUBLIC }));
 });
 
 // /product/:id → product.html

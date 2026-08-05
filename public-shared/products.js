@@ -103,7 +103,7 @@ function bardsDefaultLanding() {
   const hub = _bardsCurrentHub();
   if (hub === 'seller') return '/seller';
   if (hub === 'admin')  return '/admin-shops';
-  return 'account.html';
+  return '/account';
 }
 
 /* ใช้กับลิงก์ข้าม hub (View Store / Seller Hub / Admin-Shops) ในหน้า seller-*.html/

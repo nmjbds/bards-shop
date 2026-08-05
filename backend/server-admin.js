@@ -88,6 +88,17 @@ if (process.env.NODE_ENV !== 'production') {
 // audience to disambiguate by hostname (unlike the old combined server.js).
 app.get('/', (_, res) => res.redirect('/admin-shops'));
 
+// Clean URLs Phase 2 (2026-08-05) — .html is no longer reachable at all, not
+// just "not recommended". Registered before express.static so static never
+// gets a chance to serve the real file by its literal .html path. Project
+// has no live users and no SEO to preserve, so a hard 404 (not a 301) is
+// fine here. req.path excludes the query string, so ?foo=bar on a .html
+// request is still caught correctly.
+app.use((req, res, next) => {
+  if (req.path.toLowerCase().endsWith('.html')) return res.status(404).send('Not found.');
+  next();
+});
+
 app.use(express.static(PUBLIC));
 
 app.use('/api/auth',      authSessionRouter);

@@ -518,9 +518,9 @@ async function upsertTelegramUser(data) {
 router.get('/telegram/callback', async (req, res) => {
   try {
     const check = verifyTelegramAuth(req.query);
-    if (!check.ok) return res.redirect(`${process.env.FRONTEND_URL}/signin.html?error=${encodeURIComponent(check.reason)}`);
+    if (!check.ok) return res.redirect(`${process.env.FRONTEND_URL}/signin?error=${encodeURIComponent(check.reason)}`);
     const user = await upsertTelegramUser(check.data);
-    if (isSuspended(user)) return res.redirect(`${process.env.FRONTEND_URL}/signin.html?error=${encodeURIComponent(SUSPENDED_MSG)}`);
+    if (isSuspended(user)) return res.redirect(`${process.env.FRONTEND_URL}/signin?error=${encodeURIComponent(SUSPENDED_MSG)}`);
     const token = await issueSession(user, req, res);
     res.redirect(`${process.env.FRONTEND_URL}/signin?token=${token}`);
   } catch(e) { console.error(e); res.redirect(`${process.env.FRONTEND_URL}/signin?error=Telegram+login+failed`); }
