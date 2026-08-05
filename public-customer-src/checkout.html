@@ -245,7 +245,7 @@
         <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5"
              stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 11.5L6 8l3.5-3.5"/></svg>
     </button>
-    <a href="index.html" class="brand">BARDS</a>
+    <a href="/" class="brand">BARDS</a>
     <div class="nav-secure">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -270,7 +270,7 @@
                 </svg>
             </div>
             <span class="ck-title">Order Summary</span>
-            <a href="cart.html" style="font-size:11px;font-weight:700;color:var(--gray-400);text-decoration:none;letter-spacing:.5px">Edit</a>
+            <a href="/cart" style="font-size:11px;font-weight:700;color:var(--gray-400);text-decoration:none;letter-spacing:.5px">Edit</a>
         </div>
         <div class="ck-body">
             <div id="orderItemsList"></div>
@@ -508,12 +508,12 @@ let ITEMS = [], subtotal = 0, shipCost = 0, _usingAddr = null, _coupon = null;
 window.onload = function() {
     /* ต้อง login */
     if (!Auth.isLoggedIn()) {
-        location.href = 'signin.html?redirect=checkout.html'; return;
+        location.href = '/signin?redirect=/checkout'; return;
     }
     const raw = sessionStorage.getItem('CHECKOUT_ITEMS') || localStorage.getItem('BARDS_CART') || '[]';
     ITEMS = JSON.parse(raw);
     if (!ITEMS.length) {
-        showToast('warn','Cart is empty',''); setTimeout(()=>location.href='index.html',1500); return;
+        showToast('warn','Cart is empty',''); setTimeout(()=>location.href='/',1500); return;
     }
     renderSummary();
     loadSavedAddresses();
@@ -748,7 +748,7 @@ async function placeOrder() {
             expiresAt: data.expiresAt,
             items: ITEMS, address, subtotal, shipping:shipCost, total: data.amount
         }));
-        location.href = 'payment.html';
+        location.href = '/payment';
     } catch(err) {
         btn.className='place-btn idle';
         btn.innerHTML='PLACE ORDER <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';

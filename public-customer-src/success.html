@@ -155,7 +155,7 @@
 <body>
 
 <nav class="nav">
-    <a href="index.html" class="brand">BARDS</a>
+    <a href="/" class="brand">BARDS</a>
 </nav>
 
 <div class="page">
@@ -248,7 +248,7 @@
 
     <!-- ACTIONS -->
     <div class="actions fu d3">
-        <a href="index.html" class="btn-primary">
+        <a href="/" class="btn-primary">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                  stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -281,7 +281,7 @@ let _ORDER = null;
 window.onload = async function () {
     updateBadge();
     const orderId = new URLSearchParams(location.search).get('order');
-    if (!orderId) { location.href = 'index.html'; return; }
+    if (!orderId) { location.href = '/'; return; }
 
     document.getElementById('orderRefVal').textContent = orderId;
     document.getElementById('detOrderId').textContent  = orderId;

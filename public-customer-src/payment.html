@@ -94,7 +94,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 </head>
 <body>
 <nav class="nav">
-  <a href="index.html" class="brand">BARDS</a>
+  <a href="/" class="brand">BARDS</a>
   <div class="nav-timer"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span class="timer-val" id="navTimer">24:00:00</span></div>
 </nav>
 
@@ -184,9 +184,9 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 let ORDER=null,EXPIRES_AT=null,TIMER_ID=null,POLL_ID=null,_confirming=false;
 
 window.onload=function(){
-  if(!Auth.isLoggedIn()){location.href='signin.html?redirect=checkout.html';return;}
+  if(!Auth.isLoggedIn()){location.href='/signin?redirect=/checkout';return;}
   const raw=sessionStorage.getItem('BARDS_ORDER');
-  if(!raw){location.href='checkout.html';return;}
+  if(!raw){location.href='/checkout';return;}
   ORDER=JSON.parse(raw);
   const amt=fmtUSD(ORDER.total);
   document.getElementById('qrAmountVal').textContent=amt;
@@ -248,7 +248,7 @@ function startAutoPoll(){
       } else if(d.status==='cancelled'||d.status==='failed'){
         clearInterval(POLL_ID);clearInterval(TIMER_ID);
         showToast('warn','Order '+(d.status==='cancelled'?'cancelled':'payment failed'),'Redirecting to order details…');
-        setTimeout(()=>{ location.href='order-detail.html?id='+encodeURIComponent(ORDER.orderId); },1500);
+        setTimeout(()=>{ location.href='/order-detail?id='+encodeURIComponent(ORDER.orderId); },1500);
       }
     }catch(_){}
   },7000);
@@ -302,7 +302,7 @@ async function downloadQRCard(){
 // (มีแค่ลิงก์ "BARDS" เล็กๆ ที่ nav บนซึ่งไม่มีใครสังเกตว่ากดแล้วออกได้) เพิ่มปุ่มนี้ให้ชัดเจนว่าจ่ายทีหลัง
 // ได้ ไม่ต้องรอ/ไม่ต้องกดอะไรตอนนี้ — order ยังอยู่ ระบบตรวจจับการจ่ายอัตโนมัติอยู่แล้วไม่ว่าจะปิดหน้านี้ไป
 function payLater(){
-  location.href = 'order-detail.html?id=' + encodeURIComponent(ORDER.orderId);
+  location.href = '/order-detail?id=' + encodeURIComponent(ORDER.orderId);
 }
 
 async function confirmPayment(){
