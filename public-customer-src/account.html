@@ -376,6 +376,31 @@
         .lang-dot { width:8px; height:8px; border-radius:50%; background:var(--black); display:none; }
         .lang-opt.on .lang-dot { display:block; }
 
+        /* ── SKELETON LOADING (shimmer) ──────────────────────────────
+           Same technique order-detail.html already defines (.skeleton/
+           @keyframes shimmer there) but never actually applies to any
+           element — formalized here as reusable classes and actually
+           wired up. .skel is for standalone placeholder shapes (cards,
+           thumbs, bars) injected via renderSkeletons(); .skel-text masks
+           an existing text node in place (color:transparent + the same
+           shimmer as background) so the real render functions' plain
+           .innerText= assignment can clear it later with nothing more
+           than a classList.remove() — no markup swap needed for those. */
+        @keyframes skelShimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+        .skel {
+            background:linear-gradient(90deg,var(--gray-100) 25%,var(--gray-200) 50%,var(--gray-100) 75%);
+            background-size:200% 100%; animation:skelShimmer 1.4s infinite; border-radius:8px;
+        }
+        /* !important: overrides each target's own pre-existing background/color
+           (e.g. .profile-meta-chip's background:var(--gray-100)) without needing
+           to fight source order — this class is always applied later, via JS. */
+        .skel-text {
+            color:transparent!important;
+            background:linear-gradient(90deg,var(--gray-100) 25%,var(--gray-200) 50%,var(--gray-100) 75%)!important;
+            background-size:200% 100%; animation:skelShimmer 1.4s infinite; border-radius:6px;
+        }
+        #joinDate.skel-text { border-radius:20px; } /* keep the pill shape while loading */
+
         @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
         @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
         .fu { animation:fadeUp .42s ease both; }
@@ -706,12 +731,71 @@ function escapeHtml(str) {
     }[c]));
 }
 
+/* ── Skeleton loading ──────────────────────────────────────────────
+   Called once, synchronously, before the boot fetch below even starts.
+   #avatarDisplay/#orderList/#wishRow/#addrList are all fully replaced by
+   their real render functions (renderAvatar/renderOrders/renderWishlist/
+   renderAddresses each do a full .innerHTML= swap), so nothing here
+   needs explicit removal — the real render just overwrites it. Only the
+   6 inline-text spots (name/email/join chip/3 stat digits) use
+   .innerText= instead of a full swap, so those get a class instead of
+   markup, lifted by clearSkeletons() once the real render chain finishes. */
+function renderSkeletons() {
+    const avatar = document.getElementById('avatarDisplay');
+    if (avatar) avatar.innerHTML = '<div class="skel" style="width:72px;height:72px;border-radius:50%;"></div>';
+
+    ['profileNameText','profileEmail','joinDate','statOrders','statWishlist','statAddresses']
+        .forEach(id => document.getElementById(id)?.classList.add('skel-text'));
+
+    const orderSkel = `<div class="order-card" style="pointer-events:none;">
+        <div class="order-top">
+            <div class="skel" style="width:64px;height:11px;"></div>
+            <div class="skel" style="width:48px;height:16px;border-radius:20px;"></div>
+        </div>
+        <div class="order-mid">
+            <div class="skel" style="width:48px;height:48px;border-radius:var(--radius-sm);flex-shrink:0;"></div>
+            <div class="order-details">
+                <div class="skel" style="width:80%;height:13px;margin-bottom:6px;"></div>
+                <div class="skel" style="width:50%;height:11px;"></div>
+            </div>
+            <div class="skel" style="width:36px;height:14px;"></div>
+        </div>
+    </div>`;
+    const orderList = document.getElementById('orderList');
+    if (orderList) orderList.innerHTML = orderSkel + orderSkel;
+
+    const wishSkel = `<div class="wish-card" style="pointer-events:none;">
+        <div class="wish-img skel" style="border-radius:0;"></div>
+        <div class="wish-body">
+            <div class="skel" style="width:85%;height:11px;margin-bottom:6px;"></div>
+            <div class="skel" style="width:40%;height:12px;"></div>
+        </div>
+    </div>`;
+    const wishRow = document.getElementById('wishRow');
+    if (wishRow) wishRow.innerHTML = wishSkel + wishSkel + wishSkel;
+
+    const addrList = document.getElementById('addrList');
+    if (addrList) addrList.innerHTML = `<div class="addr-card" style="pointer-events:none;">
+        <div class="skel" style="width:120px;height:14px;margin-bottom:10px;"></div>
+        <div class="skel" style="width:90%;height:12px;margin-bottom:5px;"></div>
+        <div class="skel" style="width:65%;height:12px;"></div>
+    </div>`;
+}
+
+function clearSkeletons() {
+    ['profileNameText','profileEmail','joinDate','statOrders','statWishlist','statAddresses']
+        .forEach(id => document.getElementById(id)?.classList.remove('skel-text'));
+}
+
 /* ── Boot ──────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async () => {
     if (!Auth.isLoggedIn()) {
         location.href = '/signin?redirect=/account';
         return;
     }
+
+    renderSkeletons();
+    renderSettings(); // localStorage เท่านั้น ไม่ต้องรอ fetch ด้านล่างเลย
 
     try {
         const [meRes, ordRes, wishRes] = await Promise.all([
@@ -740,9 +824,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderOrders();
     renderWishlist();
     renderAddresses();
-    renderSettings();
     updateStats();
     updateBadge();
+    clearSkeletons();
 });
 
 /* ── Profile ───────────────────────────────────────────────────── */
