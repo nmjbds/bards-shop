@@ -75,7 +75,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 <body>
 
 <div class="logo-wrap fu">
-  <a href="index.html" class="brand">BARDS</a>
+  <a href="/" class="brand">BARDS</a>
   <div class="brand-sub">Streetwear</div>
 </div>
 
@@ -160,7 +160,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
   </button>
 
   <div class="switch-row">
-    Already have an account? <a href="signin.html" id="signinLink">Sign in</a>
+    Already have an account? <a href="/signin" id="signinLink">Sign in</a>
   </div>
 </div>
 
@@ -181,7 +181,7 @@ if (typeof Auth !== 'undefined' && typeof Auth.isLoggedIn === 'function' && Auth
 /* Preserve ?redirect= across the "Sign in" link too */
 if (_qs.get('redirect')) {
   const link = document.getElementById('signinLink');
-  if (link) link.href = 'signin.html?redirect=' + encodeURIComponent(_qs.get('redirect'));
+  if (link) link.href = '/signin?redirect=' + encodeURIComponent(_qs.get('redirect'));
 }
 
 let _loading = false;
@@ -284,7 +284,7 @@ function handleTelegramLogin() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Telegram login failed.');
         const redirect = safeRedirect(_qs.get('redirect'));
-        location.href = `signin.html?token=${encodeURIComponent(data.token)}` + (redirect ? `&redirect=${encodeURIComponent(redirect)}` : '');
+        location.href = `/signin?token=${encodeURIComponent(data.token)}` + (redirect ? `&redirect=${encodeURIComponent(redirect)}` : '');
       } catch(e) {
         btn.classList.remove('loading');
         btn.innerHTML = originalHTML;
