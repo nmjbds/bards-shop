@@ -93,8 +93,9 @@ const Auth = {
   // Auth.logout('signin.html') call site across seller-*.html/admin-*.html
   // was updated (2026-07-28) to just Auth.logout() with no argument, so
   // this default is what actually runs there now; account.html's explicit
-  // Auth.logout('signin.html') calls are untouched and still work exactly
-  // as before (customer server always has its own signin.html).
+  // Auth.logout('/signin') calls (updated from 'signin.html' during the
+  // Clean URLs pass) still pass a `to` explicitly and work exactly as
+  // before (customer server always has its own signin page).
   logout(to) {
     // Best-effort — revoke the refresh cookie server-side. Fire-and-forget
     // (keepalive:true, not awaited) so every existing

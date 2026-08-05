@@ -407,14 +407,14 @@
         <button class="icon-btn" onclick="history.back()">
             <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 11.5L6 8l3.5-3.5"/></svg>
         </button>
-        <a href="index.html" class="brand">BARDS</a>
+        <a href="/" class="brand">BARDS</a>
     </div>
     <div class="nav-right">
-        <a href="index.html" class="icon-btn" aria-label="Home">
+        <a href="/" class="icon-btn" aria-label="Home">
             <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         </a>
         <div class="cart-wrap">
-            <a href="cart.html" class="icon-btn" aria-label="Cart">
+            <a href="/cart" class="icon-btn" aria-label="Cart">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
             </a>
             <span class="cart-badge" id="cartBadge"></span>
@@ -469,7 +469,7 @@
 <div class="section fu d2" id="ordersSection">
     <div class="sec-hd">
         <span class="sec-hd-title">Recent Orders</span>
-        <a href="orders.html" class="see-all">See all →</a>
+        <a href="/orders" class="see-all">See all →</a>
     </div>
     <div class="order-list" id="orderList"></div>
     <div class="empty" id="emptyOrders">
@@ -485,7 +485,7 @@
     <div class="section">
         <div class="sec-hd">
             <span class="sec-hd-title">Saved Items</span>
-            <a href="wishlist.html" class="see-all">See all →</a>
+            <a href="/wishlist" class="see-all">See all →</a>
         </div>
     </div>
     <div class="wish-scroll">
@@ -709,7 +709,7 @@ function escapeHtml(str) {
 /* ── Boot ──────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async () => {
     if (!Auth.isLoggedIn()) {
-        location.href = 'signin.html?redirect=account.html';
+        location.href = '/signin?redirect=/account';
         return;
     }
 
@@ -719,7 +719,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             OrdersAPI.list().catch(() => ({ orders:[] })),
             WishlistAPI.load().catch(() => [])
         ]);
-        if (!meRes) { Auth.logout('signin.html'); return; }
+        if (!meRes) { Auth.logout('/signin'); return; }
 
         S.profile = meRes.user;
         S.favs    = wishRes;
@@ -728,7 +728,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         );
     } catch(err) {
         const cached = Auth.getUser();
-        if (!cached) { Auth.logout('signin.html'); return; }
+        if (!cached) { Auth.logout('/signin'); return; }
         S.profile = cached;
         S.favs    = WishlistAPI._local();
     }
@@ -881,7 +881,7 @@ function orderCardHTML(o) {
     const n     = items.length||1;
     const price = '$'+Number(o.total||0).toFixed(2);
     const date  = o.created_at ? new Date(o.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
-    return `<a class="order-card" href="order-detail.html?id=${encodeURIComponent(o.id||o.orderId)}">
+    return `<a class="order-card" href="/order-detail?id=${encodeURIComponent(o.id||o.orderId)}">
       <div class="order-top"><span class="order-id">#${escapeHtml(o.id||o.orderId)}</span><span class="order-status ${cls}">${label}</span></div>
       <div class="order-mid">
         ${thumb?`<img src="${escapeHtml(thumb)}" class="order-thumb" alt="" onerror="this.style.display='none'">`:''}
@@ -903,7 +903,7 @@ function renderWishlist() {
     empty?.classList.remove('show');
     row.innerHTML = S.favs.map(id => {
         const p = PRODUCTS[id]; if (!p) return '';
-        return `<div class="wish-card" onclick="location.href='product.html?id=${encodeURIComponent(id)}'">
+        return `<div class="wish-card" onclick="location.href='/product?id=${encodeURIComponent(id)}'">
           <div class="wish-img">
             <img src="${escapeHtml(p.images[0])}" alt="${escapeHtml(p.name)}" loading="lazy">
             <button class="wish-remove" onclick="event.stopPropagation();removeFav('${id}',this)" aria-label="Remove from saved items">
@@ -1165,7 +1165,7 @@ function signOut() {
     openSheetById('signOutSheet');
 }
 function confirmSignOut() {
-    Auth.logout('signin.html');
+    Auth.logout('/signin');
 }
 
 /* ── Sheet helpers ─────────────────────────────────────────────── */
