@@ -75,7 +75,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
   <a href="/" class="nav-logo">BARDS</a>
   <div class="nav-links">
     <a href="/all-products" class="nav-link">Shop</a>
-    <a href="/new-arrivals" class="nav-link">New Arrivals</a>
+    <a href="/new-arrival" class="nav-link">New Arrivals</a>
     <a href="/cart" class="nav-link">Cart <span id="cartCount"></span></a>
     <a href="/account" class="nav-link">Account</a>
   </div>
@@ -165,7 +165,7 @@ function buildTabs() {
 function setcat(c) {
   _cat = c;
   // Update URL without reload
-  const url = c==='all' ? '/all-products' : c==='new' ? '/new-arrivals' : `/categories/${c}`;
+  const url = c==='all' ? '/all-products' : c==='new' ? '/new-arrival' : `/categories/${c}`;
   history.pushState({}, '', url);
   buildTabs();
   updateHeader();
