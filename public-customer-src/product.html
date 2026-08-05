@@ -182,10 +182,10 @@
         <button class="icon-btn" onclick="history.back()">
             <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 11.5L6 8l3.5-3.5"/></svg>
         </button>
-        <a href="index.html" class="brand">Bards</a>
+        <a href="/" class="brand">Bards</a>
     </div>
     <div class="cart-wrap">
-        <a href="cart.html" class="icon-btn">
+        <a href="/cart" class="icon-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
                 <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
@@ -502,7 +502,7 @@ function handleConfirm() {
             // cart.html) ถ้ายังไม่ login checkout.html จะเด้งไป signin ให้เอง แล้วกลับมาที่นี่ได้
             // เพราะ sessionStorage อยู่ข้ามหน้า
             sessionStorage.setItem('CHECKOUT_ITEMS', JSON.stringify([item]));
-            window.location.href = 'checkout.html';
+            window.location.href = '/checkout';
             return;
         }
         saveCart(item);
