@@ -380,20 +380,28 @@
            Same technique order-detail.html already defines (.skeleton/
            @keyframes shimmer there) but never actually applies to any
            element — formalized here as reusable classes and actually
-           wired up. .skel is for standalone placeholder shapes (cards,
-           thumbs, bars) injected via renderSkeletons(); .skel-text masks
-           an existing text node in place (color:transparent + the same
-           shimmer as background) so the real render functions' plain
-           .innerText= assignment can clear it later with nothing more
-           than a classList.remove() — no markup swap needed for those. */
+           wired up. Baked directly into the static markup below (not
+           injected by JS on boot) so the browser paints the skeleton on
+           first parse, with zero dependency on products.js/api.js/this
+           inline script finishing their (parser-blocking, non-deferred)
+           load first — on a throttled connection that load alone can
+           take seconds, during which JS-injected skeletons never even
+           got a chance to run (found 2026-08-05 testing on Slow 3G).
+           .skel is for standalone placeholder shapes (cards, thumbs,
+           bars). .skel-text masks an existing text node in place
+           (color:transparent + the same shimmer as background) so the
+           real render functions' plain .innerText= assignment can leave
+           it alone — clearSkeletons() lifts the mask afterward with
+           nothing more than a classList.remove(), no markup swap. */
         @keyframes skelShimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
         .skel {
             background:linear-gradient(90deg,var(--gray-100) 25%,var(--gray-200) 50%,var(--gray-100) 75%);
             background-size:200% 100%; animation:skelShimmer 1.4s infinite; border-radius:8px;
         }
         /* !important: overrides each target's own pre-existing background/color
-           (e.g. .profile-meta-chip's background:var(--gray-100)) without needing
-           to fight source order — this class is always applied later, via JS. */
+           (e.g. .profile-meta-chip's background:var(--gray-100)) — present in
+           the static markup from first paint, so this has to win regardless of
+           source order against rules the target's own class already defines. */
         .skel-text {
             color:transparent!important;
             background:linear-gradient(90deg,var(--gray-100) 25%,var(--gray-200) 50%,var(--gray-100) 75%)!important;
@@ -452,7 +460,7 @@
 <!-- PROFILE HEADER -->
 <div class="profile-header fu" id="profileHeader">
     <div class="profile-avatar-wrap">
-        <div id="avatarDisplay"></div>
+        <div id="avatarDisplay"><div class="skel" style="width:72px;height:72px;border-radius:50%;"></div></div>
         <button class="profile-avatar-edit" onclick="triggerAvatar()" aria-label="Change avatar">
             <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a2.5 2.5 0 0 0-3.5-3.5L3 5v3h3l4.5-4.5z"/><path d="M1 15v2a2 2 0 0 0 2 2h2"/></svg>
         </button>
@@ -460,15 +468,15 @@
     </div>
     <div class="profile-info">
         <div class="profile-name" id="profileNameWrap">
-            <span id="profileNameText">User</span>
+            <span id="profileNameText" class="skel-text">User</span>
             <button class="profile-edit-btn" onclick="editName()" id="editNameBtn" aria-label="Edit name">
                 <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4a2.5 2.5 0 0 0-3.5-3.5L3 5v3h3l4.5-4.5z"/><path d="M1 15v2a2 2 0 0 0 2 2h2"/></svg>
             </button>
         </div>
-        <div class="profile-email" id="profileEmail">user@example.com</div>
+        <div class="profile-email skel-text" id="profileEmail">user@example.com</div>
         <div class="profile-meta-row">
             <div class="profile-meta-chip"><div class="dot"></div> Member</div>
-            <div class="profile-meta-chip" id="joinDate">Joined —</div>
+            <div class="profile-meta-chip skel-text" id="joinDate">Joined —</div>
         </div>
     </div>
 </div>
@@ -476,15 +484,15 @@
 <!-- STATS (3 tiles) -->
 <div class="stats-strip fu d1">
     <div class="stat-tile" onclick="scrollToSection('ordersSection')">
-        <div class="stat-val" id="statOrders">0</div>
+        <div class="stat-val skel-text" id="statOrders">0</div>
         <div class="stat-label">Orders</div>
     </div>
     <div class="stat-tile" onclick="scrollToSection('wishlistSection')">
-        <div class="stat-val" id="statWishlist">0</div>
+        <div class="stat-val skel-text" id="statWishlist">0</div>
         <div class="stat-label">Saved</div>
     </div>
     <div class="stat-tile" onclick="scrollToSection('addressesSection')">
-        <div class="stat-val" id="statAddresses">0</div>
+        <div class="stat-val skel-text" id="statAddresses">0</div>
         <div class="stat-label">Addresses</div>
     </div>
 </div>
@@ -496,7 +504,33 @@
         <span class="sec-hd-title">Recent Orders</span>
         <a href="/orders" class="see-all">See all →</a>
     </div>
-    <div class="order-list" id="orderList"></div>
+    <div class="order-list" id="orderList"><div class="order-card" style="pointer-events:none;">
+        <div class="order-top">
+            <div class="skel" style="width:64px;height:11px;"></div>
+            <div class="skel" style="width:48px;height:16px;border-radius:20px;"></div>
+        </div>
+        <div class="order-mid">
+            <div class="skel" style="width:48px;height:48px;border-radius:var(--radius-sm);flex-shrink:0;"></div>
+            <div class="order-details">
+                <div class="skel" style="width:80%;height:13px;margin-bottom:6px;"></div>
+                <div class="skel" style="width:50%;height:11px;"></div>
+            </div>
+            <div class="skel" style="width:36px;height:14px;"></div>
+        </div>
+    </div><div class="order-card" style="pointer-events:none;">
+        <div class="order-top">
+            <div class="skel" style="width:64px;height:11px;"></div>
+            <div class="skel" style="width:48px;height:16px;border-radius:20px;"></div>
+        </div>
+        <div class="order-mid">
+            <div class="skel" style="width:48px;height:48px;border-radius:var(--radius-sm);flex-shrink:0;"></div>
+            <div class="order-details">
+                <div class="skel" style="width:80%;height:13px;margin-bottom:6px;"></div>
+                <div class="skel" style="width:50%;height:11px;"></div>
+            </div>
+            <div class="skel" style="width:36px;height:14px;"></div>
+        </div>
+    </div></div>
     <div class="empty" id="emptyOrders">
         <div class="empty-icon">📦</div>
         <div class="empty-title">No orders yet</div>
@@ -514,7 +548,25 @@
         </div>
     </div>
     <div class="wish-scroll">
-        <div class="wish-row" id="wishRow"></div>
+        <div class="wish-row" id="wishRow"><div class="wish-card" style="pointer-events:none;">
+            <div class="wish-img skel" style="border-radius:0;"></div>
+            <div class="wish-body">
+                <div class="skel" style="width:85%;height:11px;margin-bottom:6px;"></div>
+                <div class="skel" style="width:40%;height:12px;"></div>
+            </div>
+        </div><div class="wish-card" style="pointer-events:none;">
+            <div class="wish-img skel" style="border-radius:0;"></div>
+            <div class="wish-body">
+                <div class="skel" style="width:85%;height:11px;margin-bottom:6px;"></div>
+                <div class="skel" style="width:40%;height:12px;"></div>
+            </div>
+        </div><div class="wish-card" style="pointer-events:none;">
+            <div class="wish-img skel" style="border-radius:0;"></div>
+            <div class="wish-body">
+                <div class="skel" style="width:85%;height:11px;margin-bottom:6px;"></div>
+                <div class="skel" style="width:40%;height:12px;"></div>
+            </div>
+        </div></div>
     </div>
     <div class="empty" id="emptyWishlist" style="padding:28px 20px;">
         <svg width="30" height="30" fill="none" stroke="var(--gray-300)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="margin-bottom:12px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
@@ -529,7 +581,11 @@
     <div class="sec-hd">
         <span class="sec-hd-title">Addresses</span>
     </div>
-    <div class="addr-list" id="addrList"></div>
+    <div class="addr-list" id="addrList"><div class="addr-card" style="pointer-events:none;">
+        <div class="skel" style="width:120px;height:14px;margin-bottom:10px;"></div>
+        <div class="skel" style="width:90%;height:12px;margin-bottom:5px;"></div>
+        <div class="skel" style="width:65%;height:12px;"></div>
+    </div></div>
     <button class="add-btn" onclick="openAddrSheet()">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="7" y1="1" x2="7" y2="13"/><line x1="1" y1="7" x2="13" y2="7"/></svg>
         Add New Address
@@ -732,56 +788,23 @@ function escapeHtml(str) {
 }
 
 /* ── Skeleton loading ──────────────────────────────────────────────
-   Called once, synchronously, before the boot fetch below even starts.
-   #avatarDisplay/#orderList/#wishRow/#addrList are all fully replaced by
-   their real render functions (renderAvatar/renderOrders/renderWishlist/
-   renderAddresses each do a full .innerHTML= swap), so nothing here
-   needs explicit removal — the real render just overwrites it. Only the
-   6 inline-text spots (name/email/join chip/3 stat digits) use
-   .innerText= instead of a full swap, so those get a class instead of
-   markup, lifted by clearSkeletons() once the real render chain finishes. */
-function renderSkeletons() {
-    const avatar = document.getElementById('avatarDisplay');
-    if (avatar) avatar.innerHTML = '<div class="skel" style="width:72px;height:72px;border-radius:50%;"></div>';
-
-    ['profileNameText','profileEmail','joinDate','statOrders','statWishlist','statAddresses']
-        .forEach(id => document.getElementById(id)?.classList.add('skel-text'));
-
-    const orderSkel = `<div class="order-card" style="pointer-events:none;">
-        <div class="order-top">
-            <div class="skel" style="width:64px;height:11px;"></div>
-            <div class="skel" style="width:48px;height:16px;border-radius:20px;"></div>
-        </div>
-        <div class="order-mid">
-            <div class="skel" style="width:48px;height:48px;border-radius:var(--radius-sm);flex-shrink:0;"></div>
-            <div class="order-details">
-                <div class="skel" style="width:80%;height:13px;margin-bottom:6px;"></div>
-                <div class="skel" style="width:50%;height:11px;"></div>
-            </div>
-            <div class="skel" style="width:36px;height:14px;"></div>
-        </div>
-    </div>`;
-    const orderList = document.getElementById('orderList');
-    if (orderList) orderList.innerHTML = orderSkel + orderSkel;
-
-    const wishSkel = `<div class="wish-card" style="pointer-events:none;">
-        <div class="wish-img skel" style="border-radius:0;"></div>
-        <div class="wish-body">
-            <div class="skel" style="width:85%;height:11px;margin-bottom:6px;"></div>
-            <div class="skel" style="width:40%;height:12px;"></div>
-        </div>
-    </div>`;
-    const wishRow = document.getElementById('wishRow');
-    if (wishRow) wishRow.innerHTML = wishSkel + wishSkel + wishSkel;
-
-    const addrList = document.getElementById('addrList');
-    if (addrList) addrList.innerHTML = `<div class="addr-card" style="pointer-events:none;">
-        <div class="skel" style="width:120px;height:14px;margin-bottom:10px;"></div>
-        <div class="skel" style="width:90%;height:12px;margin-bottom:5px;"></div>
-        <div class="skel" style="width:65%;height:12px;"></div>
-    </div>`;
-}
-
+   Found the hard way (2026-08-05): a JS-driven renderSkeletons() call at
+   the top of boot() below still isn't "immediate" on a throttled
+   connection — this file's own <script src="products.js">/<script
+   src="api.js"> tags above are parser-blocking (no async/defer), so the
+   whole inline script (and the boot() call it registers) can't even run
+   until both of those finish downloading. On Slow 3G that's multi-second
+   dead air where the OLD static placeholders ("User", "0", empty lists)
+   are the only thing painted — the opposite of the intended effect.
+   Fixed by baking the skeleton shapes/skel-text classes straight into
+   the static HTML above (#avatarDisplay, #orderList, #wishRow, #addrList,
+   and the skel-text class on the 6 inline-text spots) so the skeleton is
+   what the browser paints on first parse, with zero JS dependency —
+   nothing left here to call before boot() starts. clearSkeletons() is
+   still needed, to lift the skel-text mask off those 6 spots once the
+   real values are set — the 4 container ids don't need any equivalent
+   cleanup since renderAvatar/renderOrders/renderWishlist/renderAddresses
+   already fully overwrite them via .innerHTML=. */
 function clearSkeletons() {
     ['profileNameText','profileEmail','joinDate','statOrders','statWishlist','statAddresses']
         .forEach(id => document.getElementById(id)?.classList.remove('skel-text'));
@@ -794,7 +817,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    renderSkeletons();
     renderSettings(); // localStorage เท่านั้น ไม่ต้องรอ fetch ด้านล่างเลย
 
     try {
@@ -820,13 +842,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     // โหลด addresses จาก API (ต้องรอก่อน render)
     await loadAddresses();
 
-    initProfile();
-    renderOrders();
-    renderWishlist();
-    renderAddresses();
-    updateStats();
-    updateBadge();
-    clearSkeletons();
+    // try/finally (ไม่ใช่แค่เรียกเรียงๆ กัน) — กัน skeleton ค้างชิมเมอร์ตลอดไป
+    // ถ้า render function ตัวใดตัวหนึ่งพังโดยไม่คาดคิด (เช่น S.profile
+    // เพี้ยนจาก edge case ที่ไม่เคยเจอ) clearSkeletons() ต้องรันเสมอไม่ว่า
+    // อะไรจะเกิดขึ้นก่อนหน้านั้น
+    try {
+        initProfile();
+        renderOrders();
+        renderWishlist();
+        renderAddresses();
+        updateStats();
+        updateBadge();
+    } finally {
+        clearSkeletons();
+    }
 });
 
 /* ── Profile ───────────────────────────────────────────────────── */
