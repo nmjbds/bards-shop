@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Shop — Bards</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--black:#0A0A0A;--white:#FAFAFA;--gray-50:#F9F9F7;--gray-100:#F2F2F0;--gray-200:#E4E4E2;--gray-300:#C8C8C6;--gray-400:#8A8A88;--gray-600:#4A4A48;--orange:#FF4F00;--red:#C8001A;--green:#16A34A;--radius:14px;--radius-sm:10px;--nav-h:60px;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{scroll-behavior:smooth;}
+body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--black);overscroll-behavior:none;padding-bottom:32px;}
+
+/* ── NAV ── */
+.nav{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--nav-h);display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:rgba(250,250,250,.92);backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);border-bottom:1px solid var(--gray-200);}
+.nav-left{display:flex;align-items:center;gap:12px;}
+.nav-right{display:flex;align-items:center;gap:4px;}
+.brand{font-family:'Bebas Neue';font-size:21px;letter-spacing:3px;color:var(--black);text-decoration:none;}
+.icon-btn{width:36px;height:36px;border-radius:50%;background:var(--gray-100);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .18s,transform .12s;text-decoration:none;color:var(--black);position:relative;}
+.icon-btn:active{background:var(--gray-200);transform:scale(.9);}
+.cart-wrap{position:relative;}
+.cart-badge{position:absolute;top:-2px;right:-2px;background:var(--orange);color:#fff;font-size:8px;font-weight:700;font-family:'DM Mono',monospace;min-width:15px;height:15px;border-radius:8px;display:none;align-items:center;justify-content:center;padding:0 3px;border:1.5px solid var(--white);}
+.page-start{height:var(--nav-h);}
+
+/* ── COVER + HEADER ── */
+.cover{height:120px;background:linear-gradient(120deg,var(--gray-100),var(--gray-200));background-size:cover;background-position:center;}
+.shop-header{padding:0 18px 16px;max-width:800px;margin:0 auto;display:flex;align-items:flex-end;gap:14px;margin-top:-32px;}
+.shop-logo-wrap{flex-shrink:0;}
+.shop-logo{width:64px;height:64px;border-radius:50%;border:3px solid var(--white);background:var(--black);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:22px;letter-spacing:1px;overflow:hidden;}
+.shop-logo img{width:100%;height:100%;object-fit:cover;}
+.shop-info{flex:1;min-width:0;padding-bottom:2px;}
+.shop-name{font-size:17px;font-weight:700;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.shop-meta{font-size:10.5px;color:var(--gray-400);margin-top:3px;font-family:'DM Mono',monospace;}
+.shop-stats{display:flex;gap:12px;margin-top:6px;font-size:11px;color:var(--gray-600);}
+.shop-stats b{font-family:'DM Mono',monospace;font-weight:600;color:var(--black);}
+.follow-btn{height:36px;padding:0 18px;border-radius:20px;border:1.5px solid var(--black);background:var(--black);color:#fff;font-size:12px;font-weight:700;letter-spacing:.3px;cursor:pointer;transition:all .18s;flex-shrink:0;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.follow-btn:active{transform:scale(.96);}
+.follow-btn.following{background:var(--white);color:var(--black);}
+.follow-btn[disabled]{opacity:.6;pointer-events:none;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:6px;padding:16px 18px 0;max-width:800px;margin:0 auto;border-bottom:1px solid var(--gray-200);}
+.tab{padding:8px 4px 11px;font-size:12.5px;font-weight:700;color:var(--gray-400);cursor:pointer;border-bottom:2px solid transparent;margin-right:14px;transition:color .18s,border-color .18s;}
+.tab.on{color:var(--black);border-color:var(--black);}
+
+/* ── PRODUCTS TAB ── */
+.section{padding:0 18px;max-width:800px;margin:0 auto;}
+.filter-row{display:flex;gap:7px;padding:14px 0 10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.filter-row::-webkit-scrollbar{display:none;}
+.f-chip{height:30px;padding:0 13px;border:1.5px solid var(--gray-200);border-radius:30px;font-size:11px;font-weight:600;cursor:pointer;background:var(--white);color:var(--gray-600);transition:all .18s;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;font-family:'Space Grotesk',sans-serif;}
+.f-chip.on{background:var(--black);border-color:var(--black);color:#fff;}
+.p-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:10px;}
+.p-card{background:var(--white);border-radius:var(--radius);border:1px solid var(--gray-200);overflow:hidden;cursor:pointer;display:flex;flex-direction:column;text-decoration:none;color:inherit;position:relative;transition:transform .22s,box-shadow .22s;}
+.p-card:active{transform:scale(.975);box-shadow:0 6px 24px rgba(0,0,0,.09);}
+.p-card-img{aspect-ratio:1/1;overflow:hidden;background:var(--gray-100);position:relative;}
+.p-card-img img{width:100%;height:100%;object-fit:cover;display:block;}
+.p-tag{position:absolute;top:9px;left:9px;z-index:2;background:var(--black);color:#fff;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;padding:3px 9px;border-radius:20px;}
+.p-card-body{padding:10px 11px 13px;flex:1;display:flex;flex-direction:column;gap:7px;}
+.p-name{font-size:12px;font-weight:600;line-height:1.35;letter-spacing:-.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.p-price{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--red);}
+
+/* ── ABOUT TAB ── */
+.about-desc{font-size:13px;color:var(--gray-600);line-height:1.7;padding:16px 0;white-space:pre-wrap;}
+
+.empty{padding:50px 20px;text-align:center;display:none;}
+.empty.show{display:block;}
+.empty-icon{margin-bottom:14px;color:var(--gray-300);}
+.empty-title{font-family:'Bebas Neue';font-size:19px;letter-spacing:1.5px;}
+.empty-sub{font-size:12px;color:var(--gray-400);margin-top:5px;line-height:1.6;}
+
+/* ── ERROR (shop not found) ── */
+.error-wrap{padding:80px 24px;text-align:center;}
+.error-icon{font-size:38px;margin-bottom:14px;}
+.error-title{font-family:'Bebas Neue';font-size:20px;letter-spacing:1.5px;}
+.error-sub{font-size:12.5px;color:var(--gray-400);margin-top:6px;line-height:1.6;}
+.error-btn{margin-top:18px;height:42px;padding:0 22px;border-radius:20px;border:none;background:var(--black);color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;}
+
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(6px);background:var(--black);color:#fff;padding:12px 18px 12px 14px;border-radius:14px;z-index:9999;opacity:0;transition:opacity .28s,transform .28s;white-space:nowrap;display:flex;align-items:center;gap:10px;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.28);min-width:220px;}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast-text{display:flex;flex-direction:column;gap:1px;}
+.toast-title{font-size:12px;font-weight:700;}
+.toast-sub{font-size:11px;color:rgba(255,255,255,.55);}
+
+/* ── SKELETON LOADING (shimmer) ── baked into the static markup below, same
+   reasoning as account.html (docs fixed 2026-08-05): a JS-injected
+   skeleton is gated behind this page's own parser-blocking <script src>
+   tags finishing their network fetch first — on a throttled connection
+   that can take seconds, during which only the OLD "nothing yet" state
+   would paint. Baking it into the HTML itself means the browser paints
+   the skeleton on first parse, no JS required. */
+@keyframes skelShimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+.skel{background:linear-gradient(90deg,var(--gray-100) 25%,var(--gray-200) 50%,var(--gray-100) 75%);background-size:200% 100%;animation:skelShimmer 1.4s infinite;border-radius:8px;}
+.skel-text{color:transparent!important;background:linear-gradient(90deg,var(--gray-100) 25%,var(--gray-200) 50%,var(--gray-100) 75%)!important;background-size:200% 100%;animation:skelShimmer 1.4s infinite;border-radius:6px;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+.fu{animation:fadeUp .42s ease both;}
+.d1{animation-delay:.06s;}.d2{animation-delay:.12s;}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-left">
+    <button class="icon-btn" onclick="history.back()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 11.5L6 8l3.5-3.5"/></svg></button>
+    <a href="/" class="brand">BARDS</a>
+  </div>
+  <div class="nav-right">
+    <a href="/account" class="icon-btn" aria-label="Account"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></a>
+    <div class="cart-wrap">
+      <a href="/cart" class="icon-btn" aria-label="Cart"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></a>
+      <span class="cart-badge" id="cartBadge"></span>
+    </div>
+  </div>
+</nav>
+
+<div class="page-start"></div>
+
+<div id="shopContent">
+  <div class="cover skel" id="cover"></div>
+
+  <div class="shop-header fu">
+    <div class="shop-logo-wrap">
+      <div class="shop-logo skel" id="shopLogo"></div>
+    </div>
+    <div class="shop-info">
+      <div class="shop-name skel-text" id="shopName">Shop Name</div>
+      <div class="shop-meta skel-text" id="shopMeta">Member since —</div>
+      <div class="shop-stats">
+        <span><b class="skel-text" id="followerCount">0</b> Followers</span>
+        <span><b class="skel-text" id="productCount">0</b> Products</span>
+      </div>
+    </div>
+    <button class="follow-btn" id="followBtn" onclick="toggleFollow()" style="display:none;">
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+      <span id="followBtnLabel">Follow</span>
+    </button>
+  </div>
+
+  <div class="tabs fu d1">
+    <div class="tab on" data-tab="products" onclick="setTab('products')">Products</div>
+    <div class="tab" data-tab="about" onclick="setTab('about')">About</div>
+  </div>
+
+  <div id="productsTab" class="section fu d2">
+    <div class="filter-row" id="filterRow">
+      <div class="f-chip on" data-cat="all" onclick="setCat(this,'all')">All</div>
+    </div>
+    <div class="p-grid" id="productGrid">
+      <div class="p-card" style="pointer-events:none;"><div class="p-card-img skel"></div><div class="p-card-body"><div class="skel" style="width:80%;height:12px;"></div><div class="skel" style="width:40%;height:12px;"></div></div></div>
+      <div class="p-card" style="pointer-events:none;"><div class="p-card-img skel"></div><div class="p-card-body"><div class="skel" style="width:70%;height:12px;"></div><div class="skel" style="width:40%;height:12px;"></div></div></div>
+      <div class="p-card" style="pointer-events:none;"><div class="p-card-img skel"></div><div class="p-card-body"><div class="skel" style="width:85%;height:12px;"></div><div class="skel" style="width:40%;height:12px;"></div></div></div>
+      <div class="p-card" style="pointer-events:none;"><div class="p-card-img skel"></div><div class="p-card-body"><div class="skel" style="width:75%;height:12px;"></div><div class="skel" style="width:40%;height:12px;"></div></div></div>
+    </div>
+    <div class="empty" id="emptyProducts">
+      <div class="empty-icon"><svg width="42" height="42" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg></div>
+      <div class="empty-title">No Products Yet</div>
+      <div class="empty-sub">This shop hasn't listed anything yet — check back soon.</div>
+    </div>
+  </div>
+
+  <div id="aboutTab" class="section fu d2" style="display:none;">
+    <div class="about-desc skel-text" id="aboutDesc">This seller hasn't added a shop description yet.</div>
+  </div>
+</div>
+
+<div class="error-wrap" id="errorWrap" style="display:none;">
+  <div class="error-icon">🏬</div>
+  <div class="error-title">Shop Not Found</div>
+  <div class="error-sub">This shop may have been removed or the link is incorrect.</div>
+  <button class="error-btn" onclick="location.href='/'">Back to Home</button>
+</div>
+
+<div class="toast" id="toast">
+  <div class="toast-text"><div class="toast-title" id="toastTitle"></div><div class="toast-sub" id="toastSub"></div></div>
+</div>
+
+<script src="/api.js"></script>
+<script src="/products.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   shop.html — public shop storefront (docs/06-shop-profile-follow-
+   blueprint.md). /shop/:slug is the primary URL; /shop/id/:uuid is the
+   fallback both this page and server-customer.js's routing know about,
+   for shops with no store_slug set (optional at apply time).
+═══════════════════════════════════════════════════════════════ */
+
+let SHOP = null;
+let FOLLOWING = false;
+const S = { cat: 'all' };
+
+function escapeHtml(str) {
+    return String(str ?? '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
+function parseShopUrl() {
+    const parts = location.pathname.split('/').filter(Boolean); // ['shop', ...]
+    if (parts[0] !== 'shop' || !parts[1]) return null;
+    if (parts[1] === 'id' && parts[2]) return { mode: 'id', value: parts[2] };
+    return { mode: 'slug', value: parts[1] };
+}
+
+function clearSkeletons() {
+    document.querySelectorAll('.skel-text').forEach(el => el.classList.remove('skel-text'));
+}
+
+function showError() {
+    document.getElementById('shopContent').style.display = 'none';
+    document.getElementById('errorWrap').style.display = 'block';
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    updateBadge();
+
+    const target = parseShopUrl();
+    if (!target) { showError(); return; }
+
+    try {
+        const { shop } = target.mode === 'id'
+            ? await ShopsAPI.getByIdPublic(target.value)
+            : await ShopsAPI.getBySlug(target.value);
+        if (!shop) { showError(); return; }
+        SHOP = shop;
+    } catch (e) {
+        showError();
+        return;
+    }
+
+    try {
+        initHeader();
+        await Promise.all([
+            fetchAndMerge({ shopId: SHOP.id, limit: 100 }).catch(() => {}),
+            initFollowState(),
+        ]);
+        renderFilterChips();
+        renderGrid();
+    } finally {
+        clearSkeletons();
+    }
+});
+
+function initHeader() {
+    document.getElementById('shopName').textContent = SHOP.name || 'Shop';
+    document.title = (SHOP.name || 'Shop') + ' — Bards';
+    document.getElementById('aboutDesc').textContent = SHOP.description?.trim() || 'This seller hasn’t added a shop description yet.';
+
+    const joined = SHOP.created_at ? new Date(SHOP.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '';
+    document.getElementById('shopMeta').textContent = joined ? `Member since ${joined}` : '';
+
+    document.getElementById('followerCount').textContent = SHOP.follower_count ?? 0;
+    document.getElementById('productCount').textContent  = SHOP.product_count ?? 0;
+
+    const cover = document.getElementById('cover');
+    if (SHOP.cover_url) {
+        cover.style.backgroundImage = `url("${SHOP.cover_url.replace(/"/g, '')}")`;
+        cover.classList.remove('skel');
+    } else {
+        cover.classList.remove('skel');
+    }
+
+    const logoEl = document.getElementById('shopLogo');
+    logoEl.classList.remove('skel');
+    if (SHOP.logo) {
+        logoEl.innerHTML = `<img src="${escapeHtml(SHOP.logo)}" alt="">`;
+    } else {
+        logoEl.textContent = (SHOP.name || '?').trim().slice(0, 2).toUpperCase();
+    }
+
+    // Blueprint §5.4 edge case 1 — never show Follow on your own shop.
+    const me = Auth.isLoggedIn() ? Auth.getUser() : null;
+    if (!me || me.id !== SHOP.owner_user_id) {
+        document.getElementById('followBtn').style.display = 'flex';
+    }
+}
+
+async function initFollowState() {
+    if (!Auth.isLoggedIn()) return;
+    const me = Auth.getUser();
+    if (me && me.id === SHOP.owner_user_id) return; // own shop — button stays hidden
+    try {
+        const { following } = await ShopsAPI.getFollowStatus(SHOP.id);
+        FOLLOWING = !!following;
+        updateFollowUI();
+    } catch (e) { /* leave default (not following) UI — non-fatal */ }
+}
+
+function updateFollowUI() {
+    const btn = document.getElementById('followBtn');
+    btn.classList.toggle('following', FOLLOWING);
+    document.getElementById('followBtnLabel').textContent = FOLLOWING ? 'Following' : 'Follow';
+}
+
+async function toggleFollow() {
+    if (!Auth.isLoggedIn()) {
+        location.href = '/signin?redirect=' + encodeURIComponent(location.pathname);
+        return;
+    }
+    const btn = document.getElementById('followBtn');
+    if (btn.disabled) return; // debounce a double-click race (blueprint §5.4 edge case 3) —
+                               // the UNIQUE(user_id, shop_id) constraint is the real safety net server-side
+    btn.disabled = true;
+    const countEl = document.getElementById('followerCount');
+    const prevCount = parseInt(countEl.textContent) || 0;
+    try {
+        if (FOLLOWING) {
+            await ShopsAPI.unfollow(SHOP.id);
+            FOLLOWING = false;
+            countEl.textContent = Math.max(0, prevCount - 1);
+        } else {
+            await ShopsAPI.follow(SHOP.id);
+            FOLLOWING = true;
+            countEl.textContent = prevCount + 1;
+        }
+        updateFollowUI();
+    } catch (e) {
+        showToast('warn', 'Something went wrong', e.message || '');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+function setTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === tab));
+    document.getElementById('productsTab').style.display = tab === 'products' ? 'block' : 'none';
+    document.getElementById('aboutTab').style.display    = tab === 'about'    ? 'block' : 'none';
+}
+
+// Category chips computed from this shop's own products only (not the
+// site-wide categories list — a shop with 2 categories shouldn't show 6
+// empty chips for categories it has nothing in).
+function renderFilterChips() {
+    const row = document.getElementById('filterRow');
+    const cats = [...new Set(Object.values(PRODUCTS).map(p => p.category).filter(Boolean))];
+    cats.forEach(cat => {
+        const chip = document.createElement('div');
+        chip.className = 'f-chip';
+        chip.dataset.cat = cat;
+        chip.textContent = cat;
+        chip.onclick = () => setCat(chip, cat);
+        row.appendChild(chip);
+    });
+}
+function setCat(el, cat) {
+    S.cat = cat;
+    document.querySelectorAll('.f-chip').forEach(c => c.classList.remove('on'));
+    el.classList.add('on');
+    renderGrid();
+}
+
+function fmtUSD(num) { return '$' + Number(num).toFixed(2); }
+
+function renderGrid() {
+    let items = Object.entries(PRODUCTS);
+    if (S.cat !== 'all') items = items.filter(([, p]) => p.category === S.cat);
+    const grid  = document.getElementById('productGrid');
+    const empty = document.getElementById('emptyProducts');
+    if (!items.length) { grid.innerHTML = ''; empty.classList.add('show'); return; }
+    empty.classList.remove('show');
+    grid.innerHTML = items.map(([id, p]) => cardHTML(id, p)).join('');
+}
+function cardHTML(id, p) {
+    return `<a href="/product?id=${id}" class="p-card">
+  <div class="p-card-img">
+    <img src="${escapeHtml(p.images[0])}" alt="${escapeHtml(p.name)}" loading="lazy">
+    <div class="p-tag">${p.tag}</div>
+  </div>
+  <div class="p-card-body">
+    <div class="p-name">${escapeHtml(p.name)}</div>
+    <div class="p-price">${fmtUSD(p.price)}</div>
+  </div></a>`;
+}
+
+function updateBadge() {
+    const cart = JSON.parse(localStorage.getItem('BARDS_CART') || '[]');
+    const n = cart.reduce((t, c) => t + c.quantity, 0);
+    const badge = document.getElementById('cartBadge');
+    if (badge) { badge.textContent = n; badge.style.display = n ? 'flex' : 'none'; }
+}
+
+let _toastTimer;
+function showToast(type, title, sub) {
+    const t = document.getElementById('toast');
+    document.getElementById('toastTitle').textContent = title;
+    document.getElementById('toastSub').textContent = sub || '';
+    t.classList.add('on');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => t.classList.remove('on'), 2600);
+}
+</script>
+</body>
+</html>

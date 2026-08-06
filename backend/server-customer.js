@@ -16,6 +16,7 @@ const couponsPublicRouter = require('./routes/couponsPublic');
 const cartRouter     = require('./routes/cart');
 const productsRouter = require('./routes/products');
 const categoriesRouter = require('./routes/categories');
+const shopPublicRouter = require('./routes/shopPublic');
 
 // ═══════════════════════════════════════════════════════════════
 // server-customer.js — Multi-domain split (2026-07-28), Phase 0/3.
@@ -109,6 +110,7 @@ app.use('/api/coupons',   couponsPublicRouter);
 app.use('/api/cart',      cartRouter);
 app.use('/api/products',  productsRouter);
 app.use('/api/categories', categoriesRouter);
+app.use('/api/shops',     shopPublicRouter);
 
 app.get('/api/health', (req, res) => res.json({ ok: true, ts: new Date().toISOString(), service: 'customer' }));
 
@@ -163,6 +165,20 @@ app.get('/product/:id', (_, res) => {
     if (err) res.sendFile('all-products.html', { root: PUBLIC });
   });
 });
+
+// Shop storefront (docs/06-shop-profile-follow-blueprint.md) — /shop/:slug
+// is the primary, prettier URL; /shop/id/:id is the fallback for shops
+// that never set a store_slug (optional at apply time — checked the real
+// DB on 2026-08-06: 2 of the 3 currently-approved shops have none). Both
+// serve the same shop.html, which reads the URL client-side to decide
+// which lookup to call — /shop/id/:id MUST be registered first, since
+// Express matches route patterns in registration order and /shop/:slug's
+// wildcard would otherwise swallow /shop/id/anything, treating "id" as if
+// it were a literal slug value (also why 'id' is in shops.js's
+// RESERVED_STORE_SLUGS, belt-and-suspenders against a shop ever actually
+// being slugged "id").
+app.get('/shop/id/:id', (_, res) => res.sendFile('shop.html', { root: PUBLIC }));
+app.get('/shop/:slug', (_, res) => res.sendFile('shop.html', { root: PUBLIC }));
 
 // Explicitly reject /index (no extension) — omitting it from the
 // walkHtmlFiles scan above isn't enough on its own: without this, the

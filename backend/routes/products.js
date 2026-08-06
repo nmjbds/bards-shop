@@ -13,6 +13,9 @@ const router = express.Router();
 //   search   = polo      (ILIKE name/description)
 //   sort     = newest | price_asc | price_desc | name
 //   new      = true      (เฉพาะ is_new=true)
+//   shop_id  = <uuid>     (shop profile page — docs/06-shop-profile-follow-blueprint.md)
+//   shop     = <slug>     (same, when the caller only has the slug on hand — e.g. arrived
+//                          via /shop/:slug and hasn't resolved the shop's real id yet)
 // ══════════════════════════════════════════════════════════════
 router.get('/', async (req, res) => {
   try {
@@ -23,6 +26,8 @@ router.get('/', async (req, res) => {
     const search   = req.query.search?.trim()   || null;
     const isNew    = req.query.new === 'true';
     const sort     = req.query.sort || 'newest';
+    const shopId   = req.query.shop_id?.trim() || null;
+    const shopSlug = req.query.shop?.trim()    || null;
 
     // ── WHERE ── (p. prefix needed once we JOIN shops — both tables have a `name` column)
     const conditions = ['p.is_active = true'];
@@ -48,6 +53,16 @@ router.get('/', async (req, res) => {
     if (search) {
       params.push(`%${search}%`);
       conditions.push(`(p.name ILIKE $${params.length} OR p.description ILIKE $${params.length})`);
+    }
+    if (shopId) {
+      params.push(shopId);
+      conditions.push(`p.shop_id = $${params.length}`);
+    } else if (shopSlug) {
+      // Same "resolve slug through a subquery" shape as ?category= above —
+      // no match just means an empty product list, not an error (the shop
+      // page itself is what 404s on an unknown slug, via shopPublic.js).
+      params.push(shopSlug);
+      conditions.push(`p.shop_id = (SELECT id FROM shops WHERE store_slug = $${params.length})`);
     }
 
     const where = 'WHERE ' + conditions.join(' AND ');
@@ -75,7 +90,7 @@ router.get('/', async (req, res) => {
     const r = await query(
       `SELECT p.id, p.name, p.description, p.price, p.sale_price, p.category, p.category_id,
               p.images, p.colors, p.sizes, p.stock, p.is_new, p.is_active, p.created_at,
-              s.name AS shop_name, s.logo AS shop_logo
+              p.shop_id, s.name AS shop_name, s.logo AS shop_logo
        FROM products p
        LEFT JOIN shops s ON p.shop_id = s.id
        ${where}

@@ -593,6 +593,16 @@ const ShopsAPI = {
   get(id)          { return apiFetch('/shops/' + id, { auth: true }); },
   setStatus(id, data) { return apiFetch('/shops/' + id, { method: 'PATCH', body: data, auth: true }); },
   setAutoApprove(id, on) { return apiFetch('/shops/' + id + '/auto-approve-products', { method: 'PATCH', body: { auto_approve_products: on }, auth: true }); },
+
+  /* ── public shop storefront + follow (docs/06-shop-profile-follow-
+     blueprint.md) — routes/shopPublic.js, mounted on the customer server
+     only. getByIdPublic() is named to not collide with the admin-only
+     get(id) above (GET /shops/:id, a completely different endpoint). */
+  getBySlug(slug)      { return apiFetch('/shops/slug/' + encodeURIComponent(slug)); },
+  getByIdPublic(id)    { return apiFetch('/shops/id/' + encodeURIComponent(id)); },
+  follow(id)           { return apiFetch('/shops/' + id + '/follow', { method: 'POST', auth: true }); },
+  unfollow(id)         { return apiFetch('/shops/' + id + '/follow', { method: 'DELETE', auth: true }); },
+  getFollowStatus(id)  { return apiFetch('/shops/' + id + '/follow-status', { auth: true }); },
 };
 
 const Addresses = {

@@ -69,6 +69,8 @@ async function signDocuments(rows) {
 // subdomains (admin.bardskh.com, seller.bardskh.com, /api/*, etc).
 const RESERVED_STORE_SLUGS = new Set([
   'admin', 'api', 'seller', 'shop', 'shops', 'www', 'app', 'static', 'assets', 'bardskh',
+  'id', // /shop/id/:uuid fallback route (docs/06-shop-profile-follow-blueprint.md) — a
+        // slug literally equal to "id" would collide with it in server-customer.js
 ]);
 const storeSlugSchema = z.string().trim().min(1).max(80)
   .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'Store URL must be lowercase letters, numbers, and hyphens only (e.g. "my-shop").')

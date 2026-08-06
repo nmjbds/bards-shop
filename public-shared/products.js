@@ -173,6 +173,9 @@ function _normProduct(p) {
     is_active:   p.is_active !== false,
     dateAdded:   p.created_at || '',
     specs:       p.specs || null,
+    shop_id:     p.shop_id || null,
+    shop_name:   p.shop_name || '',
+    shop_logo:   p.shop_logo || null,
   };
 }
 
@@ -186,11 +189,13 @@ function _normProduct(p) {
        search: 'polo',     // optional
        sort: 'newest',     // newest | price_asc | price_desc | name
        new: true,          // optional
+       shopId: '<uuid>',   // optional — shop profile page (docs/06-shop-profile-follow-blueprint.md)
+       shop: '<slug>',      // optional — same, when only the slug is on hand (shopId wins if both given)
      });
-   
+
    ดึงสินค้าชิ้นเดียว:
      const { product } = await ProductsAPI.getOne(id);
-   
+
    Merge เข้า PRODUCTS object (สำหรับหน้าที่ยังใช้ PRODUCTS):
      await fetchAndMerge({ category:'tops' });
 ═══════════════════════════════════════════════════════════ */
@@ -198,11 +203,13 @@ function _normProduct(p) {
 const _API_BASE = (typeof API_BASE !== 'undefined' ? API_BASE : null) || window.BARDS_API_BASE || '/api';
 
 const ProductsAPI = {
-  async fetch({ page=1, limit=24, category, search, sort='newest', isNew } = {}) {
+  async fetch({ page=1, limit=24, category, search, sort='newest', isNew, shopId, shop } = {}) {
     const params = new URLSearchParams({ page, limit, sort });
     if (category) params.set('category', category);
     if (search)   params.set('search', search);
     if (isNew)    params.set('new', 'true');
+    if (shopId)      params.set('shop_id', shopId);
+    else if (shop)   params.set('shop', shop);
     const res = await fetch(_API_BASE + '/products?' + params.toString());
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();

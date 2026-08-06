@@ -514,6 +514,25 @@ async function initDb() {
       );
       CREATE INDEX IF NOT EXISTS idx_seller_documents_shop ON seller_documents(shop_id);
 
+      -- Shop Profile & Follow (docs/06-shop-profile-follow-blueprint.md,
+      -- 2026-08-06) — one row per (user, shop) follow relationship. Follower
+      -- count is computed live via COUNT(*) at read time (routes/
+      -- shopPublic.js), not a cached column — the blueprint itself flags
+      -- that tradeoff (simple + always-correct now vs. needing careful
+      -- increment/decrement later); revisit only if this table's scale
+      -- actually becomes a real query-time problem. Rows are never
+      -- auto-deleted when a shop is suspended (blueprint §5.4 edge case 4) —
+      -- a follow should survive the shop coming back active.
+      CREATE TABLE IF NOT EXISTS shop_follows (
+        id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id    UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        shop_id    UUID        NOT NULL REFERENCES shops(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (user_id, shop_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_shop_follows_shop ON shop_follows(shop_id);
+      CREATE INDEX IF NOT EXISTS idx_shop_follows_user ON shop_follows(user_id);
+
       -- Product review (Seller Onboarding Blueprint) — new products default
       -- to is_active=false at insert time (routes/seller.js's POST
       -- /products) until an admin approves them, unless the owning shop has
