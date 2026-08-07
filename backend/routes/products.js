@@ -86,13 +86,34 @@ router.get('/', async (req, res) => {
     // ── FETCH ── LEFT JOIN shops: shop_id is nullable (products created before Phase 4,
     // or orphaned if a shop is ever removed without cascading — see CLAUDE.md §4) so a
     // product must still show up even with no matching shop row.
+    //
+    // units_sold: only joined when the request is shop-scoped (shop_id/shop
+    // given). shop.html's "Best-selling" sort is client-side, same as every
+    // other sort option on the site (all-products.html's SORT_OPTS pattern
+    // re-sorts the already-fetched array, no re-fetch per sort change) --
+    // so this is just extra per-product data the client sorts by, not a new
+    // `sort=` value here. Kept conditional so all-products.html/index.html/
+    // new-arrival.html's unscoped browsing never pays for this join, since
+    // none of them have a "Best-selling" option today.
+    const scoped = shopId || shopSlug;
+    const soldJoin = scoped
+      ? `LEFT JOIN (
+           SELECT oi.product_id, SUM(oi.quantity) AS units_sold
+           FROM order_shops os JOIN order_items oi ON oi.order_shop_id = os.id
+           WHERE os.status IN ('paid','processing','shipped','delivered')
+           GROUP BY oi.product_id
+         ) sold ON sold.product_id = p.id`
+      : '';
+    const soldSelect = scoped ? ', COALESCE(sold.units_sold, 0) AS units_sold' : '';
+
     params.push(limit, offset);
     const r = await query(
       `SELECT p.id, p.name, p.description, p.price, p.sale_price, p.category, p.category_id,
               p.images, p.colors, p.sizes, p.stock, p.is_new, p.is_active, p.created_at,
-              p.shop_id, s.name AS shop_name, s.logo AS shop_logo
+              p.shop_id, s.name AS shop_name, s.logo AS shop_logo${soldSelect}
        FROM products p
        LEFT JOIN shops s ON p.shop_id = s.id
+       ${soldJoin}
        ${where}
        ORDER BY ${orderBy}
        LIMIT $${params.length - 1} OFFSET $${params.length}`,

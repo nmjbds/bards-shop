@@ -27,7 +27,17 @@ async function fetchApprovedShop(column, value) {
     `SELECT s.id, s.name, s.description, s.logo, s.cover_url, s.store_slug, s.created_at,
             s.owner_user_id,
             (SELECT COUNT(*) FROM shop_follows WHERE shop_id = s.id) AS follower_count,
-            (SELECT COUNT(*) FROM products WHERE shop_id = s.id AND is_active = true) AS product_count
+            (SELECT COUNT(*) FROM products WHERE shop_id = s.id AND is_active = true) AS product_count,
+            -- Units sold, not revenue -- Shop Details shows a Shopee/Lazada-style
+            -- bucketed "100+ Sold" count. Same paid-status allowlist
+            -- routes/seller.js already uses for its own top-products stat
+            -- (positive allowlist, not a NOT-IN blocklist, so a future status
+            -- this project adds isn't silently counted as "sold" by default).
+            (SELECT COALESCE(SUM(oi.quantity), 0)
+             FROM order_shops os
+             JOIN order_items oi ON oi.order_shop_id = os.id
+             WHERE os.shop_id = s.id AND os.status IN ('paid','processing','shipped','delivered')
+            ) AS units_sold
      FROM shops s
      WHERE s.${column} = $1 AND s.status = 'approved'`,
     [value]

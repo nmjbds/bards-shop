@@ -177,8 +177,19 @@ app.get('/product/:id', (_, res) => {
 // it were a literal slug value (also why 'id' is in shops.js's
 // RESERVED_STORE_SLUGS, belt-and-suspenders against a shop ever actually
 // being slugged "id").
-app.get('/shop/id/:id', (_, res) => res.sendFile('shop.html', { root: PUBLIC }));
-app.get('/shop/:slug', (_, res) => res.sendFile('shop.html', { root: PUBLIC }));
+//
+// :tab? (optional, 2026-08-07 redesign) — shop.html now has 3 client-side
+// "views" (Products/Categories/Shop Details) navigated via pushState, not
+// full reloads. This one route per variant still has to resolve on a
+// direct load/refresh/shared link for each of them
+// (/shop/:slug, /shop/:slug/categories, /shop/:slug/about, and the same 3
+// under /shop/id/:id/) — verified in isolation that Express 4's optional
+// named param handles all 6 shapes correctly with just these 2 routes,
+// still respecting the id-before-slug ordering above (a request to
+// /shop/id/xxx is still caught by the first line, not parsed as
+// slug="id", tab="xxx" by the second).
+app.get('/shop/id/:id/:tab?', (_, res) => res.sendFile('shop.html', { root: PUBLIC }));
+app.get('/shop/:slug/:tab?', (_, res) => res.sendFile('shop.html', { root: PUBLIC }));
 
 // Explicitly reject /index (no extension) — omitting it from the
 // walkHtmlFiles scan above isn't enough on its own: without this, the

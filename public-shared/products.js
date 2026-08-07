@@ -176,6 +176,7 @@ function _normProduct(p) {
     shop_id:     p.shop_id || null,
     shop_name:   p.shop_name || '',
     shop_logo:   p.shop_logo || null,
+    units_sold:  p.units_sold != null ? Number(p.units_sold) : 0,
   };
 }
 

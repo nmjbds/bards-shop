@@ -22,18 +22,25 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
 .cart-badge{position:absolute;top:-2px;right:-2px;background:var(--orange);color:#fff;font-size:8px;font-weight:700;font-family:'DM Mono',monospace;min-width:15px;height:15px;border-radius:8px;display:none;align-items:center;justify-content:center;padding:0 3px;border:1.5px solid var(--white);}
 .page-start{height:var(--nav-h);}
 
-/* ── COVER + HEADER ── */
+/* ── COVER + HEADER ──
+   Negative margin lives on .shop-logo-wrap alone, not the whole row — the
+   logo (90px) is tall enough to absorb overlapping the cover on purpose,
+   but .shop-info (name/stats) is shorter, so if the row itself carried the
+   negative margin its top edge (the shop name) would land inside that
+   overlap zone and get clipped under the cover image. Found + fixed
+   2026-08-07 (mockup review) before this ever shipped with the bug live. */
 .cover{height:120px;background:linear-gradient(120deg,var(--gray-100),var(--gray-200));background-size:cover;background-position:center;}
-.shop-header{padding:0 18px 16px;max-width:800px;margin:0 auto;display:flex;align-items:flex-end;gap:14px;margin-top:-32px;}
-.shop-logo-wrap{flex-shrink:0;}
-.shop-logo{width:64px;height:64px;border-radius:50%;border:3px solid var(--white);background:var(--black);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:22px;letter-spacing:1px;overflow:hidden;}
+.shop-header{padding:10px 18px 16px;max-width:800px;margin:0 auto;display:flex;align-items:flex-end;gap:14px;}
+.shop-logo-wrap{flex-shrink:0;margin-top:-45px;}
+.shop-logo{width:90px;height:90px;border-radius:50%;border:3px solid var(--white);background:var(--black);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:28px;letter-spacing:1px;overflow:hidden;}
 .shop-logo img{width:100%;height:100%;object-fit:cover;}
-.shop-info{flex:1;min-width:0;padding-bottom:2px;}
-.shop-name{font-size:17px;font-weight:700;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.shop-meta{font-size:10.5px;color:var(--gray-400);margin-top:3px;font-family:'DM Mono',monospace;}
-.shop-stats{display:flex;gap:12px;margin-top:6px;font-size:11px;color:var(--gray-600);}
+.shop-info{flex:1;min-width:0;padding-bottom:3px;}
+.shop-name{font-size:17px;font-weight:700;letter-spacing:-.2px;display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;overflow:hidden;}
+.shop-name span{overflow:hidden;text-overflow:ellipsis;}
+.shop-name svg{color:var(--gray-300);flex-shrink:0;}
+.shop-stats{font-size:11px;color:var(--gray-600);margin-top:6px;}
 .shop-stats b{font-family:'DM Mono',monospace;font-weight:600;color:var(--black);}
-.follow-btn{height:36px;padding:0 18px;border-radius:20px;border:1.5px solid var(--black);background:var(--black);color:#fff;font-size:12px;font-weight:700;letter-spacing:.3px;cursor:pointer;transition:all .18s;flex-shrink:0;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.follow-btn{height:32px;padding:0 16px;border-radius:18px;border:1.5px solid var(--black);background:var(--black);color:#fff;font-size:11.5px;font-weight:700;letter-spacing:.3px;cursor:pointer;transition:all .18s;flex-shrink:0;display:flex;align-items:center;gap:6px;white-space:nowrap;}
 .follow-btn:active{transform:scale(.96);}
 .follow-btn.following{background:var(--white);color:var(--black);}
 .follow-btn[disabled]{opacity:.6;pointer-events:none;}
@@ -43,9 +50,14 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
 .tab{padding:8px 4px 11px;font-size:12.5px;font-weight:700;color:var(--gray-400);cursor:pointer;border-bottom:2px solid transparent;margin-right:14px;transition:color .18s,border-color .18s;}
 .tab.on{color:var(--black);border-color:var(--black);}
 
-/* ── PRODUCTS TAB ── */
+/* ── PRODUCTS VIEW ── */
 .section{padding:0 18px;max-width:800px;margin:0 auto;}
-.filter-row{display:flex;gap:7px;padding:14px 0 10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.sort-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0 8px;}
+.results-lbl{font-family:'DM Mono',monospace;font-size:10px;color:var(--gray-400);letter-spacing:.5px;}
+.sort-btn{height:28px;padding:0 12px;border:1.5px solid var(--gray-200);border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;background:var(--white);color:var(--gray-600);display:flex;align-items:center;gap:5px;font-family:'Space Grotesk',sans-serif;transition:all .18s;}
+.sort-btn:active{opacity:.7;}
+.sort-btn.active{background:var(--black);border-color:var(--black);color:#fff;}
+.filter-row{display:flex;gap:7px;padding:10px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .filter-row::-webkit-scrollbar{display:none;}
 .f-chip{height:30px;padding:0 13px;border:1.5px solid var(--gray-200);border-radius:30px;font-size:11px;font-weight:600;cursor:pointer;background:var(--white);color:var(--gray-600);transition:all .18s;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;font-family:'Space Grotesk',sans-serif;}
 .f-chip.on{background:var(--black);border-color:var(--black);color:#fff;}
@@ -59,8 +71,30 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
 .p-name{font-size:12px;font-weight:600;line-height:1.35;letter-spacing:-.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .p-price{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--red);}
 
-/* ── ABOUT TAB ── */
-.about-desc{font-size:13px;color:var(--gray-600);line-height:1.7;padding:16px 0;white-space:pre-wrap;}
+/* ── CATEGORIES VIEW ── */
+.cat-list{display:flex;flex-direction:column;gap:9px;padding:14px 0;}
+.cat-card{display:flex;align-items:center;gap:12px;background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);padding:12px 14px;cursor:pointer;transition:transform .12s;}
+.cat-card:active{transform:scale(.98);}
+.cat-thumb{width:46px;height:46px;border-radius:10px;flex-shrink:0;background:var(--gray-100);}
+.cat-name{font-size:13px;font-weight:700;}
+.cat-count{font-size:10.5px;color:var(--gray-400);margin-top:2px;font-family:'DM Mono',monospace;}
+.cat-arrow{margin-left:auto;color:var(--gray-300);flex-shrink:0;}
+
+/* ── SHOP DETAILS "PAGE" ── */
+.details-nav{display:flex;align-items:center;gap:12px;padding:0 18px 16px;max-width:800px;margin:0 auto;}
+.details-back{width:32px;height:32px;border-radius:50%;background:var(--gray-100);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:background .15s;}
+.details-back:active{background:var(--gray-200);}
+.details-title{font-family:'Bebas Neue';font-size:16px;letter-spacing:1.5px;}
+.details-body{padding:0 18px;max-width:800px;margin:0 auto;}
+.details-logo{width:56px;height:56px;border-radius:50%;background:var(--black);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:19px;overflow:hidden;margin-bottom:12px;}
+.details-logo img{width:100%;height:100%;object-fit:cover;}
+.details-name{font-size:17px;font-weight:700;}
+.details-since{font-size:10.5px;color:var(--gray-400);margin-top:3px;font-family:'DM Mono',monospace;}
+.details-stats{display:flex;gap:8px;margin-top:16px;}
+.details-stat{flex:1;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-sm);padding:12px 8px;text-align:center;}
+.details-stat b{display:block;font-family:'DM Mono',monospace;font-size:17px;font-weight:600;color:var(--black);}
+.details-stat span{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-400);margin-top:4px;display:block;}
+.details-desc{font-size:13px;color:var(--gray-600);line-height:1.7;padding-top:16px;margin-top:16px;border-top:1px solid var(--gray-200);white-space:pre-wrap;}
 
 .empty{padding:50px 20px;text-align:center;display:none;}
 .empty.show{display:block;}
@@ -115,7 +149,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
 
 <div class="page-start"></div>
 
-<div id="shopContent">
+<div id="storefrontView">
   <div class="cover skel" id="cover"></div>
 
   <div class="shop-header fu">
@@ -123,25 +157,31 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
       <div class="shop-logo skel" id="shopLogo"></div>
     </div>
     <div class="shop-info">
-      <div class="shop-name skel-text" id="shopName">Shop Name</div>
-      <div class="shop-meta skel-text" id="shopMeta">Member since —</div>
-      <div class="shop-stats">
-        <span><b class="skel-text" id="followerCount">0</b> Followers</span>
-        <span><b class="skel-text" id="productCount">0</b> Products</span>
+      <div class="shop-name" id="shopName" onclick="navigate('about')">
+        <span class="skel-text" id="shopNameText">Shop Name</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
       </div>
+      <div class="shop-stats"><b class="skel-text" id="followerCount">0</b> Followers</div>
     </div>
     <button class="follow-btn" id="followBtn" onclick="toggleFollow()" style="display:none;">
-      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+      <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="5" x2="9" y2="5"/></svg>
       <span id="followBtnLabel">Follow</span>
     </button>
   </div>
 
   <div class="tabs fu d1">
-    <div class="tab on" data-tab="products" onclick="setTab('products')">Products</div>
-    <div class="tab" data-tab="about" onclick="setTab('about')">About</div>
+    <div class="tab on" data-tab="products" onclick="navigate('products')">Products</div>
+    <div class="tab" data-tab="categories" onclick="navigate('categories')">Categories</div>
   </div>
 
-  <div id="productsTab" class="section fu d2">
+  <div id="productsView" class="section fu d2">
+    <div class="sort-row">
+      <span class="results-lbl" id="resultsLabel">0 Products</span>
+      <button class="sort-btn" id="sortBtn" onclick="cycleSort()">
+        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h9M3 6.5h5M5.5 10h1"/></svg>
+        <span id="sortLabel">Sort</span>
+      </button>
+    </div>
     <div class="filter-row" id="filterRow">
       <div class="f-chip on" data-cat="all" onclick="setCat(this,'all')">All</div>
     </div>
@@ -158,8 +198,34 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
     </div>
   </div>
 
-  <div id="aboutTab" class="section fu d2" style="display:none;">
-    <div class="about-desc skel-text" id="aboutDesc">This seller hasn't added a shop description yet.</div>
+  <div id="categoriesView" class="section fu d2" style="display:none;">
+    <div class="cat-list" id="catList">
+      <div class="cat-card" style="pointer-events:none;"><div class="cat-thumb skel"></div><div style="flex:1;"><div class="skel" style="width:90px;height:12px;margin-bottom:6px;"></div><div class="skel" style="width:60px;height:10px;"></div></div></div>
+      <div class="cat-card" style="pointer-events:none;"><div class="cat-thumb skel"></div><div style="flex:1;"><div class="skel" style="width:70px;height:12px;margin-bottom:6px;"></div><div class="skel" style="width:60px;height:10px;"></div></div></div>
+    </div>
+    <div class="empty" id="emptyCategories">
+      <div class="empty-title">No Categories Yet</div>
+      <div class="empty-sub">Products will be grouped here once this shop adds some.</div>
+    </div>
+  </div>
+</div>
+
+<div id="detailsView" style="display:none;">
+  <div class="details-nav">
+    <div class="details-back" onclick="navigate('products')" aria-label="Back">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 11.5L6 8l3.5-3.5"/></svg>
+    </div>
+    <div class="details-title">Shop Details</div>
+  </div>
+  <div class="details-body">
+    <div class="details-logo skel" id="detailsLogo"></div>
+    <div class="details-name skel-text" id="detailsName">Shop Name</div>
+    <div class="details-since skel-text" id="detailsSince">Member since —</div>
+    <div class="details-stats">
+      <div class="details-stat"><b class="skel-text" id="detailsProductCount">0</b><span>Products</span></div>
+      <div class="details-stat"><b class="skel-text" id="detailsSold">0 sold</b><span>Sold</span></div>
+    </div>
+    <div class="details-desc skel-text" id="detailsDesc">This seller hasn't added a shop description yet.</div>
   </div>
 </div>
 
@@ -174,18 +240,53 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
   <div class="toast-text"><div class="toast-title" id="toastTitle"></div><div class="toast-sub" id="toastSub"></div></div>
 </div>
 
+<script>
+/* ── Initial-view pre-script ─────────────────────────────────────────
+   Inline (no src=), so it runs synchronously at parse time — before
+   api.js/products.js below (which ARE external, parser-blocking, and can
+   take seconds on a throttled connection) have even started downloading.
+   Decides which of the 3 views (Products/Categories/Shop Details) is
+   visible on first paint, straight from the URL, so a hard refresh on
+   e.g. /shop/bardsskin/categories lands on Categories immediately instead
+   of flashing Products first — same class of bug as the skeleton-timing
+   fix in account.html, fixed here from the start instead of after the fact. */
+window.__shopTarget = (function () {
+    var parts = location.pathname.split('/').filter(Boolean); // ['shop', ...]
+    if (parts[0] !== 'shop' || !parts[1]) return null;
+    var mode, value, tab, base;
+    if (parts[1] === 'id' && parts[2]) {
+        mode = 'id'; value = parts[2]; tab = parts[3] || 'products'; base = '/shop/id/' + parts[2];
+    } else {
+        mode = 'slug'; value = parts[1]; tab = parts[2] || 'products'; base = '/shop/' + parts[1];
+    }
+    if (tab !== 'categories' && tab !== 'about') tab = 'products';
+
+    if (tab === 'about') {
+        document.getElementById('storefrontView').style.display = 'none';
+        document.getElementById('detailsView').style.display = 'block';
+    } else if (tab === 'categories') {
+        document.getElementById('productsView').style.display = 'none';
+        document.getElementById('categoriesView').style.display = 'block';
+        document.querySelector('.tab[data-tab="products"]').classList.remove('on');
+        document.querySelector('.tab[data-tab="categories"]').classList.add('on');
+    }
+    return { mode: mode, value: value, tab: tab, base: base };
+})();
+</script>
 <script src="/api.js"></script>
 <script src="/products.js"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════
    shop.html — public shop storefront (docs/06-shop-profile-follow-
-   blueprint.md). /shop/:slug is the primary URL; /shop/id/:uuid is the
-   fallback both this page and server-customer.js's routing know about,
-   for shops with no store_slug set (optional at apply time).
+   blueprint.md, redesigned 2026-08-07). 3 client-side views navigated via
+   pushState (Products/Categories/Shop Details) — see the inline
+   pre-script above for how the initial view is picked without waiting on
+   this (external, slower) script to load first.
 ═══════════════════════════════════════════════════════════════ */
 
 let SHOP = null;
 let FOLLOWING = false;
+let CURRENT_VIEW = 'products';
 const S = { cat: 'all' };
 
 function escapeHtml(str) {
@@ -194,11 +295,16 @@ function escapeHtml(str) {
     }[c]));
 }
 
-function parseShopUrl() {
-    const parts = location.pathname.split('/').filter(Boolean); // ['shop', ...]
-    if (parts[0] !== 'shop' || !parts[1]) return null;
-    if (parts[1] === 'id' && parts[2]) return { mode: 'id', value: parts[2] };
-    return { mode: 'slug', value: parts[1] };
+// Shopee/Lazada-style bucketed sold count — "23 sold" under 100, "100+
+// sold"/"900+ sold" under 1000, "1K+ sold" and up beyond that. Formatting
+// stays client-side; the API returns the raw integer, same as every other
+// count on this page (followers, products).
+function formatSoldCount(n) {
+    n = Number(n) || 0;
+    if (n < 100) return `${n} sold`;
+    if (n < 1000) return `${Math.floor(n / 100) * 100}+ sold`;
+    if (n < 1000000) return `${Math.floor(n / 1000)}K+ sold`;
+    return `${Math.floor(n / 1000000)}M+ sold`;
 }
 
 function clearSkeletons() {
@@ -206,15 +312,17 @@ function clearSkeletons() {
 }
 
 function showError() {
-    document.getElementById('shopContent').style.display = 'none';
+    document.getElementById('storefrontView').style.display = 'none';
+    document.getElementById('detailsView').style.display = 'none';
     document.getElementById('errorWrap').style.display = 'block';
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
     updateBadge();
 
-    const target = parseShopUrl();
+    const target = window.__shopTarget;
     if (!target) { showError(); return; }
+    CURRENT_VIEW = target.tab;
 
     try {
         const { shop } = target.mode === 'id'
@@ -229,35 +337,62 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     try {
         initHeader();
+        initDetails();
         await Promise.all([
             fetchAndMerge({ shopId: SHOP.id, limit: 100 }).catch(() => {}),
             initFollowState(),
         ]);
         renderFilterChips();
         renderGrid();
+        renderCategories();
     } finally {
         clearSkeletons();
     }
+
+    // Land pushState's initial entry on the URL we actually started on, so
+    // the very first back-press after arriving has somewhere sane to go
+    // rather than off the site entirely.
+    history.replaceState({ view: CURRENT_VIEW }, '', location.pathname);
 });
 
+window.addEventListener('popstate', (e) => {
+    const view = (e.state && e.state.view) || 'products';
+    applyView(view, { pushUrl: false });
+});
+
+function buildUrl(view) {
+    const base = window.__shopTarget.base;
+    if (view === 'products') return base;
+    return base + '/' + (view === 'categories' ? 'categories' : 'about');
+}
+
+// Single entry point for every view change — tab clicks, the shop-name
+// click, and the details back arrow all call this (via navigate()), and
+// so does the popstate handler above. Keeps "what's visible" and "what's
+// in the URL" from ever drifting apart.
+function applyView(view, { pushUrl = true } = {}) {
+    CURRENT_VIEW = view;
+    const isDetails = view === 'about';
+    document.getElementById('storefrontView').style.display = isDetails ? 'none' : 'block';
+    document.getElementById('detailsView').style.display = isDetails ? 'block' : 'none';
+    if (!isDetails) {
+        document.getElementById('productsView').style.display = view === 'products' ? 'block' : 'none';
+        document.getElementById('categoriesView').style.display = view === 'categories' ? 'block' : 'none';
+        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === view));
+    }
+    if (pushUrl) history.pushState({ view }, '', buildUrl(view));
+    window.scrollTo(0, 0);
+}
+function navigate(view) { applyView(view, { pushUrl: true }); }
+
 function initHeader() {
-    document.getElementById('shopName').textContent = SHOP.name || 'Shop';
+    document.getElementById('shopNameText').textContent = SHOP.name || 'Shop';
     document.title = (SHOP.name || 'Shop') + ' — Bards';
-    document.getElementById('aboutDesc').textContent = SHOP.description?.trim() || 'This seller hasn’t added a shop description yet.';
-
-    const joined = SHOP.created_at ? new Date(SHOP.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '';
-    document.getElementById('shopMeta').textContent = joined ? `Member since ${joined}` : '';
-
     document.getElementById('followerCount').textContent = SHOP.follower_count ?? 0;
-    document.getElementById('productCount').textContent  = SHOP.product_count ?? 0;
 
     const cover = document.getElementById('cover');
-    if (SHOP.cover_url) {
-        cover.style.backgroundImage = `url("${SHOP.cover_url.replace(/"/g, '')}")`;
-        cover.classList.remove('skel');
-    } else {
-        cover.classList.remove('skel');
-    }
+    cover.classList.remove('skel');
+    if (SHOP.cover_url) cover.style.backgroundImage = `url("${SHOP.cover_url.replace(/"/g, '')}")`;
 
     const logoEl = document.getElementById('shopLogo');
     logoEl.classList.remove('skel');
@@ -272,6 +407,23 @@ function initHeader() {
     if (!me || me.id !== SHOP.owner_user_id) {
         document.getElementById('followBtn').style.display = 'flex';
     }
+}
+
+function initDetails() {
+    document.getElementById('detailsLogo').classList.remove('skel');
+    if (SHOP.logo) {
+        document.getElementById('detailsLogo').innerHTML = `<img src="${escapeHtml(SHOP.logo)}" alt="">`;
+    } else {
+        document.getElementById('detailsLogo').textContent = (SHOP.name || '?').trim().slice(0, 2).toUpperCase();
+    }
+    document.getElementById('detailsName').textContent = SHOP.name || 'Shop';
+
+    const joined = SHOP.created_at ? new Date(SHOP.created_at).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : '';
+    document.getElementById('detailsSince').textContent = joined ? `Member since ${joined}` : '';
+
+    document.getElementById('detailsProductCount').textContent = SHOP.product_count ?? 0;
+    document.getElementById('detailsSold').textContent = formatSoldCount(SHOP.units_sold);
+    document.getElementById('detailsDesc').textContent = SHOP.description?.trim() || 'This seller hasn’t added a shop description yet.';
 }
 
 async function initFollowState() {
@@ -320,12 +472,6 @@ async function toggleFollow() {
     }
 }
 
-function setTab(tab) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === tab));
-    document.getElementById('productsTab').style.display = tab === 'products' ? 'block' : 'none';
-    document.getElementById('aboutTab').style.display    = tab === 'about'    ? 'block' : 'none';
-}
-
 // Category chips computed from this shop's own products only (not the
 // site-wide categories list — a shop with 2 categories shouldn't show 6
 // empty chips for categories it has nothing in).
@@ -347,12 +493,40 @@ function setCat(el, cat) {
     el.classList.add('on');
     renderGrid();
 }
+// Categories view card click -> jump to Products pre-filtered. Updates the
+// filter-chip row to match so the two tabs never disagree about the
+// active category.
+function goToCategoryProducts(cat) {
+    S.cat = cat;
+    document.querySelectorAll('.f-chip').forEach(c => c.classList.toggle('on', c.dataset.cat === cat));
+    navigate('products');
+    renderGrid();
+}
+
+const SORT_OPTS = [
+    { label: 'Sort',         fn: null },
+    { label: 'Price ↑',      fn: ([, a], [, b]) => a.price - b.price },
+    { label: 'Price ↓',      fn: ([, a], [, b]) => b.price - a.price },
+    { label: 'Best-selling', fn: ([, a], [, b]) => (b.units_sold || 0) - (a.units_sold || 0) },
+];
+let sortIdx = 0;
+function cycleSort() {
+    sortIdx = (sortIdx + 1) % SORT_OPTS.length;
+    document.getElementById('sortLabel').textContent = SORT_OPTS[sortIdx].label;
+    document.getElementById('sortBtn').classList.toggle('active', sortIdx > 0);
+    renderGrid();
+}
 
 function fmtUSD(num) { return '$' + Number(num).toFixed(2); }
 
 function renderGrid() {
     let items = Object.entries(PRODUCTS);
     if (S.cat !== 'all') items = items.filter(([, p]) => p.category === S.cat);
+    const fn = SORT_OPTS[sortIdx].fn;
+    if (fn) items = [...items].sort(fn);
+
+    document.getElementById('resultsLabel').textContent = `${items.length} ${items.length === 1 ? 'Product' : 'Products'}`;
+
     const grid  = document.getElementById('productGrid');
     const empty = document.getElementById('emptyProducts');
     if (!items.length) { grid.innerHTML = ''; empty.classList.add('show'); return; }
@@ -369,6 +543,65 @@ function cardHTML(id, p) {
     <div class="p-name">${escapeHtml(p.name)}</div>
     <div class="p-price">${fmtUSD(p.price)}</div>
   </div></a>`;
+}
+
+// Built via createElement/.textContent + a direct function reference for
+// the click handler, not a string-built onclick="..." attribute — category
+// names are seller-set free text, and CLAUDE.md documents multiple past
+// stored-XSS bugs (categories.html, new-arrival.html) from exactly that
+// shortcut. escapeHtml() alone isn't enough once text lands inside an
+// inline event-handler attribute; avoiding the pattern entirely is safer
+// than trying to escape correctly every time.
+function renderCategories() {
+    const counts = {};
+    Object.values(PRODUCTS).forEach(p => {
+        if (p.category) counts[p.category] = (counts[p.category] || 0) + 1;
+    });
+    const list  = document.getElementById('catList');
+    const empty = document.getElementById('emptyCategories');
+    const entries = Object.entries(counts);
+    list.innerHTML = '';
+    if (!entries.length) { empty.classList.add('show'); return; }
+    empty.classList.remove('show');
+
+    entries.forEach(([cat, count]) => {
+        const sample = Object.values(PRODUCTS).find(p => p.category === cat);
+
+        const card = document.createElement('div');
+        card.className = 'cat-card';
+        card.onclick = () => goToCategoryProducts(cat);
+
+        const thumb = document.createElement('div');
+        thumb.className = 'cat-thumb';
+        if (sample?.images?.[0]) {
+            thumb.style.backgroundImage = `url("${sample.images[0]}")`;
+            thumb.style.backgroundSize = 'cover';
+            thumb.style.backgroundPosition = 'center';
+        }
+
+        const info = document.createElement('div');
+        info.style.flex = '1';
+        const name = document.createElement('div');
+        name.className = 'cat-name';
+        name.textContent = cat;
+        const countEl = document.createElement('div');
+        countEl.className = 'cat-count';
+        countEl.textContent = `${count} product${count !== 1 ? 's' : ''}`;
+        info.append(name, countEl);
+
+        const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        arrow.setAttribute('class', 'cat-arrow');
+        arrow.setAttribute('width', '13'); arrow.setAttribute('height', '13');
+        arrow.setAttribute('viewBox', '0 0 13 13'); arrow.setAttribute('fill', 'none');
+        arrow.setAttribute('stroke', 'currentColor'); arrow.setAttribute('stroke-width', '2.3');
+        arrow.setAttribute('stroke-linecap', 'round'); arrow.setAttribute('stroke-linejoin', 'round');
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', 'M5 1l5 5.5L5 12');
+        arrow.appendChild(path);
+
+        card.append(thumb, info, arrow);
+        list.appendChild(card);
+    });
 }
 
 function updateBadge() {
