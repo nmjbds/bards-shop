@@ -50,17 +50,16 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
 .tab{padding:8px 4px 11px;font-size:12.5px;font-weight:700;color:var(--gray-400);cursor:pointer;border-bottom:2px solid transparent;margin-right:14px;transition:color .18s,border-color .18s;}
 .tab.on{color:var(--black);border-color:var(--black);}
 
-/* ── PRODUCTS VIEW ── */
+/* ── SORT TABS (shared by Products tab and Category Detail — reused, not
+   duplicated logic, just duplicated markup since they live in different
+   view containers). No filter icon, no category chips — pure sort order. ── */
 .section{padding:0 18px;max-width:800px;margin:0 auto;}
-.sort-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0 8px;}
-.results-lbl{font-family:'DM Mono',monospace;font-size:10px;color:var(--gray-400);letter-spacing:.5px;}
-.sort-btn{height:28px;padding:0 12px;border:1.5px solid var(--gray-200);border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;background:var(--white);color:var(--gray-600);display:flex;align-items:center;gap:5px;font-family:'Space Grotesk',sans-serif;transition:all .18s;}
-.sort-btn:active{opacity:.7;}
-.sort-btn.active{background:var(--black);border-color:var(--black);color:#fff;}
-.filter-row{display:flex;gap:7px;padding:10px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-.filter-row::-webkit-scrollbar{display:none;}
-.f-chip{height:30px;padding:0 13px;border:1.5px solid var(--gray-200);border-radius:30px;font-size:11px;font-weight:600;cursor:pointer;background:var(--white);color:var(--gray-600);transition:all .18s;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;font-family:'Space Grotesk',sans-serif;}
-.f-chip.on{background:var(--black);border-color:var(--black);color:#fff;}
+.sort-tabs{display:flex;gap:22px;padding:14px 0 11px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.sort-tabs::-webkit-scrollbar{display:none;}
+.sort-tab{font-size:12.5px;font-weight:600;color:var(--gray-400);white-space:nowrap;cursor:pointer;display:flex;align-items:center;gap:3px;padding-bottom:7px;border-bottom:2px solid transparent;flex-shrink:0;transition:color .15s,border-color .15s;}
+.sort-tab.on{color:var(--black);font-weight:700;border-color:var(--black);}
+.sort-tab .price-arrow{display:none;transition:transform .15s;}
+
 .p-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-bottom:10px;}
 .p-card{background:var(--white);border-radius:var(--radius);border:1px solid var(--gray-200);overflow:hidden;cursor:pointer;display:flex;flex-direction:column;text-decoration:none;color:inherit;position:relative;transition:transform .22s,box-shadow .22s;}
 .p-card:active{transform:scale(.975);box-shadow:0 6px 24px rgba(0,0,0,.09);}
@@ -71,19 +70,21 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
 .p-name{font-size:12px;font-weight:600;line-height:1.35;letter-spacing:-.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .p-price{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:var(--red);}
 
-/* ── CATEGORIES VIEW ── */
-.cat-list{display:flex;flex-direction:column;gap:9px;padding:14px 0;}
-.cat-card{display:flex;align-items:center;gap:12px;background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);padding:12px 14px;cursor:pointer;transition:transform .12s;}
-.cat-card:active{transform:scale(.98);}
-.cat-thumb{width:46px;height:46px;border-radius:10px;flex-shrink:0;background:var(--gray-100);}
-.cat-name{font-size:13px;font-weight:700;}
-.cat-count{font-size:10.5px;color:var(--gray-400);margin-top:2px;font-family:'DM Mono',monospace;}
-.cat-arrow{margin-left:auto;color:var(--gray-300);flex-shrink:0;}
+/* ── CATEGORIES VIEW — simple settings-style list, not cards ── */
+.cat-list{display:flex;flex-direction:column;padding:8px 0;}
+.cat-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--gray-100);cursor:pointer;transition:opacity .12s;}
+.cat-row:last-child{border-bottom:none;}
+.cat-row:active{opacity:.6;}
+.cat-thumb-sm{width:42px;height:42px;border-radius:10px;flex-shrink:0;background:var(--gray-100);}
+.cat-row-name{font-size:13px;font-weight:600;}
+.cat-row-count{font-size:10.5px;color:var(--gray-400);margin-top:2px;font-family:'DM Mono',monospace;}
+.cat-row-arrow{margin-left:auto;color:var(--gray-300);flex-shrink:0;}
 
-/* ── SHOP DETAILS "PAGE" ── */
-.details-nav{display:flex;align-items:center;gap:12px;padding:0 18px 16px;max-width:800px;margin:0 auto;}
-.details-back{width:32px;height:32px;border-radius:50%;background:var(--gray-100);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:background .15s;}
-.details-back:active{background:var(--gray-200);}
+/* ── INFORMATION "PAGE" (was Shop Details/About) ──
+   Title-only row now — the back button that used to live here was a
+   second, redundant control; the top nav's own back button (now
+   context-aware, see goBack()) is the only back button on this page. */
+.details-nav{padding:0 18px 16px;max-width:800px;margin:0 auto;}
 .details-title{font-family:'Bebas Neue';font-size:16px;letter-spacing:1.5px;}
 .details-body{padding:0 18px;max-width:800px;margin:0 auto;}
 .details-logo{width:56px;height:56px;border-radius:50%;background:var(--black);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue';font-size:19px;overflow:hidden;margin-bottom:12px;}
@@ -95,6 +96,16 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
 .details-stat b{display:block;font-family:'DM Mono',monospace;font-size:17px;font-weight:600;color:var(--black);}
 .details-stat span{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-400);margin-top:4px;display:block;}
 .details-desc{font-size:13px;color:var(--gray-600);line-height:1.7;padding-top:16px;margin-top:16px;border-top:1px solid var(--gray-200);white-space:pre-wrap;}
+
+/* ── CATEGORY DETAIL "PAGE" — its own dedicated header, one row: back |
+   title (centered, page-title weight) | cart. Replaces the generic BARDS
+   nav entirely while showing (genericNav hidden), not stacked under it. ── */
+.cat-header{position:fixed;top:0;left:0;right:0;z-index:200;height:var(--nav-h);display:flex;align-items:center;padding:0 10px;background:rgba(250,250,250,.92);backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);border-bottom:1px solid var(--gray-200);}
+.cat-header-back{width:36px;height:36px;border-radius:50%;background:var(--gray-100);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;border:none;color:var(--black);transition:background .18s,transform .12s;}
+.cat-header-back:active{background:var(--gray-200);transform:scale(.9);}
+.cat-header-title{flex:1;text-align:center;font-family:'Bebas Neue';font-size:19px;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 8px;}
+.cat-header-cart{width:36px;height:36px;border-radius:50%;background:var(--gray-100);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;text-decoration:none;color:var(--black);position:relative;transition:background .18s,transform .12s;}
+.cat-header-cart:active{background:var(--gray-200);transform:scale(.9);}
 
 .empty{padding:50px 20px;text-align:center;display:none;}
 .empty.show{display:block;}
@@ -133,9 +144,9 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
 </head>
 <body>
 
-<nav class="nav">
+<nav class="nav" id="genericNav">
   <div class="nav-left">
-    <button class="icon-btn" onclick="history.back()"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 11.5L6 8l3.5-3.5"/></svg></button>
+    <button class="icon-btn" onclick="goBack()" aria-label="Back"><svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 11.5L6 8l3.5-3.5"/></svg></button>
     <a href="/" class="brand">BARDS</a>
   </div>
   <div class="nav-right">
@@ -157,7 +168,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
       <div class="shop-logo skel" id="shopLogo"></div>
     </div>
     <div class="shop-info">
-      <div class="shop-name" id="shopName" onclick="navigate('about')">
+      <div class="shop-name" id="shopName" onclick="navigate('information')">
         <span class="skel-text" id="shopNameText">Shop Name</span>
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
       </div>
@@ -175,15 +186,11 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
   </div>
 
   <div id="productsView" class="section fu d2">
-    <div class="sort-row">
-      <span class="results-lbl" id="resultsLabel">0 Products</span>
-      <button class="sort-btn" id="sortBtn" onclick="cycleSort()">
-        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h9M3 6.5h5M5.5 10h1"/></svg>
-        <span id="sortLabel">Sort</span>
-      </button>
-    </div>
-    <div class="filter-row" id="filterRow">
-      <div class="f-chip on" data-cat="all" onclick="setCat(this,'all')">All</div>
+    <div class="sort-tabs" id="productsSortTabs">
+      <div class="sort-tab on" onclick="pickSort(productsSort,this,'recommended')">Recommended</div>
+      <div class="sort-tab" onclick="pickSort(productsSort,this,'bestsellers')">Bestsellers</div>
+      <div class="sort-tab" onclick="pickSort(productsSort,this,'new')">New releases</div>
+      <div class="sort-tab" onclick="pickSort(productsSort,this,'price')">Price <svg class="price-arrow" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
     </div>
     <div class="p-grid" id="productGrid">
       <div class="p-card" style="pointer-events:none;"><div class="p-card-img skel"></div><div class="p-card-body"><div class="skel" style="width:80%;height:12px;"></div><div class="skel" style="width:40%;height:12px;"></div></div></div>
@@ -200,8 +207,8 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
 
   <div id="categoriesView" class="section fu d2" style="display:none;">
     <div class="cat-list" id="catList">
-      <div class="cat-card" style="pointer-events:none;"><div class="cat-thumb skel"></div><div style="flex:1;"><div class="skel" style="width:90px;height:12px;margin-bottom:6px;"></div><div class="skel" style="width:60px;height:10px;"></div></div></div>
-      <div class="cat-card" style="pointer-events:none;"><div class="cat-thumb skel"></div><div style="flex:1;"><div class="skel" style="width:70px;height:12px;margin-bottom:6px;"></div><div class="skel" style="width:60px;height:10px;"></div></div></div>
+      <div class="cat-row" style="pointer-events:none;"><div class="cat-thumb-sm skel"></div><div style="flex:1;"><div class="skel" style="width:90px;height:12px;margin-bottom:6px;"></div><div class="skel" style="width:60px;height:10px;"></div></div></div>
+      <div class="cat-row" style="pointer-events:none;"><div class="cat-thumb-sm skel"></div><div style="flex:1;"><div class="skel" style="width:70px;height:12px;margin-bottom:6px;"></div><div class="skel" style="width:60px;height:10px;"></div></div></div>
     </div>
     <div class="empty" id="emptyCategories">
       <div class="empty-title">No Categories Yet</div>
@@ -212,9 +219,6 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
 
 <div id="detailsView" style="display:none;">
   <div class="details-nav">
-    <div class="details-back" onclick="navigate('products')" aria-label="Back">
-      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 11.5L6 8l3.5-3.5"/></svg>
-    </div>
     <div class="details-title">Shop Details</div>
   </div>
   <div class="details-body">
@@ -226,6 +230,34 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
       <div class="details-stat"><b class="skel-text" id="detailsSold">0 sold</b><span>Sold</span></div>
     </div>
     <div class="details-desc skel-text" id="detailsDesc">This seller hasn't added a shop description yet.</div>
+  </div>
+</div>
+
+<div id="categoryDetailView" style="display:none;">
+  <div class="cat-header">
+    <button class="cat-header-back" onclick="goBack()" aria-label="Back"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 11.5L6 8l3.5-3.5"/></svg></button>
+    <div class="cat-header-title skel-text" id="categoryDetailTitle">Category</div>
+    <a href="/cart" class="cat-header-cart" aria-label="Cart">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+      <span class="cart-badge" id="cartBadgeCategory"></span>
+    </a>
+  </div>
+  <div class="page-start"></div>
+  <div class="section">
+    <div class="sort-tabs" id="categorySortTabs">
+      <div class="sort-tab on" onclick="pickSort(categorySort,this,'recommended')">Recommended</div>
+      <div class="sort-tab" onclick="pickSort(categorySort,this,'bestsellers')">Bestsellers</div>
+      <div class="sort-tab" onclick="pickSort(categorySort,this,'new')">New releases</div>
+      <div class="sort-tab" onclick="pickSort(categorySort,this,'price')">Price <svg class="price-arrow" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></div>
+    </div>
+    <div class="p-grid" id="categoryProductGrid">
+      <div class="p-card" style="pointer-events:none;"><div class="p-card-img skel"></div><div class="p-card-body"><div class="skel" style="width:80%;height:12px;"></div><div class="skel" style="width:40%;height:12px;"></div></div></div>
+      <div class="p-card" style="pointer-events:none;"><div class="p-card-img skel"></div><div class="p-card-body"><div class="skel" style="width:70%;height:12px;"></div><div class="skel" style="width:40%;height:12px;"></div></div></div>
+    </div>
+    <div class="empty" id="emptyCategoryProducts">
+      <div class="empty-title">No Products Yet</div>
+      <div class="empty-sub">This category doesn't have any products right now.</div>
+    </div>
   </div>
 </div>
 
@@ -245,32 +277,43 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--white);color:var(--
    Inline (no src=), so it runs synchronously at parse time — before
    api.js/products.js below (which ARE external, parser-blocking, and can
    take seconds on a throttled connection) have even started downloading.
-   Decides which of the 3 views (Products/Categories/Shop Details) is
-   visible on first paint, straight from the URL, so a hard refresh on
-   e.g. /shop/bardsskin/categories lands on Categories immediately instead
-   of flashing Products first — same class of bug as the skeleton-timing
-   fix in account.html, fixed here from the start instead of after the fact. */
+   Decides which of the 4 views (Products/Categories/Information/Category
+   Detail) is visible on first paint, straight from the URL, so a hard
+   refresh on e.g. /shop/bardsskin/category/skincare lands there directly
+   instead of flashing Products first — same class of bug as the
+   skeleton-timing fix in account.html, fixed here from the start. */
 window.__shopTarget = (function () {
     var parts = location.pathname.split('/').filter(Boolean); // ['shop', ...]
     if (parts[0] !== 'shop' || !parts[1]) return null;
-    var mode, value, tab, base;
+    var mode, value, rest, base;
     if (parts[1] === 'id' && parts[2]) {
-        mode = 'id'; value = parts[2]; tab = parts[3] || 'products'; base = '/shop/id/' + parts[2];
+        mode = 'id'; value = parts[2]; rest = parts.slice(3); base = '/shop/id/' + parts[2];
     } else {
-        mode = 'slug'; value = parts[1]; tab = parts[2] || 'products'; base = '/shop/' + parts[1];
+        mode = 'slug'; value = parts[1]; rest = parts.slice(2); base = '/shop/' + parts[1];
     }
-    if (tab !== 'categories' && tab !== 'about') tab = 'products';
+    var tab = 'products', categorySlug = null;
+    if (rest[0] === 'categories') {
+        tab = 'categories';
+    } else if (rest[0] === 'information') {
+        tab = 'information';
+    } else if (rest[0] === 'category' && rest[1]) {
+        tab = 'category-detail'; categorySlug = rest[1];
+    }
 
-    if (tab === 'about') {
+    if (tab === 'information') {
         document.getElementById('storefrontView').style.display = 'none';
         document.getElementById('detailsView').style.display = 'block';
+    } else if (tab === 'category-detail') {
+        document.getElementById('storefrontView').style.display = 'none';
+        document.getElementById('categoryDetailView').style.display = 'block';
+        document.getElementById('genericNav').style.display = 'none';
     } else if (tab === 'categories') {
         document.getElementById('productsView').style.display = 'none';
         document.getElementById('categoriesView').style.display = 'block';
         document.querySelector('.tab[data-tab="products"]').classList.remove('on');
         document.querySelector('.tab[data-tab="categories"]').classList.add('on');
     }
-    return { mode: mode, value: value, tab: tab, base: base };
+    return { mode: mode, value: value, tab: tab, base: base, categorySlug: categorySlug };
 })();
 </script>
 <script src="/api.js"></script>
@@ -278,16 +321,16 @@ window.__shopTarget = (function () {
 <script>
 /* ═══════════════════════════════════════════════════════════════
    shop.html — public shop storefront (docs/06-shop-profile-follow-
-   blueprint.md, redesigned 2026-08-07). 3 client-side views navigated via
-   pushState (Products/Categories/Shop Details) — see the inline
-   pre-script above for how the initial view is picked without waiting on
-   this (external, slower) script to load first.
+   blueprint.md, redesigned 2026-08-07/08). 4 client-side views navigated
+   via pushState (Products/Categories/Information/Category Detail) — see
+   the inline pre-script above for how the initial view is picked without
+   waiting on this (external, slower) script to load first.
 ═══════════════════════════════════════════════════════════════ */
 
 let SHOP = null;
 let FOLLOWING = false;
 let CURRENT_VIEW = 'products';
-const S = { cat: 'all' };
+let CURRENT_CATEGORY_TEXT = null; // resolved real category text for the active Category Detail view
 
 function escapeHtml(str) {
     return String(str ?? '').replace(/[&<>"']/g, c => ({
@@ -307,6 +350,16 @@ function formatSoldCount(n) {
     return `${Math.floor(n / 1000000)}M+ sold`;
 }
 
+// products.category is seller-set free text, not guaranteed to resolve to
+// the site-wide categories table (same fallback CLAUDE.md documents
+// elsewhere for the same reason) — rather than depend on a lookup that
+// might not exist for this shop's specific text, the URL slug is derived
+// from the category string itself and matched back against this shop's
+// own already-fetched product list, not a DB round-trip.
+function slugifyCategory(cat) {
+    return String(cat).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
 function clearSkeletons() {
     document.querySelectorAll('.skel-text').forEach(el => el.classList.remove('skel-text'));
 }
@@ -314,6 +367,7 @@ function clearSkeletons() {
 function showError() {
     document.getElementById('storefrontView').style.display = 'none';
     document.getElementById('detailsView').style.display = 'none';
+    document.getElementById('categoryDetailView').style.display = 'none';
     document.getElementById('errorWrap').style.display = 'block';
 }
 
@@ -342,9 +396,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             fetchAndMerge({ shopId: SHOP.id, limit: 100 }).catch(() => {}),
             initFollowState(),
         ]);
-        renderFilterChips();
         renderGrid();
         renderCategories();
+        if (CURRENT_VIEW === 'category-detail') renderCategoryDetail(target.categorySlug);
     } finally {
         clearSkeletons();
     }
@@ -352,38 +406,60 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Land pushState's initial entry on the URL we actually started on, so
     // the very first back-press after arriving has somewhere sane to go
     // rather than off the site entirely.
-    history.replaceState({ view: CURRENT_VIEW }, '', location.pathname);
+    history.replaceState({ view: CURRENT_VIEW, categorySlug: target.categorySlug }, '', location.pathname);
 });
 
 window.addEventListener('popstate', (e) => {
-    const view = (e.state && e.state.view) || 'products';
-    applyView(view, { pushUrl: false });
+    const state = e.state || {};
+    applyView(state.view || 'products', { pushUrl: false, categorySlug: state.categorySlug });
 });
 
-function buildUrl(view) {
+function buildUrl(view, categorySlug) {
     const base = window.__shopTarget.base;
-    if (view === 'products') return base;
-    return base + '/' + (view === 'categories' ? 'categories' : 'about');
+    if (view === 'categories') return base + '/categories';
+    if (view === 'information') return base + '/information';
+    if (view === 'category-detail') return base + '/category/' + categorySlug;
+    return base; // products
 }
 
 // Single entry point for every view change — tab clicks, the shop-name
-// click, and the details back arrow all call this (via navigate()), and
-// so does the popstate handler above. Keeps "what's visible" and "what's
-// in the URL" from ever drifting apart.
-function applyView(view, { pushUrl = true } = {}) {
+// click, category-row clicks, and both back buttons (via goBack()) all
+// call this, and so does the popstate handler above. Keeps "what's
+// visible" and "what's in the URL" from ever drifting apart.
+function applyView(view, { pushUrl = true, categorySlug = null } = {}) {
     CURRENT_VIEW = view;
-    const isDetails = view === 'about';
-    document.getElementById('storefrontView').style.display = isDetails ? 'none' : 'block';
-    document.getElementById('detailsView').style.display = isDetails ? 'block' : 'none';
-    if (!isDetails) {
-        document.getElementById('productsView').style.display = view === 'products' ? 'block' : 'none';
+    const isInfo       = view === 'information';
+    const isCatDetail  = view === 'category-detail';
+
+    document.getElementById('storefrontView').style.display     = (isInfo || isCatDetail) ? 'none' : 'block';
+    document.getElementById('detailsView').style.display         = isInfo ? 'block' : 'none';
+    document.getElementById('categoryDetailView').style.display  = isCatDetail ? 'block' : 'none';
+    document.getElementById('genericNav').style.display          = isCatDetail ? 'none' : 'flex';
+
+    if (!isInfo && !isCatDetail) {
+        document.getElementById('productsView').style.display   = view === 'products' ? 'block' : 'none';
         document.getElementById('categoriesView').style.display = view === 'categories' ? 'block' : 'none';
         document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === view));
     }
-    if (pushUrl) history.pushState({ view }, '', buildUrl(view));
+
+    if (isCatDetail) renderCategoryDetail(categorySlug);
+
+    if (pushUrl) history.pushState({ view, categorySlug }, '', buildUrl(view, categorySlug));
     window.scrollTo(0, 0);
 }
-function navigate(view) { applyView(view, { pushUrl: true }); }
+function navigate(view, categorySlug) { applyView(view, { pushUrl: true, categorySlug }); }
+
+// The one back-behavior decision in the whole page — both the top nav's
+// back button and Category Detail's own back button call this, so there's
+// a single source of truth for "what does back mean right now" instead of
+// two buttons independently guessing (the bug this replaced: the top nav
+// used to always do history.back(), which breaks on a direct/shared link
+// since there's nothing in browser history to go back to).
+function goBack() {
+    if (CURRENT_VIEW === 'information') navigate('products');
+    else if (CURRENT_VIEW === 'category-detail') navigate('categories');
+    else history.back();
+}
 
 function initHeader() {
     document.getElementById('shopNameText').textContent = SHOP.name || 'Shop';
@@ -472,67 +548,45 @@ async function toggleFollow() {
     }
 }
 
-// Category chips computed from this shop's own products only (not the
-// site-wide categories list — a shop with 2 categories shouldn't show 6
-// empty chips for categories it has nothing in).
-function renderFilterChips() {
-    const row = document.getElementById('filterRow');
-    const cats = [...new Set(Object.values(PRODUCTS).map(p => p.category).filter(Boolean))];
-    cats.forEach(cat => {
-        const chip = document.createElement('div');
-        chip.className = 'f-chip';
-        chip.dataset.cat = cat;
-        chip.textContent = cat;
-        chip.onclick = () => setCat(chip, cat);
-        row.appendChild(chip);
-    });
+/* ── Sort (shared logic, separate state per view) ──────────────────────
+   Recommended = default order (no client re-sort). Bestsellers =
+   units_sold descending. New releases = created_at descending. Price
+   toggles ascending/descending on repeat taps of the same tab, resets to
+   ascending when re-entered from a different tab — same behavior
+   approved in the mockup. */
+function makeSortController(renderFn) {
+    return { sortKey: 'recommended', priceDir: 'asc', renderFn };
 }
-function setCat(el, cat) {
-    S.cat = cat;
-    document.querySelectorAll('.f-chip').forEach(c => c.classList.remove('on'));
-    el.classList.add('on');
-    renderGrid();
-}
-// Categories view card click -> jump to Products pre-filtered. Updates the
-// filter-chip row to match so the two tabs never disagree about the
-// active category.
-function goToCategoryProducts(cat) {
-    S.cat = cat;
-    document.querySelectorAll('.f-chip').forEach(c => c.classList.toggle('on', c.dataset.cat === cat));
-    navigate('products');
-    renderGrid();
+const productsSort = makeSortController(() => renderGrid());
+const categorySort = makeSortController(() => renderCategoryDetailGrid());
+
+function pickSort(ctrl, tabEl, key) {
+    const reactivatingPrice = key === 'price' && ctrl.sortKey === 'price';
+    ctrl.sortKey = key;
+    if (key === 'price') ctrl.priceDir = reactivatingPrice ? (ctrl.priceDir === 'asc' ? 'desc' : 'asc') : 'asc';
+
+    const row = tabEl.parentElement;
+    row.querySelectorAll('.sort-tab').forEach(t => t.classList.remove('on'));
+    tabEl.classList.add('on');
+    const arrow = row.querySelector('.price-arrow');
+    if (arrow) {
+        arrow.style.display = key === 'price' ? 'inline-block' : 'none';
+        if (key === 'price') arrow.style.transform = ctrl.priceDir === 'asc' ? 'rotate(0deg)' : 'rotate(180deg)';
+    }
+    ctrl.renderFn();
 }
 
-const SORT_OPTS = [
-    { label: 'Sort',         fn: null },
-    { label: 'Price ↑',      fn: ([, a], [, b]) => a.price - b.price },
-    { label: 'Price ↓',      fn: ([, a], [, b]) => b.price - a.price },
-    { label: 'Best-selling', fn: ([, a], [, b]) => (b.units_sold || 0) - (a.units_sold || 0) },
-];
-let sortIdx = 0;
-function cycleSort() {
-    sortIdx = (sortIdx + 1) % SORT_OPTS.length;
-    document.getElementById('sortLabel').textContent = SORT_OPTS[sortIdx].label;
-    document.getElementById('sortBtn').classList.toggle('active', sortIdx > 0);
-    renderGrid();
+function sortItems(items, ctrl) {
+    if (ctrl.sortKey === 'price') {
+        return [...items].sort(([, a], [, b]) => ctrl.priceDir === 'asc' ? a.price - b.price : b.price - a.price);
+    }
+    if (ctrl.sortKey === 'bestsellers') return [...items].sort(([, a], [, b]) => (b.units_sold || 0) - (a.units_sold || 0));
+    if (ctrl.sortKey === 'new') return [...items].sort(([, a], [, b]) => new Date(b.dateAdded) - new Date(a.dateAdded));
+    return items; // recommended
 }
 
 function fmtUSD(num) { return '$' + Number(num).toFixed(2); }
 
-function renderGrid() {
-    let items = Object.entries(PRODUCTS);
-    if (S.cat !== 'all') items = items.filter(([, p]) => p.category === S.cat);
-    const fn = SORT_OPTS[sortIdx].fn;
-    if (fn) items = [...items].sort(fn);
-
-    document.getElementById('resultsLabel').textContent = `${items.length} ${items.length === 1 ? 'Product' : 'Products'}`;
-
-    const grid  = document.getElementById('productGrid');
-    const empty = document.getElementById('emptyProducts');
-    if (!items.length) { grid.innerHTML = ''; empty.classList.add('show'); return; }
-    empty.classList.remove('show');
-    grid.innerHTML = items.map(([id, p]) => cardHTML(id, p)).join('');
-}
 function cardHTML(id, p) {
     return `<a href="/product?id=${id}" class="p-card">
   <div class="p-card-img">
@@ -545,13 +599,25 @@ function cardHTML(id, p) {
   </div></a>`;
 }
 
-// Built via createElement/.textContent + a direct function reference for
-// the click handler, not a string-built onclick="..." attribute — category
-// names are seller-set free text, and CLAUDE.md documents multiple past
-// stored-XSS bugs (categories.html, new-arrival.html) from exactly that
-// shortcut. escapeHtml() alone isn't enough once text lands inside an
-// inline event-handler attribute; avoiding the pattern entirely is safer
-// than trying to escape correctly every time.
+/* ── Products tab — all of this shop's products, sorted only (no category
+   filter here anymore — Categories has its own real destination now). ── */
+function renderGrid() {
+    const items = sortItems(Object.entries(PRODUCTS), productsSort);
+    const grid  = document.getElementById('productGrid');
+    const empty = document.getElementById('emptyProducts');
+    if (!items.length) { grid.innerHTML = ''; empty.classList.add('show'); return; }
+    empty.classList.remove('show');
+    grid.innerHTML = items.map(([id, p]) => cardHTML(id, p)).join('');
+}
+
+/* ── Categories tab — simple list, built via createElement/.textContent +
+   a direct function reference for the click handler, not a string-built
+   onclick="..." attribute. Category names are seller-set free text, and
+   CLAUDE.md documents multiple past stored-XSS bugs (categories.html,
+   new-arrival.html) from exactly that shortcut. escapeHtml() alone isn't
+   enough once text lands inside an inline event-handler attribute;
+   avoiding the pattern entirely is safer than escaping correctly every
+   time. ── */
 function renderCategories() {
     const counts = {};
     Object.values(PRODUCTS).forEach(p => {
@@ -567,12 +633,12 @@ function renderCategories() {
     entries.forEach(([cat, count]) => {
         const sample = Object.values(PRODUCTS).find(p => p.category === cat);
 
-        const card = document.createElement('div');
-        card.className = 'cat-card';
-        card.onclick = () => goToCategoryProducts(cat);
+        const row = document.createElement('div');
+        row.className = 'cat-row';
+        row.onclick = () => goToCategory(cat);
 
         const thumb = document.createElement('div');
-        thumb.className = 'cat-thumb';
+        thumb.className = 'cat-thumb-sm';
         if (sample?.images?.[0]) {
             thumb.style.backgroundImage = `url("${sample.images[0]}")`;
             thumb.style.backgroundSize = 'cover';
@@ -580,17 +646,16 @@ function renderCategories() {
         }
 
         const info = document.createElement('div');
-        info.style.flex = '1';
         const name = document.createElement('div');
-        name.className = 'cat-name';
+        name.className = 'cat-row-name';
         name.textContent = cat;
         const countEl = document.createElement('div');
-        countEl.className = 'cat-count';
+        countEl.className = 'cat-row-count';
         countEl.textContent = `${count} product${count !== 1 ? 's' : ''}`;
         info.append(name, countEl);
 
         const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        arrow.setAttribute('class', 'cat-arrow');
+        arrow.setAttribute('class', 'cat-row-arrow');
         arrow.setAttribute('width', '13'); arrow.setAttribute('height', '13');
         arrow.setAttribute('viewBox', '0 0 13 13'); arrow.setAttribute('fill', 'none');
         arrow.setAttribute('stroke', 'currentColor'); arrow.setAttribute('stroke-width', '2.3');
@@ -599,16 +664,60 @@ function renderCategories() {
         path.setAttribute('d', 'M5 1l5 5.5L5 12');
         arrow.appendChild(path);
 
-        card.append(thumb, info, arrow);
-        list.appendChild(card);
+        row.append(thumb, info, arrow);
+        list.appendChild(row);
     });
 }
 
+function goToCategory(cat) {
+    navigate('category-detail', slugifyCategory(cat));
+}
+
+/* ── Category Detail — resolves the real category text from the URL slug
+   against this shop's own already-fetched products (no DB round-trip),
+   then renders a scoped grid with its own independent sort state. */
+function renderCategoryDetail(categorySlug) {
+    const match = Object.values(PRODUCTS).find(p => p.category && slugifyCategory(p.category) === categorySlug);
+    CURRENT_CATEGORY_TEXT = match ? match.category : null;
+
+    const titleEl = document.getElementById('categoryDetailTitle');
+    titleEl.textContent = CURRENT_CATEGORY_TEXT || 'Category';
+    titleEl.classList.remove('skel-text');
+
+    // Reset sort to a clean default each time a (possibly different)
+    // category is entered, rather than carrying over state from whichever
+    // category was viewed last.
+    categorySort.sortKey = 'recommended';
+    categorySort.priceDir = 'asc';
+    const tabsRow = document.getElementById('categorySortTabs');
+    tabsRow.querySelectorAll('.sort-tab').forEach((t, i) => t.classList.toggle('on', i === 0));
+    const arrow = tabsRow.querySelector('.price-arrow');
+    if (arrow) arrow.style.display = 'none';
+
+    renderCategoryDetailGrid();
+}
+function renderCategoryDetailGrid() {
+    const items = CURRENT_CATEGORY_TEXT
+        ? sortItems(Object.entries(PRODUCTS).filter(([, p]) => p.category === CURRENT_CATEGORY_TEXT), categorySort)
+        : [];
+    const grid  = document.getElementById('categoryProductGrid');
+    const empty = document.getElementById('emptyCategoryProducts');
+    if (!items.length) { grid.innerHTML = ''; empty.classList.add('show'); return; }
+    empty.classList.remove('show');
+    grid.innerHTML = items.map(([id, p]) => cardHTML(id, p)).join('');
+}
+
+// Updates every cart badge on the page (main nav + Category Detail's own
+// header both have one) — querySelectorAll by class rather than a single
+// getElementById, so adding another badge elsewhere later doesn't need a
+// matching code change here too.
 function updateBadge() {
     const cart = JSON.parse(localStorage.getItem('BARDS_CART') || '[]');
     const n = cart.reduce((t, c) => t + c.quantity, 0);
-    const badge = document.getElementById('cartBadge');
-    if (badge) { badge.textContent = n; badge.style.display = n ? 'flex' : 'none'; }
+    document.querySelectorAll('.cart-badge').forEach(badge => {
+        badge.textContent = n;
+        badge.style.display = n ? 'flex' : 'none';
+    });
 }
 
 let _toastTimer;

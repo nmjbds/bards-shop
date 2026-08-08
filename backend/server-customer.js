@@ -178,18 +178,30 @@ app.get('/product/:id', (_, res) => {
 // RESERVED_STORE_SLUGS, belt-and-suspenders against a shop ever actually
 // being slugged "id").
 //
-// :tab? (optional, 2026-08-07 redesign) — shop.html now has 3 client-side
-// "views" (Products/Categories/Shop Details) navigated via pushState, not
-// full reloads. This one route per variant still has to resolve on a
-// direct load/refresh/shared link for each of them
-// (/shop/:slug, /shop/:slug/categories, /shop/:slug/about, and the same 3
-// under /shop/id/:id/) — verified in isolation that Express 4's optional
-// named param handles all 6 shapes correctly with just these 2 routes,
-// still respecting the id-before-slug ordering above (a request to
-// /shop/id/xxx is still caught by the first line, not parsed as
-// slug="id", tab="xxx" by the second).
+// :tab? (optional, 2026-08-07 redesign) — shop.html now has 4 client-side
+// "views" (Products/Categories/Information/Category Detail) navigated via
+// pushState, not full reloads. This one route per variant still has to
+// resolve on a direct load/refresh/shared link for each of them
+// (/shop/:slug, /shop/:slug/categories, /shop/:slug/information, and the
+// same 3 under /shop/id/:id/) — verified in isolation that Express 4's
+// optional named param handles all 6 shapes correctly with just these 2
+// routes, still respecting the id-before-slug ordering above (a request
+// to /shop/id/xxx is still caught by the first line, not parsed as
+// slug="id", tab="xxx" by the second). Renamed from /about to
+// /information 2026-08-08 (no functional change needed here — this
+// route was always generic, never hardcoded the tab name).
 app.get('/shop/id/:id/:tab?', (_, res) => res.sendFile('shop.html', { root: PUBLIC }));
 app.get('/shop/:slug/:tab?', (_, res) => res.sendFile('shop.html', { root: PUBLIC }));
+
+// /shop/:slug/category/:categorySlug — the Category Detail page (2026-08-08).
+// A 4-segment path can never match the :tab? routes above (those top out
+// at 3 segments), so this is a clean additive pair, not a rework — order
+// relative to the :tab? routes doesn't matter for correctness (different
+// segment counts can't collide either direction), but id-before-slug
+// still does, same reasoning as above. Verified all 6 shapes (this pair +
+// the :tab? pair, each in id/slug variants) resolve correctly together.
+app.get('/shop/id/:id/category/:categorySlug', (_, res) => res.sendFile('shop.html', { root: PUBLIC }));
+app.get('/shop/:slug/category/:categorySlug', (_, res) => res.sendFile('shop.html', { root: PUBLIC }));
 
 // Explicitly reject /index (no extension) — omitting it from the
 // walkHtmlFiles scan above isn't enough on its own: without this, the
