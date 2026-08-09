@@ -69,6 +69,10 @@ const allowed = [
   'https://bards-customer.onrender.com',
   'https://bards-seller.onrender.com',
   'https://bards-admin.onrender.com',
+  // Local manual testing of the seller identity split (2026-08-09) — see
+  // server-seller.js's matching entry for the full explanation. This
+  // server's assigned port is :3012.
+  'http://localhost:3012', 'http://127.0.0.1:3012',
 ];
 app.use(cors({
   origin: (o, cb) => (!o || allowed.includes(o)) ? cb(null, true) : cb(new Error('CORS blocked')),

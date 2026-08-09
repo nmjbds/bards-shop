@@ -10,7 +10,6 @@ const { query } = require('../db');
 const { validate, MIME_EXT } = require('../middleware/validate');
 const router = express.Router();
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
 
 // Only allow same-site relative paths, or an absolute URL to one of our own
 // known hosts, as an OAuth post-login redirect target — blocks
@@ -146,22 +145,10 @@ const profileRateLimit = makeRateLimit({
   message: (retry) => `Too many profile updates. Please try again in ${retry} minutes.`,
 });
 
-// Initialize nodemailer transporter
-// host/port instead of service:'gmail' to avoid self-signed certificate error
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // STARTTLS
-  family: 4,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  tls: {
-    // bypass self-signed cert เฉพาะ development เท่านั้น
-    rejectUnauthorized: process.env.NODE_ENV === 'production',
-  },
-});
+// nodemailer transporter — extracted to services/mailer.js (seller identity
+// split) so routes/authSeller.js's OTP emails share the same SMTP/TLS config
+// instead of a second copy. Same object, same behavior as before.
+const { transporter } = require('../services/mailer');
 
 // Session/refresh-token logic moved to services/session.js (2026-07-28,
 // multi-domain split, Phase 1 prep) — see that file for why. Everything

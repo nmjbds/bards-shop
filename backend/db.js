@@ -433,31 +433,98 @@ async function initDb() {
       CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user ON refresh_tokens(user_id);
       CREATE UNIQUE INDEX IF NOT EXISTS idx_refresh_tokens_hash ON refresh_tokens(token_hash);
 
-      -- Shops (multi-vendor, Phase 4) — one shop per seller for now
-      -- (owner_user_id UNIQUE). status: pending | approved | rejected | suspended
-      CREATE TABLE IF NOT EXISTS shops (
-        id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-        owner_user_id UUID        NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
-        name          TEXT        NOT NULL,
-        description   TEXT,
-        logo          TEXT,
-        status        TEXT        NOT NULL DEFAULT 'pending',
-        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at    TIMESTAMPTZ
+      -- Seller identity split (Approach B, seller-auth-split blueprint) —
+      -- sellers no longer authenticate through users at all. A completely
+      -- separate identity table, own refresh-token table, own OTP-code
+      -- table — mirrors users/refresh_tokens/password_resets structurally
+      -- (see routes/authSeller.js, services/sellerSession.js) but is never
+      -- joined against users for auth purposes. Defined before shops
+      -- below since shops.seller_account_id references it.
+      CREATE TABLE IF NOT EXISTS seller_accounts (
+        id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+        email             TEXT        NOT NULL UNIQUE,
+        phone             TEXT        NOT NULL UNIQUE,
+        password          TEXT        NOT NULL,
+        email_verified_at TIMESTAMPTZ,
+        created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at        TIMESTAMPTZ
       );
-      CREATE INDEX IF NOT EXISTS idx_shops_owner  ON shops(owner_user_id);
-      CREATE INDEX IF NOT EXISTS idx_shops_status ON shops(status);
+      CREATE INDEX IF NOT EXISTS idx_seller_accounts_email ON seller_accounts(email);
 
-      -- Migration (one-time grandfather-in): accounts that were already
-      -- seller/admin before the shops system existed get an auto-approved
-      -- shop so they aren't locked out of product management. This does NOT
-      -- apply going forward — new sellers go through apply -> admin approve.
-      INSERT INTO shops (owner_user_id, name, status)
-      SELECT id, COALESCE(NULLIF(TRIM(name), ''), 'My Shop'), 'approved'
-      FROM users
-      WHERE role IN ('seller','admin')
-        AND id NOT IN (SELECT owner_user_id FROM shops)
-      ON CONFLICT (owner_user_id) DO NOTHING;
+      -- Mirrors refresh_tokens above exactly (rotation + reuse-detection
+      -- logic in services/sellerSession.js is a straight copy of
+      -- services/session.js) — only the parent table differs.
+      CREATE TABLE IF NOT EXISTS seller_refresh_tokens (
+        id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+        seller_id    UUID        NOT NULL REFERENCES seller_accounts(id) ON DELETE CASCADE,
+        token_hash   TEXT        NOT NULL,
+        expires_at   TIMESTAMPTZ NOT NULL,
+        revoked_at   TIMESTAMPTZ,
+        replaced_by  UUID        REFERENCES seller_refresh_tokens(id),
+        user_agent   TEXT,
+        created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_seller_refresh_tokens_seller ON seller_refresh_tokens(seller_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_seller_refresh_tokens_hash ON seller_refresh_tokens(token_hash);
+
+      -- Mirrors password_resets, but keyed by (email, purpose) instead of
+      -- user_id — at signup time there is no seller_accounts row yet for an
+      -- FK to point at. purpose: 'signup' | 'signin'.
+      CREATE TABLE IF NOT EXISTS seller_otp_codes (
+        id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+        email      TEXT        NOT NULL,
+        purpose    TEXT        NOT NULL,
+        code       TEXT        NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        used       BOOLEAN     NOT NULL DEFAULT false,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_seller_otp_codes_email_purpose ON seller_otp_codes(email, purpose);
+
+      -- Shops (multi-vendor, Phase 4) — one shop per seller for now
+      -- (seller_account_id UNIQUE). status: pending | approved | rejected | suspended
+      -- Ownership used to be owner_user_id -> users.id (sellers shared the
+      -- customer/admin identity table, with role flipping to 'seller' on
+      -- approval). Seller identity split retargets this to seller_accounts
+      -- — see the one-time migration DO block right below for existing DBs.
+      CREATE TABLE IF NOT EXISTS shops (
+        id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+        seller_account_id UUID        NOT NULL UNIQUE REFERENCES seller_accounts(id) ON DELETE CASCADE,
+        name              TEXT        NOT NULL,
+        description       TEXT,
+        logo              TEXT,
+        status            TEXT        NOT NULL DEFAULT 'pending',
+        created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at        TIMESTAMPTZ
+      );
+      -- One-time destructive migration (seller identity split): any shops
+      -- row created before this change has owner_user_id pointing at a
+      -- users row, which has no corresponding seller_accounts row (that
+      -- table is brand new) — there is no way to migrate that ownership
+      -- forward automatically. Confirmed with the project owner: no real
+      -- sellers exist yet (test data only, e.g. the "BARDS SHOPkh" shop) —
+      -- authorized to wipe rather than migrate. Guarded on the old column
+      -- still existing, so this only ever fires once per database. Must run
+      -- BEFORE the indexes below — a fresh-installed shops table (created
+      -- with seller_account_id directly, a few lines up) never enters this
+      -- branch at all, but an existing pre-split shops table doesn't have
+      -- seller_account_id yet until this block adds it.
+      DO $$ BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name='shops' AND column_name='owner_user_id'
+        ) THEN
+          UPDATE products    SET shop_id = NULL WHERE shop_id IS NOT NULL;
+          UPDATE coupons     SET shop_id = NULL WHERE shop_id IS NOT NULL;
+          UPDATE order_shops SET shop_id = NULL WHERE shop_id IS NOT NULL;
+          DELETE FROM shops; -- cascades seller_documents, shop_follows
+          ALTER TABLE shops DROP COLUMN owner_user_id;
+          ALTER TABLE shops ADD COLUMN seller_account_id UUID REFERENCES seller_accounts(id) ON DELETE CASCADE;
+          ALTER TABLE shops ALTER COLUMN seller_account_id SET NOT NULL;
+        END IF;
+      END $$;
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_shops_seller_account ON shops(seller_account_id);
+      CREATE INDEX IF NOT EXISTS idx_shops_status ON shops(status);
 
       -- Seller Onboarding Blueprint (2026-07-31, docs/05-seller-onboarding-
       -- blueprint.md) — extends the existing shops table instead of adding
@@ -684,6 +751,15 @@ async function initDb() {
     await query(
       `DELETE FROM refresh_tokens WHERE revoked_at < NOW() - INTERVAL '60 days' OR expires_at < NOW() - INTERVAL '60 days'`
     ).catch(e => console.warn('[DB] refresh_tokens cleanup skipped:', e.message));
+
+    // Same cleanup, mirrored for the seller identity split's own
+    // refresh-token/OTP tables (services/sellerSession.js, routes/authSeller.js).
+    await query(
+      `DELETE FROM seller_refresh_tokens WHERE revoked_at < NOW() - INTERVAL '60 days' OR expires_at < NOW() - INTERVAL '60 days'`
+    ).catch(e => console.warn('[DB] seller_refresh_tokens cleanup skipped:', e.message));
+    await query(
+      `DELETE FROM seller_otp_codes WHERE expires_at < NOW() - INTERVAL '1 day'`
+    ).catch(e => console.warn('[DB] seller_otp_codes cleanup skipped:', e.message));
   } catch(e) {
     console.error('❌ DB init error:', e.message);
     throw e;

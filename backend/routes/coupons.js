@@ -1,7 +1,7 @@
 const express = require('express');
 const { z } = require('zod');
 const { query } = require('../db');
-const { requireAuth, requireRole, getOwnApprovedShop } = require('../middleware/auth');
+const { requireAuth, getOwnApprovedShop, requireSellerOrAdmin } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const router = express.Router();
 
@@ -48,9 +48,11 @@ const couponUpdateSchema = z.object({
   .refine(d => !(d.start_date && d.expiry_date) || d.expiry_date >= d.start_date,
     { message: 'Expiry date must be on or after the start date.', path: ['expiry_date'] });
 
-// Seller/admin gate — consolidated 2026-07-22 into the central requireRole()
-// in middleware/auth.js (was a copy-pasted duplicate of seller.js's version).
-const requireSeller = requireRole('seller', 'admin');
+// Seller/admin gate — was requireRole('seller','admin') until the seller
+// identity split retired 'seller' as a users.role value; now goes through
+// requireSellerOrAdmin (see middleware/auth.js and routes/seller.js's
+// identical swap for the full rationale).
+const requireSeller = requireSellerOrAdmin;
 
 // ════════════════════════════════════════
 // PUBLIC / CHECKOUT ROUTES

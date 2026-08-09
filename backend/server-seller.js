@@ -13,8 +13,23 @@ const { initDb } = require('./db');
 // seller-*.html (built into ../public-seller from ../public-shared +
 // ../public-seller-src by scripts/build-public.js) and mounts ONLY the
 // routers the seller dashboard uses:
-//   - authSession.js   — /me, /refresh, /logout only (no signup/signin/OAuth
-//                        pages here; those live on the customer server)
+//   - authSession.js   — /me, /refresh, /logout, backed by the SAME
+//                        cross-domain session as bardskh.com/admin.bardskh.com
+//                        (services/session.js, cookie Domain=.bardskh.com) —
+//                        this is what still lets an admin session carry over
+//                        silently onto this server (the "Seller Hub" link
+//                        from admin.bardskh.com). See requireSellerOrAdmin
+//                        in middleware/auth.js for how admin vs seller
+//                        callers are told apart downstream.
+//   - authSeller.js    — seller identity split: THIS server's own
+//                        signup/signin/OTP + a completely separate session
+//                        (seller_accounts / seller_refresh_tokens, cookie
+//                        bards_seller_rt, host-only — never shared
+//                        cross-domain). Mounted at /api/auth/seller,
+//                        alongside authSession.js above at /api/auth (no
+//                        path collision). See public-shared/api.js's
+//                        SellerAuth and public-seller-src/signin.html /
+//                        signup.html for the frontend half.
 //   - paymentConfirm.js — POST /confirm/:orderId, for seller-orders.html's
 //                        "CHECK PAYMENT STATUS" button
 //   - seller.js        — the dashboard itself (orders/stats/products/
@@ -42,6 +57,7 @@ const { initDb } = require('./db');
 // ═══════════════════════════════════════════════════════════════
 
 const authSessionRouter = require('./routes/authSession');
+const authSellerRouter  = require('./routes/authSeller');
 const paymentConfirmRouter = require('./routes/paymentConfirm');
 const sellerRouter   = require('./routes/seller');
 const shopsRouter    = require('./routes/shops');
@@ -77,6 +93,15 @@ const allowed = [
   'https://bards-customer.onrender.com',
   'https://bards-seller.onrender.com',
   'https://bards-admin.onrender.com',
+  // Local manual testing of the seller identity split (2026-08-09) — running
+  // all 3 servers on one machine needs 3 distinct ports since only one can
+  // bind :3000; this one's assigned :3011. Same "CORS blocked" failure mode
+  // as the temp Render URLs above (a credentialed fetch's Origin header not
+  // being in this list surfaces as a bare "Internal error." to the browser)
+  // — hit immediately on the very first POST /api/auth/seller/request-otp
+  // from the browser. Harmless to leave in permanently, same reasoning as
+  // the onrender.com entries above.
+  'http://localhost:3011', 'http://127.0.0.1:3011',
 ];
 app.use(cors({
   origin: (o, cb) => (!o || allowed.includes(o)) ? cb(null, true) : cb(new Error('CORS blocked')),
@@ -115,7 +140,8 @@ app.use((req, res, next) => {
 
 app.use(express.static(PUBLIC));
 
-app.use('/api/auth',      authSessionRouter);
+app.use('/api/auth',        authSessionRouter);
+app.use('/api/auth/seller', authSellerRouter);
 app.use('/api/payment',   paymentConfirmRouter);
 app.use('/api/seller',    sellerRouter);
 app.use('/api/shops',     shopsRouter);

@@ -25,7 +25,15 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 async function fetchApprovedShop(column, value) {
   const r = await query(
     `SELECT s.id, s.name, s.description, s.logo, s.cover_url, s.store_slug, s.created_at,
-            s.owner_user_id,
+            -- Seller identity split: ownership now lives on seller_accounts,
+            -- a table a customer session's id can never match (they're
+            -- separate identity spaces) — aliased to the old key name so
+            -- shop.html's own-shop comparison (me.id === SHOP.owner_user_id)
+            -- still parses the same shape. That comparison is now always
+            -- false for a customer viewer, which is correct: a seller has
+            -- no customer account tied to their seller identity, so nobody
+            -- browsing via bardskh.com can ever "be" a shop owner.
+            s.seller_account_id AS owner_user_id,
             (SELECT COUNT(*) FROM shop_follows WHERE shop_id = s.id) AS follower_count,
             (SELECT COUNT(*) FROM products WHERE shop_id = s.id AND is_active = true) AS product_count,
             -- Units sold, not revenue -- Shop Details shows a Shopee/Lazada-style

@@ -2,16 +2,18 @@ const express = require('express');
 const crypto  = require('crypto');
 const { z } = require('zod');
 const { query, pool } = require('../db');
-const { requireAuth, requireRole, getOwnApprovedShop, revokeUserSessions } = require('../middleware/auth');
+const { requireAuth, requireRole, getOwnApprovedShop, revokeUserSessions, requireSellerOrAdmin } = require('../middleware/auth');
 const { validate, MIME_EXT } = require('../middleware/validate');
 const { restoreStock } = require('../services/stock');
 const router = express.Router();
 
-// Seller/admin gate — was a locally copy-pasted requireSeller() (same logic
-// duplicated in coupons.js, and a third variant inline in payment.js);
-// consolidated 2026-07-22 into the central requireRole() in middleware/auth.js,
-// which stamps req.userRole the same way this local version used to.
-const requireSeller = requireRole('seller', 'admin');
+// Seller/admin gate — was requireRole('seller','admin') (users.role-based)
+// until the seller identity split: sellers no longer have any role on
+// `users` at all, so this now goes through requireSellerOrAdmin, which
+// branches on the JWT's `kind` claim to check seller_accounts or users.role
+// as appropriate. req.userRole is stamped exactly the same way ('seller' |
+// 'admin'), so every branch below that reads it is unaffected.
+const requireSeller = requireSellerOrAdmin;
 
 // ── Validation schemas ──────────────────────────────────────────
 // images/colors/sizes arrive either as a real array or a JSON-encoded
@@ -62,21 +64,6 @@ const orderUpdateSchema = z.object({
 const orderNoteSchema = z.object({
   seller_note: z.string().trim().max(2000).optional().nullable(),
 });
-const makeSellerSchema = z.object({
-  email:  z.string().trim().max(200).email('Please enter a valid email address.'),
-  secret: z.string().min(1).max(500),
-});
-
-// Constant-time comparison — the previous `secret !== process.env.ADMIN_SECRET`
-// leaks timing information proportional to how many leading characters match.
-function secretMatches(provided, expected) {
-  if (!expected) return false;
-  const a = Buffer.from(String(provided));
-  const b = Buffer.from(String(expected));
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(a, b);
-}
-
 // ── Cloudflare R2 Upload ──────────────────────────────────────
 // ต้องติดตั้ง:  npm install @aws-sdk/client-s3 multer multer-memfile
 // .env ที่ต้องมี:
@@ -932,36 +919,12 @@ router.patch('/customers/:id/status', requireAuth, requireRole('admin'), validat
   } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
 });
 
-// ── POST /api/seller/make-seller ── promote user to seller
-// Requires BOTH an authenticated admin session AND the shared secret — previously
-// the shared secret alone was sufficient, so anyone who guessed/leaked
-// ADMIN_SECRET could promote any account to seller with no login at all.
-router.post('/make-seller', requireAuth, requireRole('admin'), validate(makeSellerSchema), async (req, res) => {
-  try {
-    const { email, secret } = req.body;
-    if (!secretMatches(secret, process.env.ADMIN_SECRET)) {
-      return res.status(403).json({ error: 'Wrong secret.' });
-    }
-    // Found 2026-08-03: the UPDATE below used to have no role guard at all,
-    // so calling this on an email that was already 'seller' or (worse)
-    // 'admin' would silently downgrade them to 'seller' with no warning —
-    // same class of bug as shops.js's approve-shop transaction already
-    // guarded against. Checking current role first gives a clear 400
-    // instead of a silent downgrade or a misleading 404.
-    const existing = await query('SELECT id, role FROM users WHERE email=$1', [email.toLowerCase()]);
-    if (!existing.rows.length) return res.status(404).json({ error: 'User not found.' });
-    if (existing.rows[0].role !== 'customer') {
-      return res.status(400).json({ error: `Cannot promote — this account is already role='${existing.rows[0].role}'.` });
-    }
-    const r = await query(
-      "UPDATE users SET role='seller' WHERE id=$1 AND role='customer' RETURNING id, email, role",
-      [existing.rows[0].id]
-    );
-    // Role changed between the SELECT and UPDATE above (concurrent request) — rare, but don't silently no-op.
-    if (!r.rows.length) return res.status(409).json({ error: 'Role changed concurrently — please try again.' });
-    await revokeUserSessions(r.rows[0].id);
-    res.json({ ok: true, user: r.rows[0] });
-  } catch(e) { console.error(e); res.status(500).json({ error: 'Server error.' }); }
-});
+// POST /api/seller/make-seller was removed as part of the seller identity
+// split — it promoted users.role to 'seller', a value that no longer means
+// anything (sellers authenticate through the separate seller_accounts table
+// now, via routes/authSeller.js's signup, never via a role flip on `users`).
+// There is no equivalent manual-promotion path anymore; an admin who needs
+// to grant someone seller access does so the same way anyone becomes a
+// seller — they sign up on seller.bardskh.com and get approved.
 
 module.exports = router;

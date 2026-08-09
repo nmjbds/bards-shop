@@ -1,7 +1,7 @@
 const express = require('express');
 const { z } = require('zod');
-const { query, pool } = require('../db');
-const { requireAuth, requireRole, revokeUserSessions } = require('../middleware/auth');
+const { query } = require('../db');
+const { requireAuth, requireRole, requireSellerAccount } = require('../middleware/auth');
 const { validate, MIME_EXT } = require('../middleware/validate');
 const { getSignedGetUrl } = require('../services/r2');
 const { sendEmail, sendTelegramToAdmin } = require('../services/notify');
@@ -121,13 +121,15 @@ const checklistSchema = z.object(
 
 const docTypeSchema = z.enum(['id_card', 'business_license', 'tax_document']);
 
-// ── POST /api/shops/apply ── create own shop (one per user — DB enforces
-// via UNIQUE owner_user_id). Open to ANY authenticated role (2026-07-31,
-// Seller Onboarding Blueprint) — a plain `customer` applies directly, no
-// admin-granted `role='seller'` needed first (that manual path via
-// POST /api/seller/make-seller still exists separately for special cases).
-// role only ever flips to 'seller' once an admin approves — see PATCH /:id.
-router.post('/apply', requireAuth, validate(shopApplySchema), async (req, res) => {
+// ── POST /api/shops/apply ── create own shop (one per seller — DB enforces
+// via UNIQUE seller_account_id). Gated by requireSellerAccount — the caller
+// must be authenticated through seller.bardskh.com's own signup/signin
+// (routes/authSeller.js), not a customer/admin session. There is no more
+// "candidate role" concept: a shop's owner IS a seller_accounts row from the
+// moment they sign up, full stop — no role to flip later (contrast with the
+// pre-split design this comment used to describe, where a plain `customer`
+// applied and role flipped to 'seller' only on admin approval).
+router.post('/apply', requireAuth, requireSellerAccount, validate(shopApplySchema), async (req, res) => {
   try {
     const {
       name, description, logo, cover_url, business_type, full_name, phone,
@@ -136,7 +138,7 @@ router.post('/apply', requireAuth, validate(shopApplySchema), async (req, res) =
     } = req.body;
     const r = await query(
       `INSERT INTO shops(
-         owner_user_id, name, description, logo, cover_url, business_type,
+         seller_account_id, name, description, logo, cover_url, business_type,
          full_name, phone, country, province, address, store_slug,
          category_id, bank_name, bank_account_name, bank_account_number,
          currency, status, submitted_at
@@ -152,8 +154,8 @@ router.post('/apply', requireAuth, validate(shopApplySchema), async (req, res) =
     );
     res.status(201).json({ shop: r.rows[0] });
 
-    // Fire-and-forget — this INSERT only ever succeeds once per user (DB
-    // unique constraint on owner_user_id), so this only runs on genuine
+    // Fire-and-forget — this INSERT only ever succeeds once per seller (DB
+    // unique constraint on seller_account_id), so this only runs on genuine
     // first application, never on a later edit.
     sendEmail(
       req.user.email, 'Bards Seller Application Received',
@@ -175,11 +177,10 @@ router.post('/apply', requireAuth, validate(shopApplySchema), async (req, res) =
 
 // ── GET /api/shops/me ── own shop + documents (for the seller dashboard to
 // show pending/needs_info/rejected/approved/suspended, or prompt to apply if
-// none yet). Open to any authenticated role — a `customer` mid-application
-// needs this to see their own status just as much as an approved seller.
-router.get('/me', requireAuth, async (req, res) => {
+// none yet).
+router.get('/me', requireAuth, requireSellerAccount, async (req, res) => {
   try {
-    const r = await query('SELECT * FROM shops WHERE owner_user_id=$1', [req.user.id]);
+    const r = await query('SELECT * FROM shops WHERE seller_account_id=$1', [req.user.id]);
     if (!r.rows.length) return res.json({ shop: null, documents: [] });
     const docsRes = await query('SELECT * FROM seller_documents WHERE shop_id=$1 ORDER BY uploaded_at DESC', [r.rows[0].id]);
     res.json({ shop: r.rows[0], documents: await signDocuments(docsRes.rows) });
@@ -189,7 +190,7 @@ router.get('/me', requireAuth, async (req, res) => {
 // ── PATCH /api/shops/me ── seller edits own shop fields. Does not touch
 // `status` — approval/rejection state is admin-only (see PATCH /:id); the
 // one seller-triggered exception is POST /me/resubmit below.
-router.patch('/me', requireAuth, validate(shopUpdateSchema), async (req, res) => {
+router.patch('/me', requireAuth, requireSellerAccount, validate(shopUpdateSchema), async (req, res) => {
   try {
     const b = req.body;
     const updates = [];
@@ -218,7 +219,7 @@ router.patch('/me', requireAuth, validate(shopUpdateSchema), async (req, res) =>
 
     params.push(req.user.id);
     const r = await query(
-      `UPDATE shops SET ${updates.join(',')} WHERE owner_user_id=$${idx} RETURNING *`,
+      `UPDATE shops SET ${updates.join(',')} WHERE seller_account_id=$${idx} RETURNING *`,
       params
     );
     if (!r.rows.length) return res.status(404).json({ error: 'No shop found — apply first.' });
@@ -236,16 +237,16 @@ router.patch('/me', requireAuth, validate(shopUpdateSchema), async (req, res) =>
 // whatever PATCH /me needed. Mirrors orders' pattern of giving the
 // non-admin party one specific action (cancel) rather than open status
 // PATCH access.
-router.post('/me/resubmit', requireAuth, async (req, res) => {
+router.post('/me/resubmit', requireAuth, requireSellerAccount, async (req, res) => {
   try {
-    const current = await query('SELECT status FROM shops WHERE owner_user_id=$1', [req.user.id]);
+    const current = await query('SELECT status FROM shops WHERE seller_account_id=$1', [req.user.id]);
     if (!current.rows.length) return res.status(404).json({ error: 'No shop found — apply first.' });
     if (!['rejected', 'needs_info'].includes(current.rows[0].status)) {
       return res.status(400).json({ error: 'Only a rejected or needs-info application can be resubmitted.' });
     }
     const r = await query(
       `UPDATE shops SET status='pending', submitted_at=NOW(), updated_at=NOW()
-       WHERE owner_user_id=$1 RETURNING *`,
+       WHERE seller_account_id=$1 RETURNING *`,
       [req.user.id]
     );
     res.json({ ok: true, shop: r.rows[0] });
@@ -255,12 +256,12 @@ router.post('/me/resubmit', requireAuth, async (req, res) => {
 // ── PATCH /api/shops/me/onboarding-checklist ── merge-update the JSONB
 // checklist one or more keys at a time (Postgres `||` shallow-merges,
 // leaving keys not present in this request untouched).
-router.patch('/me/onboarding-checklist', requireAuth, validate(checklistSchema), async (req, res) => {
+router.patch('/me/onboarding-checklist', requireAuth, requireSellerAccount, validate(checklistSchema), async (req, res) => {
   try {
     if (!Object.keys(req.body).length) return res.status(400).json({ error: 'No fields to update.' });
     const r = await query(
       `UPDATE shops SET onboarding_checklist = onboarding_checklist || $1::jsonb, updated_at=NOW()
-       WHERE owner_user_id=$2 RETURNING onboarding_checklist`,
+       WHERE seller_account_id=$2 RETURNING onboarding_checklist`,
       [JSON.stringify(req.body), req.user.id]
     );
     if (!r.rows.length) return res.status(404).json({ error: 'No shop found — apply first.' });
@@ -272,7 +273,7 @@ router.patch('/me/onboarding-checklist', requireAuth, validate(checklistSchema),
 // document, tied to the caller's own shop. Requires R2_DOCS_BUCKET_NAME (a
 // separate, private bucket — never given a public custom domain, unlike the
 // product-images/avatar bucket) — 503 until that's configured.
-router.post('/me/documents', requireAuth, (req, res) => {
+router.post('/me/documents', requireAuth, requireSellerAccount, (req, res) => {
   if (!_docUploadReady) {
     return res.status(503).json({ error: 'Upload not available. Run: npm install @aws-sdk/client-s3 multer' });
   }
@@ -292,7 +293,7 @@ router.post('/me/documents', requireAuth, (req, res) => {
     const docType = docTypeResult.data;
 
     try {
-      const shopRes = await query('SELECT id FROM shops WHERE owner_user_id=$1', [req.user.id]);
+      const shopRes = await query('SELECT id FROM shops WHERE seller_account_id=$1', [req.user.id]);
       if (!shopRes.rows.length) return res.status(404).json({ error: 'No shop found — apply first.' });
       const shopId = shopRes.rows[0].id;
 
@@ -324,12 +325,9 @@ router.post('/me/documents', requireAuth, (req, res) => {
 // ── POST /api/shops/me/branding ── logo/cover image upload — the PUBLIC
 // bucket (bards-media, same as product images/avatars), unlike documents
 // above. Its own route rather than reusing routes/seller.js's
-// requireSeller-gated POST /upload: a plain `customer` mid-application has
-// no seller/admin role yet, but still needs to upload a logo/cover before
-// any admin has approved anything. Gate is "has a shop row at all" (any
-// status) rather than role — narrower than opening product-image upload to
-// every authenticated user would be.
-router.post('/me/branding', requireAuth, (req, res) => {
+// requireSeller-gated POST /upload, which also accepts admin — a seller
+// mid-application (shop not approved yet) still needs to upload a logo/cover.
+router.post('/me/branding', requireAuth, requireSellerAccount, (req, res) => {
   if (!_docUploadReady) {
     return res.status(503).json({ error: 'Upload not available. Run: npm install @aws-sdk/client-s3 multer' });
   }
@@ -343,7 +341,7 @@ router.post('/me/branding', requireAuth, (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
 
     try {
-      const shopRes = await query('SELECT id FROM shops WHERE owner_user_id=$1', [req.user.id]);
+      const shopRes = await query('SELECT id FROM shops WHERE seller_account_id=$1', [req.user.id]);
       if (!shopRes.rows.length) return res.status(404).json({ error: 'No shop found — apply first.' });
 
       const bucket  = process.env.R2_BUCKET_NAME || 'bards-media';
@@ -371,16 +369,20 @@ router.post('/me/branding', requireAuth, (req, res) => {
 router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const status = req.query.status || null;
+    // owner_name has no dedicated column on seller_accounts (email/phone
+    // only) — fall back to shops.full_name (captured at apply Step "Seller
+    // Info"), which is null until a seller fills that step in, hence the
+    // COALESCE to email so admin-shops.html always has something to show.
     const r = status
       ? await query(
-          `SELECT s.*, u.name AS owner_name, u.email AS owner_email
-           FROM shops s JOIN users u ON u.id=s.owner_user_id
+          `SELECT s.*, COALESCE(s.full_name, sa.email) AS owner_name, sa.email AS owner_email
+           FROM shops s JOIN seller_accounts sa ON sa.id=s.seller_account_id
            WHERE s.status=$1 ORDER BY s.created_at DESC`,
           [status]
         )
       : await query(
-          `SELECT s.*, u.name AS owner_name, u.email AS owner_email
-           FROM shops s JOIN users u ON u.id=s.owner_user_id
+          `SELECT s.*, COALESCE(s.full_name, sa.email) AS owner_name, sa.email AS owner_email
+           FROM shops s JOIN seller_accounts sa ON sa.id=s.seller_account_id
            ORDER BY s.created_at DESC`
         );
     res.json({ shops: r.rows });
@@ -394,8 +396,8 @@ router.get('/', requireAuth, requireRole('admin'), async (req, res) => {
 router.get('/:id', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const shopRes = await query(
-      `SELECT s.*, u.name AS owner_name, u.email AS owner_email
-       FROM shops s JOIN users u ON u.id = s.owner_user_id
+      `SELECT s.*, COALESCE(s.full_name, sa.email) AS owner_name, sa.email AS owner_email
+       FROM shops s JOIN seller_accounts sa ON sa.id = s.seller_account_id
        WHERE s.id=$1`,
       [req.params.id]
     );
@@ -407,11 +409,12 @@ router.get('/:id', requireAuth, requireRole('admin'), async (req, res) => {
 
 // ── PATCH /api/shops/:id ── admin: approve / reject / suspend / request
 // more info. Same-status guard kept from before (no silent no-op re-clicks).
-// Approving is the one branch that touches a second table (users.role) —
-// done inside a transaction so a shop can never end up 'approved' with its
-// owner still stuck on role='customer', or vice versa (blueprint §8 edge
-// case 7). Never touches an owner who's already 'admin' — only ever
-// promotes a plain customer.
+// Approving used to also flip users.role='seller' inside a transaction
+// (pre seller-identity-split design, to avoid a shop ending up 'approved'
+// with its owner stuck on role='customer') — under the split, a shop's
+// owner is a seller_accounts row from the moment they signed up, there is
+// no role left to flip, so this is back to a single UPDATE like every other
+// status branch below.
 const STATUS_EMAIL = {
   approved: {
     subject: '🎉 Your Bards Shop is Approved!',
@@ -441,8 +444,8 @@ router.patch('/:id', requireAuth, requireRole('admin'), validate(shopStatusSchem
   const { status, rejection_reason, info_requested_note } = req.body;
   try {
     const current = await query(
-      `SELECT s.status, s.owner_user_id, u.email AS owner_email
-       FROM shops s JOIN users u ON u.id = s.owner_user_id WHERE s.id=$1`,
+      `SELECT s.status, sa.email AS owner_email
+       FROM shops s JOIN seller_accounts sa ON sa.id = s.seller_account_id WHERE s.id=$1`,
       [req.params.id]
     );
     if (!current.rows.length) return res.status(404).json({ error: 'Shop not found.' });
@@ -452,34 +455,15 @@ router.patch('/:id', requireAuth, requireRole('admin'), validate(shopStatusSchem
     const ownerEmail = current.rows[0].owner_email;
 
     if (status === 'approved') {
-      const client = await pool.connect();
-      try {
-        await client.query('BEGIN');
-        const r = await client.query(
-          `UPDATE shops SET status='approved', reviewed_by=$1, reviewed_at=NOW(), updated_at=NOW()
-           WHERE id=$2 RETURNING *`,
-          [req.user.id, req.params.id]
-        );
-        const roleUpdate = await client.query(
-          `UPDATE users SET role='seller' WHERE id=$1 AND role='customer'`,
-          [current.rows[0].owner_user_id]
-        );
-        // Only if the role actually changed (rowCount 0 means they were
-        // already seller/admin — nothing to force a re-login over).
-        if (roleUpdate.rowCount > 0) {
-          await revokeUserSessions(current.rows[0].owner_user_id, client.query.bind(client));
-        }
-        await client.query('COMMIT');
-        const shop = r.rows[0];
-        const t = STATUS_EMAIL.approved;
-        sendEmail(ownerEmail, t.subject, t.text(shop), t.html(shop));
-        return res.json({ ok: true, shop });
-      } catch(e) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw e;
-      } finally {
-        client.release();
-      }
+      const r = await query(
+        `UPDATE shops SET status='approved', reviewed_by=$1, reviewed_at=NOW(), updated_at=NOW()
+         WHERE id=$2 RETURNING *`,
+        [req.user.id, req.params.id]
+      );
+      const shop = r.rows[0];
+      const t = STATUS_EMAIL.approved;
+      sendEmail(ownerEmail, t.subject, t.text(shop), t.html(shop));
+      return res.json({ ok: true, shop });
     }
 
     const updates = [`status=$1`, `updated_at=NOW()`, `reviewed_by=$2`, `reviewed_at=NOW()`];

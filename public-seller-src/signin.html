@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Seller Sign In — Bards</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --black:#0A0A0A;--white:#FAFAFA;--gray-100:#F2F2F0;--gray-200:#E4E4E2;
+  --gray-300:#C8C8C6;--gray-400:#8A8A88;--orange:#FF4F00;--red:#C8001A;--green:#16A34A;
+  --radius:14px;--radius-sm:10px;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{
+  font-family:'Space Grotesk',sans-serif;background:var(--gray-100);
+  color:var(--black);min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:20px 16px 40px;
+}
+.logo-wrap{text-align:center;margin-bottom:28px;}
+.brand{font-family:'Bebas Neue';font-size:32px;letter-spacing:5px;color:var(--black);text-decoration:none;display:block;}
+.brand-sub{font-size:11px;color:var(--gray-400);letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
+.card{
+  background:var(--white);border:1.5px solid var(--gray-200);
+  border-radius:var(--radius);padding:28px 22px 24px;
+  width:100%;max-width:400px;box-shadow:0 4px 24px rgba(0,0,0,.06);
+}
+.card-title{font-family:'Bebas Neue';font-size:22px;letter-spacing:2.5px;margin-bottom:4px;}
+.card-sub{font-size:12px;color:var(--gray-400);margin-bottom:22px;line-height:1.6;}
+.form-group{margin-bottom:13px;}
+.f-label{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gray-400);margin-bottom:6px;display:block;}
+.f-input{
+  width:100%;height:46px;padding:0 14px;border:1.5px solid var(--gray-200);
+  border-radius:var(--radius-sm);font-family:'Space Grotesk',sans-serif;
+  font-size:13px;background:var(--white);color:var(--black);outline:none;
+  transition:border-color .2s;-webkit-appearance:none;appearance:none;
+}
+.f-input:focus{border-color:var(--black);}
+.f-input::placeholder{color:var(--gray-300);}
+.otp-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px;}
+.otp-cell{
+  height:44px;min-width:0;
+  border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);
+  font-family:'DM Mono',monospace;font-size:18px;font-weight:500;
+  text-align:center;background:var(--white);color:var(--black);outline:none;
+  caret-color:transparent;transition:border-color .2s,background .2s;
+  -webkit-appearance:none;appearance:none;width:100%;
+}
+.otp-cell:focus{border-color:var(--black);background:#FAFAF8;}
+.otp-cell.filled{border-color:var(--black);}
+.otp-cell.error{border-color:var(--red);background:#FFF5F5;animation:shake .3s ease;}
+.pw-wrap{position:relative;}
+.pw-wrap .f-input{padding-right:44px;}
+.pw-eye{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;color:var(--gray-400);
+  display:flex;align-items:center;padding:4px;transition:color .18s;
+}
+.pw-eye:hover{color:var(--black);}
+.btn{
+  width:100%;height:50px;background:var(--black);color:#fff;border:none;
+  border-radius:var(--radius-sm);font-family:'Bebas Neue';font-size:18px;
+  letter-spacing:2.5px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;gap:8px;transition:opacity .18s;margin-bottom:12px;
+}
+.btn:active{opacity:.8;}
+.btn.loading{background:var(--gray-200);color:var(--gray-400);pointer-events:none;}
+.btn-ghost{
+  width:100%;height:44px;background:none;color:var(--gray-400);
+  border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);
+  font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  gap:6px;transition:all .18s;text-decoration:none;
+}
+.btn-ghost:hover{border-color:var(--black);color:var(--black);}
+.resend-row{text-align:center;margin-top:14px;font-size:12px;color:var(--gray-400);}
+.resend-btn{background:none;border:none;cursor:pointer;color:var(--black);font-weight:700;font-size:12px;font-family:'Space Grotesk',sans-serif;padding:0;}
+.resend-btn:disabled{color:var(--gray-400);cursor:default;}
+.resend-timer{font-weight:600;color:var(--gray-400);}
+.email-highlight{font-weight:700;color:var(--black);}
+.err-banner{
+  background:#FEF2F2;border:1.5px solid #FECACA;border-radius:var(--radius-sm);
+  padding:11px 13px;font-size:12px;color:var(--red);margin-bottom:14px;
+  display:none;align-items:center;gap:8px;
+}
+.err-banner.show{display:flex;}
+.mode-toggle{text-align:center;font-size:12px;color:var(--gray-400);margin:2px 0 16px;}
+.mode-toggle button{background:none;border:none;cursor:pointer;color:var(--black);font-weight:700;font-size:12px;font-family:'Space Grotesk',sans-serif;padding:0;}
+.foot-link{text-align:center;font-size:12px;color:var(--gray-400);margin-top:16px;}
+.foot-link a{color:var(--black);font-weight:700;text-decoration:none;}
+.panel{display:none;}
+.panel.active{display:block;animation:fadeUp .3s ease both;}
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(6px);
+  background:var(--black);color:#fff;padding:11px 18px;border-radius:12px;
+  font-size:13px;font-weight:500;z-index:9999;opacity:0;
+  transition:opacity .28s,transform .28s;pointer-events:none;
+  box-shadow:0 8px 24px rgba(0,0,0,.28);
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+.fu{animation:fadeUp .38s ease both;}
+.d1{animation-delay:.06s;}
+</style>
+</head>
+<body>
+
+<div class="logo-wrap fu">
+  <a href="/" class="brand">BARDS</a>
+  <div class="brand-sub">Seller Center</div>
+</div>
+
+<div class="card fu d1">
+  <div class="err-banner" id="errBanner">
+    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span id="errMsg"></span>
+  </div>
+
+  <!-- PASSWORD MODE -->
+  <div id="panelPassword" class="panel active">
+    <div class="card-title">Seller Sign In</div>
+    <div class="card-sub">Sign in to manage your Bards shop. This is a separate account from your Bards shopper login, even if you use the same email.</div>
+    <div class="form-group">
+      <label class="f-label">Email or Phone</label>
+      <input type="text" class="f-input" id="siIdentifier" placeholder="you@example.com" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label class="f-label">Password</label>
+      <div class="pw-wrap">
+        <input type="password" class="f-input" id="siPw" placeholder="Your password" autocomplete="current-password">
+        <button class="pw-eye" type="button" onclick="togglePw('siPw',this)">
+          <svg class="icon-eye" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M1 12s3-7 11-7 11 7 11 7-3 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          <svg class="icon-eye-off" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+        </button>
+      </div>
+    </div>
+    <button class="btn" id="pwBtn" onclick="handlePasswordSignin()">
+      SIGN IN
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+    <div class="mode-toggle">or <button onclick="goToOtpMode()">sign in with a one-time code</button></div>
+    <div class="foot-link">New seller? <a href="/signup">Create an account</a></div>
+  </div>
+
+  <!-- OTP MODE — request -->
+  <div id="panelOtpRequest" class="panel">
+    <div class="card-title">Sign In With a Code</div>
+    <div class="card-sub">Enter your email and we'll send you a 6-digit code — no password needed.</div>
+    <div class="form-group">
+      <label class="f-label">Email Address</label>
+      <input type="email" class="f-input" id="otpEmail" placeholder="you@example.com" autocomplete="email" inputmode="email">
+    </div>
+    <button class="btn" id="otpReqBtn" onclick="handleOtpRequest()">
+      SEND CODE
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+    <div class="mode-toggle">or <button onclick="goToPasswordMode()">sign in with a password</button></div>
+  </div>
+
+  <!-- OTP MODE — verify -->
+  <div id="panelOtpVerify" class="panel">
+    <div class="card-title">Enter Your Code</div>
+    <div class="card-sub">We sent a 6-digit code to <span class="email-highlight" id="otpEmailDisplay"></span>.</div>
+    <div class="otp-grid" id="otpGrid">
+      <input class="otp-cell" type="text" inputmode="numeric" maxlength="1" pattern="[0-9]" autocomplete="one-time-code">
+      <input class="otp-cell" type="text" inputmode="numeric" maxlength="1" pattern="[0-9]">
+      <input class="otp-cell" type="text" inputmode="numeric" maxlength="1" pattern="[0-9]">
+      <input class="otp-cell" type="text" inputmode="numeric" maxlength="1" pattern="[0-9]">
+      <input class="otp-cell" type="text" inputmode="numeric" maxlength="1" pattern="[0-9]">
+      <input class="otp-cell" type="text" inputmode="numeric" maxlength="1" pattern="[0-9]">
+    </div>
+    <button class="btn" id="otpVerifyBtn" onclick="handleOtpVerify()" style="margin-top:14px">
+      VERIFY &amp; SIGN IN
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </button>
+    <div class="resend-row">
+      Didn't receive it?
+      <button class="resend-btn" id="resendBtn" onclick="handleResend()" disabled>Resend code</button>
+      <span class="resend-timer" id="resendTimer"></span>
+    </div>
+    <div style="margin-top:12px">
+      <button class="btn-ghost" onclick="goToOtpMode()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Change Email
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="products.js"></script>
+<script src="api.js"></script>
+<script>
+let _loading = false, _otpEmail = '';
+let _resendInterval = null, _resendCount = 0;
+
+/* Already signed in? Skip straight past this page. Deliberately checks
+   SellerAuth ONLY — never the admin-fallback branch of
+   SellerAuth.ensureSession() — signin.html is where a seller proves their
+   OWN identity; an admin arriving here (e.g. a stray bookmark) should still
+   see the form, not get silently waved through. */
+(async function initRedirect() {
+  if (SellerAuth.getToken()) {
+    const shop = await ShopsAPI.me().catch(() => null);
+    location.href = (shop?.shop) ? '/seller' : '/apply';
+  }
+})();
+
+function landAfterSignin() {
+  ShopsAPI.me().then(d => { location.href = d?.shop ? '/seller' : '/apply'; })
+    .catch(() => { location.href = '/apply'; });
+}
+
+const _spin = `<svg style="animation:spin .8s linear infinite;flex-shrink:0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>`;
+const _arrow = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>`;
+
+function setBtn(id, loading, label) {
+  const b = document.getElementById(id); if (!b) return;
+  b.innerHTML = loading ? `${_spin} ${label}` : `${label} ${_arrow}`;
+  b.className = 'btn' + (loading ? ' loading' : '');
+}
+
+function showPanel(id) {
+  clearErr();
+  ['panelPassword','panelOtpRequest','panelOtpVerify'].forEach(p => document.getElementById(p).classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goToPasswordMode() { showPanel('panelPassword'); }
+function goToOtpMode()      { showPanel('panelOtpRequest'); clearInterval(_resendInterval); _resendCount = 0; }
+
+/* ── Password sign-in ── */
+async function handlePasswordSignin() {
+  if (_loading) return;
+  const identifier = document.getElementById('siIdentifier').value.trim();
+  const password    = document.getElementById('siPw').value;
+  clearErr();
+  if (!identifier) { showErr('Please enter your email or phone.'); return; }
+  if (!password)   { showErr('Please enter your password.'); return; }
+  _loading = true; setBtn('pwBtn', true, 'Signing In…');
+  try {
+    await SellerAuthAPI.signin(identifier, password);
+    landAfterSignin();
+  } catch(e) {
+    _loading = false; setBtn('pwBtn', false, 'SIGN IN');
+    showErr(e.message || 'Incorrect email/phone or password.');
+  }
+}
+
+/* ── OTP sign-in ── */
+async function handleOtpRequest() {
+  if (_loading) return;
+  const email = document.getElementById('otpEmail').value.trim();
+  clearErr();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showErr('Please enter a valid email address.'); return; }
+  _loading = true; setBtn('otpReqBtn', true, 'Sending…');
+  try {
+    await SellerAuthAPI.requestOtp(email, 'signin');
+    _otpEmail = email;
+    document.getElementById('otpEmailDisplay').textContent = email;
+    _loading = false; setBtn('otpReqBtn', false, 'SEND CODE');
+    showPanel('panelOtpVerify');
+    startResendTimer(60);
+  } catch(e) {
+    _loading = false; setBtn('otpReqBtn', false, 'SEND CODE');
+    showErr(e.message || 'Could not send code. Please try again.');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const cells = document.querySelectorAll('.otp-cell');
+  cells.forEach((cell, i) => {
+    cell.addEventListener('input', () => {
+      const val = cell.value.replace(/\D/g,'');
+      cell.value = val.slice(-1);
+      cell.classList.toggle('filled', !!cell.value);
+      if (cell.value && i < cells.length-1) cells[i+1].focus();
+    });
+    cell.addEventListener('keydown', e => {
+      if (e.key==='Backspace' && !cell.value && i>0) { cells[i-1].value=''; cells[i-1].classList.remove('filled'); cells[i-1].focus(); }
+      if (e.key==='ArrowLeft'  && i>0)               cells[i-1].focus();
+      if (e.key==='ArrowRight' && i<cells.length-1)  cells[i+1].focus();
+    });
+    cell.addEventListener('paste', e => {
+      e.preventDefault();
+      const text = (e.clipboardData||window.clipboardData).getData('text').replace(/\D/g,'');
+      cells.forEach((c,j)=>{ c.value=text[j]||''; c.classList.toggle('filled',!!c.value); });
+      cells[Math.min(text.length, cells.length)-1]?.focus();
+    });
+  });
+});
+
+function getOtp() { return Array.from(document.querySelectorAll('.otp-cell')).map(c=>c.value).join(''); }
+
+function startResendTimer(seconds) {
+  const btn = document.getElementById('resendBtn');
+  const timer = document.getElementById('resendTimer');
+  btn.disabled = true;
+  clearInterval(_resendInterval);
+  let left = seconds;
+  const tick = () => {
+    if (left <= 0) {
+      clearInterval(_resendInterval);
+      btn.disabled = false;
+      timer.textContent = '';
+    } else {
+      const m = Math.floor(left/60), s = String(left%60).padStart(2,'0');
+      timer.textContent = ` in ${m}:${s}`;
+      left--;
+    }
+  };
+  tick();
+  _resendInterval = setInterval(tick, 1000);
+}
+
+async function handleResend() {
+  if (!_otpEmail) return;
+  _resendCount++;
+  const waitTime = _resendCount >= 2 ? 120 : 60;
+  try {
+    await SellerAuthAPI.requestOtp(_otpEmail, 'signin');
+    toast('Code resent! Check your inbox.');
+    startResendTimer(waitTime);
+    document.querySelectorAll('.otp-cell').forEach(c=>{ c.value=''; c.classList.remove('filled','error'); });
+    document.querySelector('.otp-cell')?.focus();
+  } catch(e) { showErr(e.message || 'Could not resend code.'); }
+}
+
+async function handleOtpVerify() {
+  if (_loading) return;
+  const code = getOtp();
+  clearErr();
+  if (code.length < 6) { showErr('Please enter the complete 6-digit code.'); return; }
+  _loading = true; setBtn('otpVerifyBtn', true, 'Verifying…');
+  try {
+    await SellerAuthAPI.signinOtp(_otpEmail, code);
+    clearInterval(_resendInterval);
+    landAfterSignin();
+  } catch(e) {
+    _loading = false; setBtn('otpVerifyBtn', false, 'VERIFY & SIGN IN');
+    showErr(e.message || 'Invalid or expired code.');
+    document.querySelectorAll('.otp-cell').forEach(c=>{ c.classList.add('error'); setTimeout(()=>c.classList.remove('error'),400); });
+  }
+}
+
+function togglePw(id, btn) {
+  const inp = document.getElementById(id);
+  const show = inp.type==='password';
+  inp.type = show ? 'text' : 'password';
+  btn.querySelector('.icon-eye').style.display     = show ? 'none' : '';
+  btn.querySelector('.icon-eye-off').style.display = show ? ''     : 'none';
+}
+
+function showErr(msg){ document.getElementById('errMsg').textContent=msg; document.getElementById('errBanner').classList.add('show'); }
+function clearErr()  { document.getElementById('errBanner').classList.remove('show'); }
+let _tt;
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(_tt); _tt=setTimeout(()=>t.classList.remove('on'),2500); }
+
+document.addEventListener('keydown', e => {
+  if (e.key!=='Enter') return;
+  if (document.getElementById('panelPassword').classList.contains('active'))   handlePasswordSignin();
+  else if (document.getElementById('panelOtpRequest').classList.contains('active')) handleOtpRequest();
+  else if (document.getElementById('panelOtpVerify').classList.contains('active'))  handleOtpVerify();
+});
+</script>
+</body>
+</html>

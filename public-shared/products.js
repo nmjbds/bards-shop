@@ -129,8 +129,19 @@ function bardsCrossHubUrl(hub, path) {
    moment admin.bardskh.com (and its temp Render URL) stopped being the same
    process as the customer pages. On the customer server (or local dev on
    the old combined server), this is unchanged — a plain relative
-   'signin.html'. */
+   'signin.html'.
+
+   Seller identity split — the ONE exception to "seller/admin have no signin
+   page of their own": seller.bardskh.com now does (public-seller-src/
+   signin.html), specifically so it does NOT bounce a signed-out visitor to
+   bardskh.com (which would just let a customer session there auto-refresh
+   right back in — the exact thing this split exists to prevent). The
+   admin branch below is completely unchanged; only 'seller' gets its own
+   local path. */
 function bardsSigninUrl(redirectPath) {
+  if (_bardsCurrentHub() === 'seller') {
+    return redirectPath ? `/signin?redirect=${encodeURIComponent(redirectPath)}` : '/signin';
+  }
   if (!_bardsCurrentHub()) {
     return redirectPath ? `/signin?redirect=${encodeURIComponent(redirectPath)}` : '/signin';
   }

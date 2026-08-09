@@ -164,9 +164,38 @@ const Auth = {
 /* Silent refresh — the access token is short-lived (15m) now, so a 401 on an
    authed call usually just means it expired, not that the session is dead.
    Concurrent 401s share one in-flight refresh instead of each rotating the
-   refresh cookie themselves (that would race and invalidate each other). */
+   refresh cookie themselves (that would race and invalidate each other).
+
+   Seller identity split: refresh now has TWO independent identities it can
+   be refreshing — the original Auth (customer/admin, shared bards_rt
+   cookie) and SellerAuth (a real seller.bardskh.com session, host-only
+   bards_seller_rt cookie, defined further down this file). _activeAuth()
+   picks whichever one actually has a token, defaulting to Auth — this is
+   what lets the 5 seller-*.html dashboard pages' existing apiFetch('/seller/...',
+   {auth:true}) calls (scattered inline across those files, no separate
+   per-audience API wrapper) keep working completely unmodified: on every
+   origin other than a page where a real seller session exists,
+   SellerAuth.getToken() is null, so this resolves to Auth exactly like
+   before the split. */
 let _refreshPromise = null;
-function _refreshAccessToken() {
+let _sellerRefreshPromise = null;
+function _activeAuth() {
+  return (typeof SellerAuth !== 'undefined' && SellerAuth.getToken()) ? SellerAuth : Auth;
+}
+function _refreshFor(activeAuth) {
+  if (typeof SellerAuth !== 'undefined' && activeAuth === SellerAuth) {
+    if (!_sellerRefreshPromise) {
+      _sellerRefreshPromise = fetch(API_BASE + '/auth/seller/refresh', { method: 'POST', credentials: 'include' })
+        .then(async res => {
+          if (!res.ok) throw new Error('refresh failed');
+          const data = await res.json();
+          if (data?.token) SellerAuth.setSession(data.token, data.user);
+          return data.token;
+        })
+        .finally(() => { _sellerRefreshPromise = null; });
+    }
+    return _sellerRefreshPromise;
+  }
   if (!_refreshPromise) {
     _refreshPromise = fetch(API_BASE + '/auth/refresh', { method: 'POST', credentials: 'include' })
       .then(async res => {
@@ -183,9 +212,10 @@ function _refreshAccessToken() {
 
 async function apiFetch(path, { method = 'GET', body, auth = false, _retried = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
+  const activeAuth = _activeAuth();
   if (auth) {
-    const token = Auth.getToken();
-    if (!token) { Auth.logout(); return; }
+    const token = activeAuth.getToken();
+    if (!token) { activeAuth.logout(); return; }
     headers['Authorization'] = 'Bearer ' + token;
   }
 
@@ -199,15 +229,15 @@ async function apiFetch(path, { method = 'GET', body, auth = false, _retried = f
   /* Expired access token → try one silent refresh-and-retry before giving up */
   if (res.status === 401 && auth && !_retried) {
     try {
-      const newToken = await _refreshAccessToken();
+      const newToken = await _refreshFor(activeAuth);
       if (newToken) return apiFetch(path, { method, body, auth, _retried: true });
     } catch { /* fall through to logout below */ }
-    Auth.logout();
+    activeAuth.logout();
     return;
   }
 
   /* auto-logout on 401 (refresh already failed, or this is the retry itself) */
-  if (res.status === 401 && auth) { Auth.logout(); return; }
+  if (res.status === 401 && auth) { activeAuth.logout(); return; }
 
   /* อ่าน text ก่อนเสมอ — ป้องกัน JSON parse crash */
   const text = await res.text();
@@ -221,6 +251,105 @@ async function apiFetch(path, { method = 'GET', body, auth = false, _retried = f
   if (!res.ok) throw new Error(data?.error || data?.message || `Request failed (${res.status})`);
   return data;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   SellerAuth / SellerAuthAPI — seller identity split.
+   Completely separate localStorage keys and token from Auth above — a
+   seller.bardskh.com session never touches BARDS_TOKEN/BARDS_USER, and a
+   bardskh.com/admin.bardskh.com session never touches these. Nothing here
+   reads or writes Auth's state, on purpose (that's what makes "seller must
+   not auto-login from a customer session" hold at the frontend layer too,
+   not just via the cookie split on the backend — see services/sellerSession.js).
+   apiFetch() above is seller-aware (_activeAuth()/_refreshFor()) — once
+   SellerAuth.setSession() has been called (by SellerAuthAPI.signup/signin/
+   signinOtp below, or by SellerAuth.ensureSession()'s own refresh), every
+   ordinary apiFetch(path, {auth:true}) call anywhere on the page —
+   including the 5 dashboard pages' inline /seller/* calls — automatically
+   uses this session instead of Auth's, with no other code changes needed.
+
+   SellerAuth.ensureSession() is the dual-path guard every seller.bardskh.com
+   page (apply.html + the 5 dashboard pages) calls instead of Auth.ensureSession():
+     1. Try this server's own seller session first (silent-refresh against
+        POST /api/auth/seller/refresh, backed by the host-only bards_seller_rt
+        cookie — never present unless someone actually signed in/up here).
+     2. Only if that fails, fall back to the ORIGINAL shared Auth.ensureSession()
+        (POST /api/auth/refresh, the cross-domain bards_rt cookie) — but only
+        ever accepts an admin caller from that path. A customer session
+        refreshing successfully there is deliberately NOT treated as logged in
+        here; this is what stops a bardskh.com customer session from carrying
+        over, since apply.html used to accept any authenticated role at all.
+   Callers get back { user } (role:'seller' or 'admin') or null.
+═══════════════════════════════════════════════════════════════ */
+const SellerAuth = {
+  TOKEN_KEY: 'BARDS_SELLER_TOKEN',
+  USER_KEY:  'BARDS_SELLER_USER',
+
+  getToken() { return localStorage.getItem(this.TOKEN_KEY); },
+  getUser()  { try { return JSON.parse(localStorage.getItem(this.USER_KEY) || 'null'); } catch { return null; } },
+
+  setToken(t) { localStorage.setItem(this.TOKEN_KEY, t); },
+  setUser(u)  { localStorage.setItem(this.USER_KEY, JSON.stringify(u)); },
+  setSession(token, user) {
+    localStorage.setItem(this.TOKEN_KEY, token);
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+  },
+  clearSession() {
+    localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.USER_KEY);
+  },
+
+  // Best-effort server-side revoke (mirrors Auth.logout()'s keepalive fetch —
+  // see that function's comment for why keepalive matters right before a
+  // navigation), then always clears local state and sends the visitor to
+  // this domain's OWN signin page — never bardsSigninUrl(), which points at
+  // bardskh.com for every other hub.
+  logout() {
+    fetch(API_BASE + '/auth/seller/logout', { method: 'POST', credentials: 'include', keepalive: true }).catch(() => {});
+    this.clearSession();
+    if (typeof location !== 'undefined') location.href = '/signin';
+  },
+
+  // Returns { user } on success (role always present: 'seller' from this
+  // server's own session, or 'admin' from the shared-cookie fallback), or
+  // null if neither path produced a valid session. Never throws.
+  async ensureSession() {
+    try {
+      const token = await _refreshFor(this);
+      if (token) return { user: this.getUser() };
+    } catch { /* fall through to the admin fallback below */ }
+
+    // Admin fallback — reuses the ORIGINAL Auth/apiFetch machinery
+    // unmodified (Auth.ensureSession() already does its own silent-refresh
+    // against the shared bards_rt cookie). Deliberately does NOT touch
+    // SellerAuth's own token/localStorage — the admin path stays
+    // authenticated via Auth's token on every subsequent apiFetch() call
+    // (_activeAuth() only prefers SellerAuth when it actually has a token).
+    try {
+      if (!(await Auth.ensureSession())) return null;
+      const { user } = await AuthAPI.me();
+      if (user?.role !== 'admin') return null;
+      return { user };
+    } catch { return null; }
+  },
+};
+
+const SellerAuthAPI = {
+  requestOtp(email, purpose)      { return apiFetch('/auth/seller/request-otp', { method: 'POST', body: { email, purpose } }); },
+  verifyOtp(email, code)          { return apiFetch('/auth/seller/verify-otp',  { method: 'POST', body: { email, code } }); },
+  signup(email, phone, password, otpToken) {
+    return apiFetch('/auth/seller/signup', { method: 'POST', body: { email, phone, password, otpToken } })
+      .then(d => { if (d?.token) SellerAuth.setSession(d.token, d.user); return d; });
+  },
+  signin(identifier, password) {
+    return apiFetch('/auth/seller/signin', { method: 'POST', body: { identifier, password } })
+      .then(d => { if (d?.token) SellerAuth.setSession(d.token, d.user); return d; });
+  },
+  signinOtp(email, code) {
+    return apiFetch('/auth/seller/signin-otp', { method: 'POST', body: { email, code } })
+      .then(d => { if (d?.token) SellerAuth.setSession(d.token, d.user); return d; });
+  },
+  me() { return apiFetch('/auth/seller/me', { auth: true }); },
+};
 
 /* ═══════════════════════════════════════════════════════════════
    AuthAPI — /api/auth endpoints
@@ -543,7 +672,14 @@ const AddressesAPI = {
    ShopsAPI — /api/shops (seller onboarding self-serve + admin review)
 ═══════════════════════════════════════════════════════════════ */
 const ShopsAPI = {
-  /* ── seller/self ── */
+  /* ── seller/self ──
+     apiFetch() is seller-aware (_activeAuth(), defined further up this
+     file) — it picks up SellerAuth's token automatically once a real
+     seller session exists, so these need no special handling even though
+     this same group is also called by an admin browsing cross-domain via
+     the "Seller Hub" link (who never has a SellerAuth token, so
+     apiFetch() falls back to Auth exactly as before the seller identity
+     split). */
   me()                  { return apiFetch('/shops/me', { auth: true }); },
   apply(data)            { return apiFetch('/shops/apply', { method: 'POST', body: data, auth: true }); },
   update(data)           { return apiFetch('/shops/me', { method: 'PATCH', body: data, auth: true }); },
@@ -551,10 +687,11 @@ const ShopsAPI = {
   updateChecklist(data)  { return apiFetch('/shops/me/onboarding-checklist', { method: 'PATCH', body: data, auth: true }); },
 
   /* Document upload — multipart, not through apiFetch() (same reason as
-     AuthAPI.uploadAvatar above: always sends JSON). doc_type must be one of
-     id_card | business_license | tax_document. */
+     AuthAPI.uploadAvatar above: always sends JSON). Token picked via
+     _activeAuth() the same way apiFetch() does internally. doc_type must be
+     one of id_card | business_license | tax_document. */
   uploadDocument(file, docType) {
-    const token = Auth.getToken();
+    const token = _activeAuth().getToken();
     const fd = new FormData();
     fd.append('document', file);
     fd.append('doc_type', docType);
@@ -573,7 +710,7 @@ const ShopsAPI = {
   /* Logo/cover upload — separate from uploadDocument() above (public bucket,
      no doc_type, returns a URL immediately instead of a DB row). */
   uploadBranding(file) {
-    const token = Auth.getToken();
+    const token = _activeAuth().getToken();
     const fd = new FormData();
     fd.append('image', file);
     return fetch(API_BASE + '/shops/me/branding', {

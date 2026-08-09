@@ -127,20 +127,8 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       </div>
     </div>
 
-    <!-- ══════ Step 1 — Account ══════ -->
+    <!-- ══════ Step 1 — Seller info ══════ -->
     <div class="step-panel active" id="panel1">
-      <div class="card-title">Your Account</div>
-      <div class="card-sub">You're applying as this signed-in account.</div>
-      <div class="form-group">
-        <label class="f-label">Signed In As</label>
-        <input class="f-input" id="acctEmail" disabled>
-      </div>
-      <div class="f-hint">This account will become your seller account once approved — no separate seller login needed.</div>
-      <div class="btn-row"><button class="btn primary" onclick="goStep(2)">Continue</button></div>
-    </div>
-
-    <!-- ══════ Step 2 — Seller info ══════ -->
-    <div class="step-panel" id="panel2">
       <div class="card-title">Seller Info</div>
       <div class="card-sub">Tell us about yourself.</div>
 
@@ -182,13 +170,12 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       </div>
 
       <div class="btn-row">
-        <button class="btn ghost" onclick="goStep(1)">Back</button>
-        <button class="btn primary" onclick="goStep(3)">Continue</button>
+        <button class="btn primary" onclick="goStep(2)">Continue</button>
       </div>
     </div>
 
-    <!-- ══════ Step 3 — Store info ══════ -->
-    <div class="step-panel" id="panel3">
+    <!-- ══════ Step 2 — Store info ══════ -->
+    <div class="step-panel" id="panel2">
       <div class="card-title">Store Info</div>
       <div class="card-sub">This is what customers will see.</div>
 
@@ -236,13 +223,13 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       </div>
 
       <div class="btn-row">
-        <button class="btn ghost" onclick="goStep(2)">Back</button>
+        <button class="btn ghost" onclick="goStep(1)">Back</button>
         <button class="btn primary" id="step3NextBtn" onclick="saveStep3AndContinue()">Continue</button>
       </div>
     </div>
 
-    <!-- ══════ Step 4 — Documents ══════ -->
-    <div class="step-panel" id="panel4">
+    <!-- ══════ Step 3 — Documents ══════ -->
+    <div class="step-panel" id="panel3">
       <div class="card-title">Documents</div>
       <div class="card-sub">Required for identity verification.</div>
 
@@ -275,13 +262,13 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       </div>
 
       <div class="btn-row">
-        <button class="btn ghost" onclick="goStep(3)">Back</button>
-        <button class="btn primary" onclick="goStep(5)">Continue</button>
+        <button class="btn ghost" onclick="goStep(2)">Back</button>
+        <button class="btn primary" onclick="goStep(4)">Continue</button>
       </div>
     </div>
 
-    <!-- ══════ Step 5 — Bank ══════ -->
-    <div class="step-panel" id="panel5">
+    <!-- ══════ Step 4 — Bank ══════ -->
+    <div class="step-panel" id="panel4">
       <div class="card-title">Payout Account</div>
       <div class="card-sub">Where we'll send your earnings.</div>
 
@@ -320,13 +307,13 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       </div>
 
       <div class="btn-row">
-        <button class="btn ghost" onclick="goStep(4)">Back</button>
+        <button class="btn ghost" onclick="goStep(3)">Back</button>
         <button class="btn primary" onclick="saveStep5AndContinue()">Continue</button>
       </div>
     </div>
 
-    <!-- ══════ Step 6 — Terms + Submit ══════ -->
-    <div class="step-panel" id="panel6">
+    <!-- ══════ Step 5 — Terms + Submit ══════ -->
+    <div class="step-panel" id="panel5">
       <div class="card-title">Review &amp; Submit</div>
       <div class="card-sub">Last step.</div>
 
@@ -344,7 +331,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       </div>
 
       <div class="btn-row">
-        <button class="btn ghost" onclick="goStep(5)">Back</button>
+        <button class="btn ghost" onclick="goStep(4)">Back</button>
         <button class="btn primary" id="submitBtn" onclick="handleFinalSubmit()">Submit Application</button>
       </div>
     </div>
@@ -368,26 +355,31 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 <script src="products.js"></script>
 <script src="api.js"></script>
 <script>
-const STEP_LABELS = ['Account','Seller','Store','Docs','Bank','Review'];
+const STEP_LABELS = ['Seller','Store','Docs','Bank','Review'];
 let STATE = { shop: null, documents: [], categories: [], step: 1, terms: { agreement:false, privacy:false, commission:false } };
 
-/* ── Auth guard — any logged-in role (customer/seller/admin) can apply,
-   unlike seller.html's dashboard guard which requires role seller/admin.
-   ensureSession() also silent-refreshes if crossing from another subdomain.
-   Uses bardsSigninUrl() (not a relative 'signin.html') — this server has no
-   signin page of its own, see backend/server-seller.js's header comment. */
+/* ── Auth guard — seller identity split: must be signed in through
+   seller.bardskh.com's OWN signup/signin (SellerAuth), not a bardskh.com
+   customer session — SellerAuth.ensureSession() only falls back to the
+   shared cross-domain session for an admin caller (still allowed, e.g. an
+   admin editing a shop's profile via a shared link), never a plain
+   customer. There is no more "Your Account" step in this form at all —
+   account creation now happens on signup.html/signin.html before ever
+   reaching this page, so this guard sends a signed-out visitor there
+   instead of asking them to sign in and land back here (unlike the old
+   apply-first-then-auth flow, which relied on bardskh.com already having a
+   session going). */
 (async function init() {
-  if (!(await Auth.ensureSession())) {
+  const session = await SellerAuth.ensureSession();
+  if (!session) {
     location.href = bardsSigninUrl(location.pathname + location.search);
     return;
   }
   try {
-    const [{ user }, meRes, cats] = await Promise.all([
-      AuthAPI.me(),
+    const [meRes, cats] = await Promise.all([
       ShopsAPI.me(),
       CategoriesAPI.fetch().catch(() => []),
     ]);
-    document.getElementById('acctEmail').value = user.email || user.name || '';
     STATE.categories = cats;
     const catSel = document.getElementById('fCategory');
     cats.forEach(c => {
@@ -549,7 +541,7 @@ async function saveStep3AndContinue() {
       STATE.shop = shop;
     }
     btn.classList.remove('loading');
-    goStep(4);
+    goStep(3);
   } catch(e) {
     btn.classList.remove('loading');
     showErr(e.message || 'Could not save — please check your info.');
@@ -570,7 +562,7 @@ async function saveStep5AndContinue() {
   try {
     const { shop } = await ShopsAPI.update(collectStep5Fields());
     STATE.shop = shop;
-    goStep(6);
+    goStep(5);
   } catch(e) {
     showErr(e.message || 'Could not save — please try again.');
   }
@@ -619,7 +611,7 @@ function markUploaded(which, url) {
 async function handleDocUpload(input, docType) {
   const file = input.files[0];
   if (!file) return;
-  if (!STATE.shop) { showErr('Please finish Step 3 (Store Info) first.'); input.value = ''; return; }
+  if (!STATE.shop) { showErr('Please finish Step 2 (Store Info) first.'); input.value = ''; return; }
   const row = document.getElementById('docRow_' + docType);
   const sub = document.getElementById('docSub_' + docType);
   sub.textContent = 'Uploading…';

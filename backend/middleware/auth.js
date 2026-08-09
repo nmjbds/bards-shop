@@ -50,8 +50,49 @@ async function getUserRole(userId) {
 // coupon ownership scoping — same rationale as getUserRole above: a small
 // lookup shared by 2+ route files belongs here, not copy-pasted.
 async function getOwnApprovedShop(userId) {
-  const r = await query("SELECT id FROM shops WHERE owner_user_id=$1 AND status='approved'", [userId]);
+  const r = await query("SELECT id FROM shops WHERE seller_account_id=$1 AND status='approved'", [userId]);
   return r.rows[0]?.id || null;
+}
+
+// requireSellerOrAdmin — replaces requireRole('seller','admin') for routes
+// shared between the seller and admin servers (seller.js, coupons.js's
+// /seller CRUD, payment.js's confirm). Since the seller identity split,
+// 'seller' is never a value of users.role anymore — a caller is either an
+// admin (users.role='admin', unchanged) or a seller (any row in
+// seller_accounts, a completely separate table with no "role" column at
+// all). requireAuth stamps `kind:'seller'` on req.user for tokens issued by
+// services/sellerSession.js (see that file's header comment) — anything
+// else (no `kind`, or `kind:'user'`) is treated as the original
+// users-backed identity. Stamps req.userRole the same way requireRole()
+// always did, so downstream shop-scoping branches (`req.userRole==='admin'`)
+// don't need to change at all.
+async function requireSellerOrAdmin(req, res, next) {
+  try {
+    if (req.user.kind === 'seller') {
+      const r = await query('SELECT id FROM seller_accounts WHERE id=$1', [req.user.id]);
+      if (!r.rows.length) return res.status(403).json({ error: 'Access denied.' });
+      req.userRole = 'seller';
+      return next();
+    }
+    const r = await query('SELECT role FROM users WHERE id=$1', [req.user.id]);
+    if (!r.rows.length || r.rows[0].role !== 'admin') return res.status(403).json({ error: 'Access denied.' });
+    req.userRole = 'admin';
+    next();
+  } catch(e) { res.status(500).json({ error: 'Server error.' }); }
+}
+
+// requireSellerAccount — for routes/shops.js's self-serve-only routes
+// (apply/me/resubmit/documents/branding/checklist), which an admin should
+// never be able to call — an admin has no shop of their own under the
+// split-identity model, so there's no "admin fallback" branch here at all,
+// unlike requireSellerOrAdmin above.
+async function requireSellerAccount(req, res, next) {
+  try {
+    if (req.user.kind !== 'seller') return res.status(403).json({ error: 'Access denied.' });
+    const r = await query('SELECT id FROM seller_accounts WHERE id=$1', [req.user.id]);
+    if (!r.rows.length) return res.status(403).json({ error: 'Access denied.' });
+    next();
+  } catch(e) { res.status(500).json({ error: 'Server error.' }); }
 }
 
 // Revoke every live refresh token for a user — call this alongside ANY
@@ -69,4 +110,7 @@ async function revokeUserSessions(userId, queryFn = query) {
   await queryFn('UPDATE refresh_tokens SET revoked_at=NOW() WHERE user_id=$1 AND revoked_at IS NULL', [userId]);
 }
 
-module.exports = { requireAuth, requireRole, getUserRole, getOwnApprovedShop, revokeUserSessions };
+module.exports = {
+  requireAuth, requireRole, getUserRole, getOwnApprovedShop, revokeUserSessions,
+  requireSellerOrAdmin, requireSellerAccount,
+};

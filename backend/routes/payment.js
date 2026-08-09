@@ -4,7 +4,7 @@ const express  = require('express');
 const QRCode   = require('qrcode');
 const { z } = require('zod');
 const { query, pool } = require('../db');
-const { requireAuth, getUserRole } = require('../middleware/auth');
+const { requireAuth, getUserRole, getOwnApprovedShop } = require('../middleware/auth');
 const { validate } = require('../middleware/validate');
 const { expireIfNeeded } = require('../services/orderLifecycle');
 const { restoreStock } = require('../services/stock');
@@ -408,13 +408,24 @@ async function confirmHandler(req, res) {
     if (!orderRes.rows.length) return res.status(404).json({ error: 'Order not found.' });
 
     if (orderRes.rows[0].user_id !== req.user.id) {
-      // Consolidated 2026-07-22: shares the same role lookup as
-      // requireRole() in middleware/auth.js, just called conditionally here
-      // since this route allows the order's owner OR a seller/admin (not a
-      // blanket role gate on the whole handler).
-      const role = await getUserRole(req.user.id);
-      if (!['seller', 'admin'].includes(role)) {
-        return res.status(403).json({ error: 'Access denied.' });
+      // Seller identity split: a seller's req.user.id is a seller_accounts
+      // id, which getUserRole() (a users.role lookup) would never find —
+      // that used to mean a seller confirming their OWN order's payment via
+      // seller-orders.html's "CHECK PAYMENT STATUS" button got wrongly
+      // denied. Branch on the JWT's `kind` claim first: a seller is allowed
+      // through if they own an approved shop with at least one item in this
+      // order (same ownership check seller.js's PATCH /orders/:id uses via
+      // order_shops); anyone else falls back to the original users.role
+      // lookup (admin, or an unrelated customer who is correctly denied).
+      if (req.user.kind === 'seller') {
+        const shopId = await getOwnApprovedShop(req.user.id);
+        const owns = shopId && (await query(
+          'SELECT 1 FROM order_shops WHERE order_id=$1 AND shop_id=$2', [orderId, shopId]
+        )).rows.length;
+        if (!owns) return res.status(403).json({ error: 'Access denied.' });
+      } else {
+        const role = await getUserRole(req.user.id);
+        if (role !== 'admin') return res.status(403).json({ error: 'Access denied.' });
       }
     }
 
