@@ -423,7 +423,7 @@ router.post('/verify-reset-code', async (req, res) => {
     const { email, code } = req.body;
     if (!email || !code) return res.status(400).json({ error: 'Email and code are required.' });
     const r = await query(
-      `SELECT pr.id, pr.expires_at, pr.used, u.id as user_id
+      `SELECT pr.expires_at, pr.used, u.id as user_id
        FROM password_resets pr
        JOIN users u ON u.id = pr.user_id
        WHERE u.email=$1 AND pr.code=$2`,
