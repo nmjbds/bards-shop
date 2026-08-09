@@ -147,7 +147,7 @@ const Auth = {
   async ensureSession() {
     if (this.isLoggedIn()) return true;
     try {
-      const token = await _refreshAccessToken();
+      const token = await _refreshFor(this);
       return !!token;
     } catch {
       return false;
