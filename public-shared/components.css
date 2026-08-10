@@ -1,0 +1,104 @@
+/* public-shared/components.css
+   One shared button / card / status-badge system for public-seller-src/*.html,
+   replacing the near-identical (but not identical) copies each page currently
+   maintains on its own. Depends on public-shared/tokens.css being loaded first.
+
+   Naming: everything here is prefixed `.bc-` (Bards Components) specifically
+   so it cannot collide with the many existing per-page class names it's meant
+   to replace (.btn, .btn-primary, .btn-ghost, .btn-danger, .card, .badge,
+   .b-pending, ... — same/similar names already exist locally in several
+   files with slightly different recipes). Migrating a page means removing
+   its local rule of the same visual intent and swapping the HTML class to
+   the .bc-* equivalent — see step 4 for the first two pages this happens to.
+
+   .bc-btn — base recipe matches signin.html/signup.html's existing
+   .btn/.btn-ghost byte-for-byte (those two files are identical to each
+   other), since that's the pair being migrated next. .bc-btn--danger has no
+   signin/signup equivalent to match against — based on the .btn-danger
+   recipe shared identically by seller-products.html and seller-coupons.html
+   (the only two files that define a danger button), swapped to shared
+   tokens/font vars. */
+
+.bc-btn {
+  width: 100%;
+  height: 44px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity .18s, border-color .18s, color .18s;
+}
+
+.bc-btn--primary {
+  height: 50px;
+  background: var(--black);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 2.5px;
+}
+.bc-btn--primary:active { opacity: .8; }
+.bc-btn--primary.loading { background: var(--gray-200); color: var(--gray-400); pointer-events: none; }
+.bc-btn--primary.success { background: var(--green); pointer-events: none; }
+
+.bc-btn--ghost {
+  background: none;
+  color: var(--gray-400);
+  border: 1.5px solid var(--gray-200);
+}
+.bc-btn--ghost:hover { border-color: var(--black); color: var(--black); }
+
+.bc-btn--danger {
+  background: var(--red);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: 2px;
+}
+.bc-btn--danger:hover { opacity: .85; }
+
+/* .bc-card — matches apply.html/signin.html/signup.html's .card recipe
+   exactly (background/border/radius/padding/shadow). Width and max-width
+   are layout concerns, not part of the component's visual identity, so
+   they're deliberately left for each page to set on its own wrapper (e.g.
+   signin.html/signup.html both size their card to max-width:400px). */
+.bc-card {
+  background: var(--white);
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius);
+  padding: 28px 22px 24px;
+  box-shadow: var(--shadow-card);
+}
+
+/* .bc-badge — status pill. Base shape matches seller.html/seller-orders.html's
+   .badge, which is byte-for-byte identical in both files. The 9 color
+   modifiers below are the same order-status set duplicated identically in
+   both of those files too (not a new invention — this is the one place
+   the existing per-page CSS was already 100% consistent, just copy-pasted). */
+.bc-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.bc-badge--pending               { background: #FEF3C7; color: #B45309; }
+.bc-badge--pending_verification  { background: #DBEAFE; color: var(--blue); }
+.bc-badge--paid                  { background: #DCFCE7; color: var(--green); }
+.bc-badge--processing            { background: #EDE9FE; color: #7C3AED; }
+.bc-badge--shipped               { background: #DBEAFE; color: var(--blue); }
+.bc-badge--delivered             { background: #DCFCE7; color: var(--green); }
+.bc-badge--cancelled             { background: #FEE2E2; color: var(--red); }
+.bc-badge--expired               { background: var(--gray-100); color: var(--gray-400); }
+.bc-badge--failed                { background: #FEE2E2; color: var(--red); }
