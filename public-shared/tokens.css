@@ -1,0 +1,53 @@
+/* public-shared/tokens.css
+   Design tokens consolidated from the :root{} blocks duplicated across all
+   9 files in public-seller-src/ (seller-landing, signin, signup, apply,
+   seller, seller-orders, seller-products, seller-coupons, seller-analytics).
+   Every file declared its own :root with a slightly different subset of
+   these same values — this is the single source of truth going forward.
+
+   Corrections made while consolidating (verified against actual usage in
+   public-seller-src/*.html before changing anything):
+
+   - --yellow: standardized to #D97706 (used in seller.html, seller-orders.html,
+     seller-analytics.html — 3 of the 4 files that define it). apply.html was
+     the outlier at #CA8A04 and is being brought in line.
+
+   - --shadow-card / --shadow-modal: the values requested were swapped versus
+     what the source files actually use for those component names.
+     0 4px 24px rgba(0,0,0,.06) is the real .card shadow (signin.html,
+     signup.html, apply.html — identical box-shadow line in all three).
+     0 20px 60px rgba(0,0,0,.15) is the real .modal shadow (seller-coupons.html,
+     seller-products.html, seller-orders.html — identical box-shadow line in
+     all three). Assigned to match actual usage rather than the names as
+     originally proposed. */
+
+:root {
+  /* Color */
+  --black:    #0A0A0A;
+  --white:    #FAFAFA;
+  --gray-50:  #F9F9F7;
+  --gray-100: #F2F2F0;
+  --gray-200: #E4E4E2;
+  --gray-300: #C8C8C6;
+  --gray-400: #8A8A88;
+  --gray-600: #4A4A48;
+  --orange:   #FF4F00;
+  --red:      #C8001A;
+  --green:    #16A34A;
+  --blue:     #2563EB;
+  --yellow:   #D97706;
+
+  /* Layout */
+  --sidebar:   220px;
+  --radius:    14px;
+  --radius-sm: 10px;
+
+  /* Shadow */
+  --shadow-card:  0 4px 24px rgba(0,0,0,.06);
+  --shadow-modal: 0 20px 60px rgba(0,0,0,.15);
+
+  /* Typography */
+  --font-display: 'Bebas Neue';
+  --font-body:    'Space Grotesk', sans-serif;
+  --font-mono:    'DM Mono', monospace;
+}
