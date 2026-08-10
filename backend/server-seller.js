@@ -93,15 +93,6 @@ const allowed = [
   'https://bards-customer.onrender.com',
   'https://bards-seller.onrender.com',
   'https://bards-admin.onrender.com',
-  // Local manual testing of the seller identity split (2026-08-09) — running
-  // all 3 servers on one machine needs 3 distinct ports since only one can
-  // bind :3000; this one's assigned :3011. Same "CORS blocked" failure mode
-  // as the temp Render URLs above (a credentialed fetch's Origin header not
-  // being in this list surfaces as a bare "Internal error." to the browser)
-  // — hit immediately on the very first POST /api/auth/seller/request-otp
-  // from the browser. Harmless to leave in permanently, same reasoning as
-  // the onrender.com entries above.
-  'http://localhost:3011', 'http://127.0.0.1:3011',
 ];
 app.use(cors({
   origin: (o, cb) => (!o || allowed.includes(o)) ? cb(null, true) : cb(new Error('CORS blocked')),
