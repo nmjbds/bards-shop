@@ -5,12 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Create Seller Account — Bards</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
 <style>
-:root{
-  --black:#0A0A0A;--white:#FAFAFA;--gray-100:#F2F2F0;--gray-200:#E4E4E2;
-  --gray-300:#C8C8C6;--gray-400:#8A8A88;--orange:#FF4F00;--red:#C8001A;--green:#16A34A;
-  --radius:14px;--radius-sm:10px;
-}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 body{
   font-family:'Space Grotesk',sans-serif;background:var(--gray-100);
@@ -20,11 +17,10 @@ body{
 .logo-wrap{text-align:center;margin-bottom:28px;}
 .brand{font-family:'Bebas Neue';font-size:32px;letter-spacing:5px;color:var(--black);text-decoration:none;display:block;}
 .brand-sub{font-size:11px;color:var(--gray-400);letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
-.card{
-  background:var(--white);border:1.5px solid var(--gray-200);
-  border-radius:var(--radius);padding:28px 22px 24px;
-  width:100%;max-width:400px;box-shadow:0 4px 24px rgba(0,0,0,.06);
-}
+/* Visual look (background/border/radius/padding/shadow) now lives in
+   .bc-card (public-shared/components.css). This local .card rule is just
+   the page-specific sizing that shared component deliberately leaves out. */
+.card{width:100%;max-width:400px;}
 .step-row{display:flex;align-items:center;margin-bottom:24px;}
 .step-dot{
   width:26px;height:26px;border-radius:50%;border:1.5px solid var(--gray-200);
@@ -78,23 +74,11 @@ body{
 .strength-bar{height:3px;border-radius:2px;background:var(--gray-200);overflow:hidden;margin-bottom:4px;}
 .strength-fill{height:100%;border-radius:2px;width:0;transition:width .3s,background .3s;}
 .strength-lbl{font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--gray-400);}
-.btn{
-  width:100%;height:50px;background:var(--black);color:#fff;border:none;
-  border-radius:var(--radius-sm);font-family:'Bebas Neue';font-size:18px;
-  letter-spacing:2.5px;cursor:pointer;display:flex;align-items:center;
-  justify-content:center;gap:8px;transition:opacity .18s;margin-bottom:12px;
-}
-.btn:active{opacity:.8;}
-.btn.loading{background:var(--gray-200);color:var(--gray-400);pointer-events:none;}
-.btn.success{background:var(--green);pointer-events:none;}
-.btn-ghost{
-  width:100%;height:44px;background:none;color:var(--gray-400);
-  border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);
-  font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  gap:6px;transition:all .18s;text-decoration:none;
-}
-.btn-ghost:hover{border-color:var(--black);color:var(--black);}
+/* .btn/.btn-ghost moved to .bc-btn/.bc-btn--primary/.bc-btn--ghost
+   (public-shared/components.css) — this page adds margin-bottom:12px to
+   its primary CTA only, which the shared component leaves as a layout
+   concern for the page. */
+.bc-btn--primary{margin-bottom:12px;}
 .resend-row{text-align:center;margin-top:14px;font-size:12px;color:var(--gray-400);}
 .resend-btn{background:none;border:none;cursor:pointer;color:var(--black);font-weight:700;font-size:12px;font-family:'Space Grotesk',sans-serif;padding:0;}
 .resend-btn:disabled{color:var(--gray-400);cursor:default;}
@@ -132,7 +116,7 @@ body{
   <div class="brand-sub">Seller Center</div>
 </div>
 
-<div class="card fu d1">
+<div class="card bc-card fu d1">
   <div class="step-row" id="stepRow">
     <div class="step-dot active" id="dot1">1</div>
     <div class="step-line" id="line1"></div>
@@ -161,7 +145,7 @@ body{
       <label class="f-label">Phone Number</label>
       <input type="tel" class="f-input" id="suPhone" placeholder="+855 12 345 678" autocomplete="tel" inputmode="tel">
     </div>
-    <button class="btn" id="step1Btn" onclick="handleStep1()">
+    <button class="bc-btn bc-btn--primary" id="step1Btn" onclick="handleStep1()">
       SEND CODE
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </button>
@@ -185,7 +169,7 @@ body{
       <input class="otp-cell" type="text" inputmode="numeric" maxlength="1" pattern="[0-9]">
     </div>
 
-    <button class="btn" id="step2Btn" onclick="handleStep2()" style="margin-top:14px">
+    <button class="bc-btn bc-btn--primary" id="step2Btn" onclick="handleStep2()" style="margin-top:14px">
       VERIFY CODE
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </button>
@@ -196,7 +180,7 @@ body{
       <span class="resend-timer" id="resendTimer"></span>
     </div>
     <div style="margin-top:12px">
-      <button class="btn-ghost" onclick="goToStep(1)">
+      <button class="bc-btn bc-btn--ghost" onclick="goToStep(1)">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         Back
       </button>
@@ -234,7 +218,7 @@ body{
         </button>
       </div>
     </div>
-    <button class="btn" id="step3Btn" onclick="handleStep3()" style="margin-top:4px">
+    <button class="bc-btn bc-btn--primary" id="step3Btn" onclick="handleStep3()" style="margin-top:4px">
       CREATE ACCOUNT
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </button>
@@ -247,7 +231,7 @@ body{
     </div>
     <div class="card-title">Account Created!</div>
     <div class="card-sub">Next, tell us about your business and store.</div>
-    <a href="/apply" class="btn" style="text-decoration:none">
+    <a href="/apply" class="bc-btn bc-btn--primary" style="text-decoration:none">
       CONTINUE TO APPLICATION
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </a>
@@ -301,7 +285,7 @@ const _arrow = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stro
 function setBtn(id, loading, label) {
   const b = document.getElementById(id); if (!b) return;
   b.innerHTML = loading ? `${_spin} ${label}` : `${label} ${_arrow}`;
-  b.className = 'btn' + (loading ? ' loading' : '');
+  b.className = 'bc-btn bc-btn--primary' + (loading ? ' loading' : '');
 }
 
 /* ── Step 1: email + phone → request signup OTP ── */
