@@ -87,6 +87,43 @@ const storeSlugSchema = z.string().trim().min(1).max(80)
 // optional in practice, not just on paper.
 const optionalEnum = (values) => z.preprocess(v => (v === '' ? null : v), z.enum(values).nullable().optional());
 
+// id_number/birthdate (Phase 2, docs/tiktok-seller-onboarding-flow.md) — the
+// reference flow's identity-document step captures these alongside
+// full_name/address (normally via OCR off the uploaded ID card; this
+// project has no OCR integration, so these are always typed by hand for
+// now). Same '' -> null preprocessing as optionalEnum() above, for the same
+// reason: an untouched text/date input posts '' rather than omitting the
+// key, and neither .min(5) nor z.iso.date() would treat '' as "not
+// provided" on their own.
+//
+// id_number stays a loosely-bounded string, not a per-country ID format
+// regex: business_type='business' stores a business registration number
+// here too (different shape from an individual's ID card number), and
+// Cambodia-specific ID formats aren't validated anywhere else in this
+// project either. 5-50 just guards against obviously-wrong input (empty
+// paste, a stray single character) without rejecting a real value.
+const idNumberSchema = z.preprocess(
+  v => (v === '' ? null : v),
+  z.string().trim()
+    .min(5, 'ID/registration number must be at least 5 characters.')
+    .max(50, 'ID/registration number must be at most 50 characters.')
+    .nullable().optional()
+);
+
+// z.iso.date() (zod v4) already rejects anything that isn't a real
+// YYYY-MM-DD calendar date (e.g. 2024-02-30, month 13) — the .refine() below
+// only adds the "not in the future" rule on top. Comparing the raw
+// YYYY-MM-DD strings (rather than parsing both sides into Date objects)
+// sidesteps timezone-conversion edge cases around "today" entirely, since
+// zero-padded ISO date strings sort identically to their chronological
+// order.
+const birthdateSchema = z.preprocess(
+  v => (v === '' ? null : v),
+  z.iso.date('Birthdate must be a valid date (YYYY-MM-DD).')
+    .refine(d => d <= new Date().toISOString().slice(0, 10), { message: 'Birthdate cannot be in the future.' })
+    .nullable().optional()
+);
+
 // All fields beyond `name` are optional here on purpose: the 6-step apply
 // form saves progress via PATCH /me as the seller fills each step (see
 // blueprint §8 edge case 5 — "seller closes the tab mid-form"), so a shop
@@ -98,6 +135,8 @@ const shopApplySchema = z.object({
   cover_url:           z.string().trim().max(2000).optional().nullable(),
   business_type:       z.enum(['individual', 'business']).optional().nullable(),
   full_name:           z.string().trim().max(200).optional().nullable(),
+  id_number:           idNumberSchema,
+  birthdate:           birthdateSchema,
   phone:               z.string().trim().max(30).optional().nullable(),
   country:             z.string().trim().max(100).optional().nullable(),
   province:            z.string().trim().max(100).optional().nullable(),
