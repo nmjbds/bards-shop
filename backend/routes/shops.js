@@ -77,6 +77,16 @@ const storeSlugSchema = z.string().trim().min(1).max(80)
   .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'Store URL must be lowercase letters, numbers, and hyphens only (e.g. "my-shop").')
   .refine(s => !RESERVED_STORE_SLUGS.has(s), { message: 'This store URL is reserved — please choose another.' });
 
+// bank_name/currency below were already .optional().nullable() -- but a
+// fixed-choice z.enum() still rejects an empty string ('' is neither one of
+// the listed values nor null/undefined). apply.html currently converts ''
+// to null client-side before sending (collectStep5Fields()), which is why
+// this hasn't broken anything so far -- optionalEnum() makes that hold true
+// server-side too, so a future caller (e.g. the Phase 2+ apply.html rework)
+// isn't silently relying on that same client-side conversion to stay
+// optional in practice, not just on paper.
+const optionalEnum = (values) => z.preprocess(v => (v === '' ? null : v), z.enum(values).nullable().optional());
+
 // All fields beyond `name` are optional here on purpose: the 6-step apply
 // form saves progress via PATCH /me as the seller fills each step (see
 // blueprint §8 edge case 5 — "seller closes the tab mid-form"), so a shop
@@ -94,10 +104,17 @@ const shopApplySchema = z.object({
   address:             z.string().trim().max(500).optional().nullable(),
   store_slug:          storeSlugSchema.optional().nullable(),
   category_id:         z.string().uuid().optional().nullable(),
-  bank_name:           z.enum(['ABA', 'ACLEDA', 'Wing', 'Chip Mong']).optional().nullable(),
+  // bank_name/bank_account_name/bank_account_number/currency/return_address
+  // are all optional here already (Phase 1, docs/tiktok-seller-onboarding-
+  // flow.md) -- collecting payout info during initial signup doesn't match
+  // the reference flow, which asks for it only after approval. Columns stay
+  // on `shops` (Phase 1 doesn't touch the DB shape here, just how strictly
+  // these are validated) -- see optionalEnum() above for why bank_name/
+  // currency specifically also tolerate ''.
+  bank_name:           optionalEnum(['ABA', 'ACLEDA', 'Wing', 'Chip Mong']),
   bank_account_name:   z.string().trim().max(200).optional().nullable(),
   bank_account_number: z.string().trim().max(50).optional().nullable(),
-  currency:            z.enum(['KHR', 'USD']).optional().nullable(),
+  currency:            optionalEnum(['KHR', 'USD']),
   return_address:      z.string().trim().max(500).optional().nullable(),
 });
 const shopUpdateSchema = shopApplySchema.partial();
