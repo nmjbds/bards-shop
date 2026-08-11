@@ -270,6 +270,8 @@ function detailPanelHTML(s) {
     <div class="detail-grid">
       ${detailField('Business Type', s.business_type)}
       ${detailField('Full Name', s.full_name)}
+      ${detailField('ID/Registration Number', s.id_number)}
+      ${detailField('Birthdate', s.birthdate ? fmtDate(s.birthdate) : null)}
       ${detailField('Phone', s.phone)}
       ${detailField('Address', [s.address, s.province, s.country].filter(Boolean).join(', '))}
       ${detailField('Store URL', s.store_slug)}
