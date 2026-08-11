@@ -535,6 +535,17 @@ async function initDb() {
       -- columns nullable — every shop row that predates this has none of it.
       ALTER TABLE shops ADD COLUMN IF NOT EXISTS business_type         TEXT; -- 'individual' | 'business' — TEXT, no CHECK, same convention as role/status everywhere else
       ALTER TABLE shops ADD COLUMN IF NOT EXISTS full_name             TEXT;
+      -- id_number/birthdate (2026-08-11, Phase 1 of the TikTok-onboarding-flow
+      -- rework — docs/tiktok-seller-onboarding-flow.md) — the reference flow's
+      -- identity-document step captures these (ID card number, date of birth)
+      -- alongside full_name/address, normally via OCR auto-fill from the
+      -- uploaded ID card. No OCR integration exists in this project yet —
+      -- these columns are schema-only in this phase, not written by any route
+      -- yet (that's Phase 2). id_number stays TEXT, not a numeric type: it can
+      -- hold a business registration number (letters/hyphens) for
+      -- business_type='business', not just an individual's ID card digits.
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS id_number             TEXT;
+      ALTER TABLE shops ADD COLUMN IF NOT EXISTS birthdate             DATE;
       ALTER TABLE shops ADD COLUMN IF NOT EXISTS phone                 TEXT;
       ALTER TABLE shops ADD COLUMN IF NOT EXISTS country               TEXT;
       ALTER TABLE shops ADD COLUMN IF NOT EXISTS province              TEXT;

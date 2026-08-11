@@ -5,6 +5,7 @@ const { requireAuth, requireRole, requireSellerAccount } = require('../middlewar
 const { validate, MIME_EXT } = require('../middleware/validate');
 const { getSignedGetUrl } = require('../services/r2');
 const { sendEmail, sendTelegramToAdmin } = require('../services/notify');
+const { slugify } = require('../helpers/slugify');
 const router = express.Router();
 
 // ── Cloudflare R2 upload for seller documents (private bucket) ─────────
@@ -121,6 +122,12 @@ const checklistSchema = z.object(
 
 const docTypeSchema = z.enum(['id_card', 'business_license', 'tax_document']);
 
+// Auto-generated store_slug collision retries (POST /apply below) — capped
+// so a pathological run of collisions can't loop forever. 20 is generous:
+// each retry appends "-N", so this only gets exercised at all when many
+// shops already share the same slugified name.
+const MAX_SLUG_ATTEMPTS = 20;
+
 // ── POST /api/shops/apply ── create own shop (one per seller — DB enforces
 // via UNIQUE seller_account_id). Gated by requireSellerAccount — the caller
 // must be authenticated through seller.bardskh.com's own signup/signin
@@ -130,49 +137,79 @@ const docTypeSchema = z.enum(['id_card', 'business_license', 'tax_document']);
 // pre-split design this comment used to describe, where a plain `customer`
 // applied and role flipped to 'seller' only on admin approval).
 router.post('/apply', requireAuth, requireSellerAccount, validate(shopApplySchema), async (req, res) => {
-  try {
-    const {
-      name, description, logo, cover_url, business_type, full_name, phone,
-      country, province, address, store_slug, category_id, bank_name,
-      bank_account_name, bank_account_number, currency,
-    } = req.body;
-    const r = await query(
-      `INSERT INTO shops(
-         seller_account_id, name, description, logo, cover_url, business_type,
-         full_name, phone, country, province, address, store_slug,
-         category_id, bank_name, bank_account_name, bank_account_number,
-         currency, status, submitted_at
-       ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,'pending',NOW())
-       RETURNING *`,
-      [
-        req.user.id, name, description || null, logo || null, cover_url || null,
-        business_type || null, full_name || null, phone || null, country || null,
-        province || null, address || null, store_slug || null, category_id || null,
-        bank_name || null, bank_account_name || null, bank_account_number || null,
-        currency || null,
-      ]
-    );
-    res.status(201).json({ shop: r.rows[0] });
+  const {
+    name, description, logo, cover_url, business_type, full_name, phone,
+    country, province, address, store_slug, category_id, bank_name,
+    bank_account_name, bank_account_number, currency,
+  } = req.body;
 
-    // Fire-and-forget — this INSERT only ever succeeds once per seller (DB
-    // unique constraint on seller_account_id), so this only runs on genuine
-    // first application, never on a later edit.
-    sendEmail(
-      req.user.email, 'Bards Seller Application Received',
-      `Hi,\n\nWe've received your application for "${name}". We'll review it and let you know once it's approved.\n\n- Bards Team`,
-      `<p style="margin:0 0 12px;font-size:15px;font-weight:700;">Application Received</p>
-       <p style="margin:0;font-size:13px;color:#4A4A48;line-height:1.6;">We've received your application for <b>${name}</b>. We'll review it and let you know once it's approved.</p>`
-    );
-    sendTelegramToAdmin(
-      `📝 <b>New shop application</b>\n${name} — ${req.user.email || req.user.id}\n<i>Review at /admin-shops</i>`
-    );
-  } catch(e) {
-    if (e.code === '23505') {
-      if (e.constraint === 'idx_shops_store_slug') return res.status(409).json({ error: 'This store URL is already taken.' });
-      return res.status(409).json({ error: 'You already have a shop.' });
+  // store_slug: honor the caller's own choice verbatim if given (unchanged
+  // behavior — a single attempt, "already taken" 409 on collision). If none
+  // was given, auto-generate from `name` (docs/tiktok-seller-onboarding-
+  // flow.md's reference flow never asks for a store URL at all) and retry
+  // with a "-2", "-3", ... suffix on collision, up to MAX_SLUG_ATTEMPTS —
+  // only the auto-generated path retries; we'd never silently swap in a
+  // different slug than the one a seller actually typed.
+  const autoSlug = !store_slug;
+  const baseSlug = autoSlug ? slugify(name) : store_slug;
+  const maxAttempts = autoSlug ? MAX_SLUG_ATTEMPTS : 1;
+
+  let shop;
+  try {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const candidateSlug = attempt === 0 ? baseSlug : `${baseSlug}-${attempt + 1}`;
+      try {
+        const r = await query(
+          `INSERT INTO shops(
+             seller_account_id, name, description, logo, cover_url, business_type,
+             full_name, phone, country, province, address, store_slug,
+             category_id, bank_name, bank_account_name, bank_account_number,
+             currency, status, submitted_at
+           ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,'pending',NOW())
+           RETURNING *`,
+          [
+            req.user.id, name, description || null, logo || null, cover_url || null,
+            business_type || null, full_name || null, phone || null, country || null,
+            province || null, address || null, candidateSlug, category_id || null,
+            bank_name || null, bank_account_name || null, bank_account_number || null,
+            currency || null,
+          ]
+        );
+        shop = r.rows[0];
+        break;
+      } catch (e) {
+        if (e.code !== '23505') throw e;
+        if (e.constraint !== 'idx_shops_store_slug') {
+          return res.status(409).json({ error: 'You already have a shop.' });
+        }
+        const isLastAttempt = attempt === maxAttempts - 1;
+        if (!isLastAttempt) continue; // auto-generated slug collided — try the next suffix
+        return res.status(409).json({
+          error: autoSlug
+            ? 'Could not generate a unique store URL — please try again.'
+            : 'This store URL is already taken.',
+        });
+      }
     }
-    console.error(e); res.status(500).json({ error: 'Server error.' });
+  } catch(e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Server error.' });
   }
+
+  res.status(201).json({ shop });
+
+  // Fire-and-forget — this INSERT only ever succeeds once per seller (DB
+  // unique constraint on seller_account_id), so this only runs on genuine
+  // first application, never on a later edit.
+  sendEmail(
+    req.user.email, 'Bards Seller Application Received',
+    `Hi,\n\nWe've received your application for "${name}". We'll review it and let you know once it's approved.\n\n- Bards Team`,
+    `<p style="margin:0 0 12px;font-size:15px;font-weight:700;">Application Received</p>
+     <p style="margin:0;font-size:13px;color:#4A4A48;line-height:1.6;">We've received your application for <b>${name}</b>. We'll review it and let you know once it's approved.</p>`
+  );
+  sendTelegramToAdmin(
+    `📝 <b>New shop application</b>\n${name} — ${req.user.email || req.user.id}\n<i>Review at /admin-shops</i>`
+  );
 });
 
 // ── GET /api/shops/me ── own shop + documents (for the seller dashboard to
