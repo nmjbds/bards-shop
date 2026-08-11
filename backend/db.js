@@ -1,6 +1,22 @@
 require('dotenv').config();
 const crypto = require('crypto');
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
+
+// pg's default DATE (OID 1082) parser builds a JS Date from the raw
+// 'YYYY-MM-DD' using the *server process's local timezone*, then every
+// response serializes it to UTC via JSON.stringify() -- on any machine
+// whose local TZ isn't UTC, that shifts the calendar date itself (not just
+// the display), e.g. '1995-03-20' round-trips as
+// '1995-03-19T17:00:00.000Z' on a UTC+7 host. Confirmed hitting this for
+// real (Phase 2/3 of the TikTok-onboarding-flow rework, shops.birthdate)
+// while testing locally on a UTC+7 dev machine — Render's containers
+// default to UTC so production likely wasn't showing it today, but that's
+// exactly the kind of environment-dependent fragility not to leave in
+// place on a "seems fine in prod" hope. Overriding the parser to return
+// the raw string sidesteps Date/timezone conversion entirely, for every
+// DATE column this project has now or adds later — must run before the
+// Pool below issues any query.
+types.setTypeParser(1082, val => val);
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
