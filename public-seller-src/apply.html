@@ -235,6 +235,14 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
         <input class="f-input" id="fFullName" placeholder="Your full legal name">
       </div>
       <div class="form-group">
+        <label class="f-label" id="idNumberLabel">ID Card / Passport Number</label>
+        <input class="f-input" id="fIdNumber" placeholder="e.g. 001234567">
+      </div>
+      <div class="form-group">
+        <label class="f-label">Birthdate</label>
+        <input class="f-input" type="date" id="fBirthdate">
+      </div>
+      <div class="form-group">
         <label class="f-label">Address</label>
         <input class="f-input" id="fAddress" placeholder="Street, city, province">
       </div>
@@ -250,6 +258,11 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       <div class="card-title">Contact Info</div>
       <div class="card-sub">How customers and Bards can reach you.</div>
 
+      <div class="form-group">
+        <label class="f-label">Email</label>
+        <input class="f-input" id="fEmail" disabled>
+        <div class="f-hint">The email you signed up with. Not editable here yet.</div>
+      </div>
       <div class="form-group">
         <label class="f-label">Phone <span class="f-req">*</span></label>
         <input class="f-input" id="fPhone" placeholder="012 345 678">
@@ -353,6 +366,18 @@ let STATE = { shop: null, documents: [], categories: [], step: 1, terms: { agree
       return;
     }
 
+    // Account email, read-only for now (Phase 3 — no shops.contact_email
+    // column exists yet to save an edited value to; see the Phase 3 report
+    // for why this stayed read-only rather than growing new backend scope).
+    // Comes from SellerAuth's cached user, not STATE.shop — available even
+    // before a shop row exists. Blank (not "—") if ensureSession() landed
+    // here via the admin-fallback path, which never populates SellerAuth's
+    // own storage.
+    document.getElementById('fEmail').value = SellerAuth.getUser()?.email || '';
+    // Guards against picking a future date at the picker level too, on top
+    // of the server-side z.iso.date().refine() check (Phase 2).
+    document.getElementById('fBirthdate').max = new Date().toISOString().slice(0, 10);
+
     if (STATE.shop) prefillFromShop(STATE.shop);
     renderNamePreview();
     renderDocs();
@@ -384,6 +409,8 @@ function prefillFromShop(s) {
   document.getElementById('fCategory').value = s.category_id || '';
   if (s.business_type) setBusinessType(s.business_type, true);
   document.getElementById('fFullName').value = s.full_name || '';
+  document.getElementById('fIdNumber').value = s.id_number || '';
+  document.getElementById('fBirthdate').value = s.birthdate ? s.birthdate.slice(0, 10) : '';
   document.getElementById('fAddress').value = s.address || '';
   document.getElementById('fPhone').value = s.phone || '';
 }
@@ -424,6 +451,8 @@ function renderDocs() {
 
   document.getElementById('fullNameLabel').innerHTML =
     (isBusiness ? 'Contact Person Name' : 'Full Name') + ' <span class="f-req">*</span>';
+  document.getElementById('idNumberLabel').textContent =
+    isBusiness ? 'Business Registration Number' : 'ID Card / Passport Number';
 }
 
 /* ── Step navigation ── */
@@ -525,6 +554,8 @@ async function saveStep4AndContinue() {
 function collectStep4Fields() {
   return {
     full_name: document.getElementById('fFullName').value.trim() || null,
+    id_number: document.getElementById('fIdNumber').value.trim() || null,
+    birthdate: document.getElementById('fBirthdate').value || null,
     address:   document.getElementById('fAddress').value.trim() || null,
   };
 }
