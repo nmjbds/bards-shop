@@ -335,11 +335,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 // future step to write to, but deriving straight from the actual fields
 // here can't drift out of sync with them (e.g. seller clears their phone
 // number after "profile" was marked done).
+// 'bank'/'return_address' items removed here (Phase 3 of the TikTok-
+// onboarding-flow rework, docs/tiktok-seller-onboarding-flow.md) --
+// apply.html's payout-account panel was cut entirely (moving payout
+// collection out of the signup flow, per the reference flow), so these two
+// checklist items pointed at fields nothing in the app could set anymore.
+// TODO: bring back when a Shop Settings page exists to edit
+// bank_name/bank_account_name/bank_account_number/currency/return_address
+// after approval (the columns themselves are untouched -- see Phase 0's
+// investigation notes on why apply.html can't keep doubling as that editor
+// once its steps stop covering every editable field).
 const CHECKLIST_DEFS = [
   { key: 'profile',        label: 'Complete your profile',   href: '/apply' },
   { key: 'store',          label: 'Set up your store info',  href: '/apply' },
-  { key: 'bank',           label: 'Add a payout account',    href: '/apply' },
-  { key: 'return_address', label: 'Add a return address',    href: '/apply' },
   { key: 'add_product',    label: 'Add your first product',  href: '/seller-products' },
   { key: 'first_product',  label: 'Get a product approved',  href: '/seller-products' },
 ];
@@ -356,8 +364,6 @@ async function loadChecklist() {
     const done = {
       profile:        !!(shop.full_name && shop.phone && shop.address),
       store:           !!(shop.name && shop.store_slug),
-      bank:            !!(shop.bank_name && shop.bank_account_number),
-      return_address:  !!shop.return_address,
       add_product:     products.length > 0,
       first_product:   products.some(p => p.is_active),
     };
