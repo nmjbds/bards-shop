@@ -194,7 +194,8 @@ const MAX_SLUG_ATTEMPTS = 20;
 // applied and role flipped to 'seller' only on admin approval).
 router.post('/apply', requireAuth, requireSellerAccount, validate(shopApplySchema), async (req, res) => {
   const {
-    name, description, logo, cover_url, business_type, full_name, phone,
+    name, description, logo, cover_url, business_type, full_name,
+    id_number, birthdate, phone,
     country, province, address, store_slug, category_id, bank_name,
     bank_account_name, bank_account_number, currency,
   } = req.body;
@@ -218,14 +219,15 @@ router.post('/apply', requireAuth, requireSellerAccount, validate(shopApplySchem
         const r = await query(
           `INSERT INTO shops(
              seller_account_id, name, description, logo, cover_url, business_type,
-             full_name, phone, country, province, address, store_slug,
+             full_name, id_number, birthdate, phone, country, province, address, store_slug,
              category_id, bank_name, bank_account_name, bank_account_number,
              currency, status, submitted_at
-           ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,'pending',NOW())
+           ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,'pending',NOW())
            RETURNING *`,
           [
             req.user.id, name, description || null, logo || null, cover_url || null,
-            business_type || null, full_name || null, phone || null, country || null,
+            business_type || null, full_name || null, id_number || null, birthdate || null,
+            phone || null, country || null,
             province || null, address || null, candidateSlug, category_id || null,
             bank_name || null, bank_account_name || null, bank_account_number || null,
             currency || null,
@@ -296,6 +298,8 @@ router.patch('/me', requireAuth, requireSellerAccount, validate(shopUpdateSchema
     if (b.cover_url           !== undefined) set('cover_url', b.cover_url || null);
     if (b.business_type       !== undefined) set('business_type', b.business_type || null);
     if (b.full_name           !== undefined) set('full_name', b.full_name || null);
+    if (b.id_number            !== undefined) set('id_number', b.id_number || null);
+    if (b.birthdate            !== undefined) set('birthdate', b.birthdate || null);
     if (b.phone                !== undefined) set('phone', b.phone || null);
     if (b.country              !== undefined) set('country', b.country || null);
     if (b.province             !== undefined) set('province', b.province || null);
