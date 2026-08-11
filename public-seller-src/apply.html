@@ -296,54 +296,6 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       </div>
     </div>
 
-    <!-- ══════ LEGACY — payout account (Phase 3 commit 3 deletes this
-         entirely). Orphaned on purpose: no goStep() call in this file
-         reaches "panelBankLegacy" anymore, and STEP_LABELS/stepsNav below
-         no longer count it. Renamed off "panel4" (its old id) purely to
-         avoid colliding with the new Step 4 "Identity Documents" panel
-         above -- still the exact same markup/fields as before, untouched,
-         so collectStep5Fields() and handleFinalSubmit()'s "already
-         approved" save path (further down) keep working exactly as they
-         did pre-Phase-3 until commit 3 removes them together. ══════ -->
-    <div class="step-panel" id="panelBankLegacy">
-      <div class="card-title">Payout Account</div>
-      <div class="card-sub">Where we'll send your earnings.</div>
-
-      <div class="form-group">
-        <label class="f-label">Bank <span class="f-req">*</span></label>
-        <select class="f-select" id="fBankName">
-          <option value="">— Select —</option>
-          <option value="ABA">ABA</option>
-          <option value="ACLEDA">ACLEDA</option>
-          <option value="Wing">Wing</option>
-          <option value="Chip Mong">Chip Mong</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="f-label">Account Name <span class="f-req">*</span></label>
-        <input class="f-input" id="fBankAccountName" placeholder="Name on the account">
-      </div>
-      <div class="form-row-two">
-        <div>
-          <label class="f-label">Account Number <span class="f-req">*</span></label>
-          <input class="f-input" id="fBankAccountNumber" placeholder="000 000 000">
-        </div>
-        <div>
-          <label class="f-label">Currency</label>
-          <select class="f-select" id="fCurrency">
-            <option value="USD">USD</option>
-            <option value="KHR">KHR</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="f-label">Return Address</label>
-        <textarea class="f-textarea" id="fReturnAddress" placeholder="Where customers should send returns — street, city, province"></textarea>
-        <div class="f-hint">Needed before your first product can go live.</div>
-      </div>
-    </div>
-
   </div>
 </div>
 
@@ -434,14 +386,6 @@ function prefillFromShop(s) {
   document.getElementById('fFullName').value = s.full_name || '';
   document.getElementById('fAddress').value = s.address || '';
   document.getElementById('fPhone').value = s.phone || '';
-  // Legacy payout fields — still prefilled so collectStep5Fields() (further
-  // down, deleted in Phase 3 commit 3) keeps resaving whatever was already
-  // there rather than clobbering it with blanks in the meantime.
-  document.getElementById('fBankName').value = s.bank_name || '';
-  document.getElementById('fBankAccountName').value = s.bank_account_name || '';
-  document.getElementById('fBankAccountNumber').value = s.bank_account_number || '';
-  document.getElementById('fCurrency').value = s.currency || 'USD';
-  document.getElementById('fReturnAddress').value = s.return_address || '';
 }
 
 /* ── Step 1 store-name live preview — mirrors product.html's actual shop
@@ -607,22 +551,6 @@ async function saveStep6AndContinue() {
   }
 }
 
-/* ── Legacy payout fields (Phase 3 commit 3 deletes this along with
-   panelBankLegacy above) — kept as-is for now so handleFinalSubmit()'s
-   "already approved" save path below still has something to call. Values
-   never change anymore (the inputs are unreachable), so this just resaves
-   whatever was already in the DB — harmless no-op in practice until
-   commit 3 removes it properly. ── */
-function collectStep5Fields() {
-  return {
-    bank_name: document.getElementById('fBankName').value || null,
-    bank_account_name: document.getElementById('fBankAccountName').value.trim() || null,
-    bank_account_number: document.getElementById('fBankAccountNumber').value.trim() || null,
-    currency: document.getElementById('fCurrency').value || null,
-    return_address: document.getElementById('fReturnAddress').value.trim() || null,
-  };
-}
-
 /* ── Document upload ── */
 async function handleDocUpload(input, docType) {
   const file = input.files[0];
@@ -666,10 +594,11 @@ async function handleFinalSubmit() {
   btn.classList.add('loading');
   try {
     if (alreadyApproved) {
-      // Final save of anything from the legacy payout panel that may not
-      // have been saved yet — see collectStep5Fields()'s comment above for
-      // why this is a no-op in practice pre-commit-3.
-      await ShopsAPI.update(collectStep5Fields());
+      // Nothing left to flush here — every field left in this form now
+      // saves as-you-go on its own step's Continue button (Phase 3 removed
+      // the one field group, bank/return_address, that used to need a
+      // final catch-all save here). This click just confirms nothing's
+      // pending.
       btn.classList.remove('loading');
       toast('✓ Changes saved');
       return;
