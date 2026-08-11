@@ -137,8 +137,12 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
     <!-- ══════ Step 1 — Store name ══════
          Also the point the shop row itself gets created (POST /apply
          requires `name`) — resuming a pending/rejected/needs_info
-         application PATCHes instead. store_slug/description/logo/cover
-         still live in this panel for now (Phase 3 commit 2 removes them). -->
+         application PATCHes instead. store_slug is no longer collected here
+         (Phase 3 commit 2) -- routes/shops.js's POST /apply auto-generates
+         it from `name` when absent (Phase 1). description/logo/cover
+         aren't collected anywhere in this form anymore either; they stay
+         null until a Shop Settings page exists to edit them (see Phase 0's
+         investigation notes and seller.html's checklist, commit 5). -->
     <div class="step-panel active" id="panel1">
       <div class="card-title">Name Your Store</div>
       <div class="card-sub">This is what customers will see. You can change it later.</div>
@@ -152,39 +156,6 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
             <div class="name-preview-label">Preview</div>
             <div class="name-preview-name" id="namePreviewName">Your store name</div>
           </div>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="f-label">Store URL</label>
-        <input class="f-input" id="fSlug" placeholder="Auto-generated from your store name" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'-')">
-        <div class="f-hint">Leave blank to auto-generate. Lowercase letters, numbers and hyphens only.</div>
-      </div>
-      <div class="form-group">
-        <label class="f-label">Description</label>
-        <textarea class="f-textarea" id="fDescription" placeholder="What do you sell?"></textarea>
-      </div>
-      <div class="form-group">
-        <label class="f-label">Store Logo</label>
-        <div class="upload-row" id="logoRow">
-          <div class="upload-icon" id="logoIcon">🖼️</div>
-          <div class="upload-info">
-            <div class="upload-name">No logo uploaded</div>
-            <div class="upload-sub">PNG/JPG, up to 10MB</div>
-          </div>
-          <button class="upload-btn" onclick="document.getElementById('logoFile').click()">Upload</button>
-          <input type="file" id="logoFile" accept="image/*" style="display:none" onchange="handleBrandingUpload(this,'logo')">
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="f-label">Store Cover</label>
-        <div class="upload-row" id="coverRow">
-          <div class="upload-icon" id="coverIcon">🖼️</div>
-          <div class="upload-info">
-            <div class="upload-name">No cover uploaded</div>
-            <div class="upload-sub">PNG/JPG, up to 10MB</div>
-          </div>
-          <button class="upload-btn" onclick="document.getElementById('coverFile').click()">Upload</button>
-          <input type="file" id="coverFile" accept="image/*" style="display:none" onchange="handleBrandingUpload(this,'cover')">
         </div>
       </div>
 
@@ -458,15 +429,11 @@ function showBanner(kind, title, sub) {
 
 function prefillFromShop(s) {
   document.getElementById('fName').value = s.name || '';
-  document.getElementById('fSlug').value = s.store_slug || '';
-  document.getElementById('fDescription').value = s.description || '';
   document.getElementById('fCategory').value = s.category_id || '';
   if (s.business_type) setBusinessType(s.business_type, true);
   document.getElementById('fFullName').value = s.full_name || '';
   document.getElementById('fAddress').value = s.address || '';
   document.getElementById('fPhone').value = s.phone || '';
-  if (s.logo) markUploaded('logo', s.logo);
-  if (s.cover_url) markUploaded('cover', s.cover_url);
   // Legacy payout fields — still prefilled so collectStep5Fields() (further
   // down, deleted in Phase 3 commit 3) keeps resaving whatever was already
   // there rather than clobbering it with blanks in the meantime.
@@ -557,16 +524,14 @@ function toggleTerm(row, key) {
    to actually create the shop row (POST /apply requires `name`) — earlier
    this used to happen a step later, before the Store step was split out on
    its own (Phase 3). If the shop already exists (resuming a pending/
-   rejected/needs_info application), PATCH instead. store_slug/description/
-   logo/cover_url still collected here too (Phase 3 commit 2 removes them
-   from this panel). ── */
+   rejected/needs_info application), PATCH instead. `name` is the only
+   field this step collects now — store_slug/description/logo/cover_url
+   were cut from this form in Phase 3 commit 2 (store_slug auto-generates
+   server-side from `name`, the rest just stay null until a Shop Settings
+   page exists). ── */
 function collectStep1Fields() {
   return {
     name: document.getElementById('fName').value.trim(),
-    store_slug: document.getElementById('fSlug').value.trim() || null,
-    description: document.getElementById('fDescription').value.trim() || null,
-    logo: STATE._logoUrl || null,
-    cover_url: STATE._coverUrl || null,
   };
 }
 
@@ -656,46 +621,6 @@ function collectStep5Fields() {
     currency: document.getElementById('fCurrency').value || null,
     return_address: document.getElementById('fReturnAddress').value.trim() || null,
   };
-}
-
-/* ── Branding (logo/cover) upload — public bucket, returns a URL immediately ── */
-async function handleBrandingUpload(input, which) {
-  const file = input.files[0];
-  if (!file) return;
-  if (!STATE.shop) {
-    // Not created yet (still on step 1, first time through) — create a
-    // minimal shop row first so there's something to attach the upload to.
-    const name = document.getElementById('fName').value.trim();
-    if (!name) { showErr('Enter a store name first.'); input.value = ''; return; }
-    try {
-      const { shop } = await ShopsAPI.apply({ name });
-      STATE.shop = shop;
-    } catch(e) { showErr(e.message || 'Could not start application.'); input.value = ''; return; }
-  }
-  try {
-    const { url } = await ShopsAPI.uploadBranding(file);
-    if (which === 'logo') STATE._logoUrl = url; else STATE._coverUrl = url;
-    await ShopsAPI.update(which === 'logo' ? { logo: url } : { cover_url: url });
-    markUploaded(which, url);
-  } catch(e) {
-    showErr(e.message || 'Upload failed.');
-  }
-  input.value = '';
-}
-
-function markUploaded(which, url) {
-  const row = document.getElementById(which + 'Row');
-  const icon = document.getElementById(which + 'Icon');
-  row.classList.add('done');
-  row.querySelector('.upload-name').textContent = which === 'logo' ? 'Logo uploaded' : 'Cover uploaded';
-  icon.innerHTML = '';
-  icon.style.background = 'transparent';
-  const img = document.createElement('img');
-  img.src = url; img.className = 'upload-preview';
-  img.style.cssText = 'width:56px;height:56px;border-radius:10px;object-fit:cover;flex-shrink:0;background:var(--gray-100);';
-  icon.replaceWith(img);
-  img.id = which + 'Icon';
-  if (which === 'logo') STATE._logoUrl = url; else STATE._coverUrl = url;
 }
 
 /* ── Document upload ── */
