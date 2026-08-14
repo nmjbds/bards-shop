@@ -72,8 +72,13 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 /* upload rows */
 .upload-row{display:flex;align-items:center;gap:10px;border:1.5px dashed var(--gray-300);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:10px;}
 .upload-row.done{border-style:solid;border-color:var(--green);background:#F0FDF4;}
+/* Base look only (empty state: gray box + 📄 emoji). The "done" state
+   (image thumbnail via background-image, or a PDF badge) is set entirely
+   via inline style in renderDocs() below, not CSS classes here -- avoids a
+   specificity fight with .upload-row.done's own selector, which would
+   otherwise need to out-rank a same-weight class selector for every
+   variant. */
 .upload-icon{width:34px;height:34px;border-radius:8px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--gray-400);}
-.upload-row.done .upload-icon{background:var(--green);color:#fff;}
 .upload-info{flex:1;min-width:0;}
 .upload-name{font-size:12px;font-weight:700;}
 .upload-sub{font-size:10px;color:var(--gray-400);margin-top:1px;}
@@ -206,7 +211,18 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
          Content and which upload row shows depends on the business type
          chosen in Step 3 (setBusinessType()/renderDocs() below) -- an
          individual uploads their ID card, a business uploads its
-         registration certificate; never both, never neither. -->
+         registration certificate; never both, never neither.
+
+         Phase 3B: the four text fields below (full_name/id_number/
+         birthdate/address) are individual-only now -- wrapped in
+         #individualFieldsGroup so renderDocs() can hide the whole group at
+         once for business_type='business'. A business shop's full_name
+         (contact person, if it was ever filled in before switching to
+         business) is left as whatever's already on the shop row --
+         collectStep4Fields() (below) simply doesn't send these keys for
+         the business path, so the existing PATCH /me `if (b.field !==
+         undefined)` pattern leaves them untouched rather than blanking
+         them out. -->
     <div class="step-panel" id="panel4">
       <div class="card-title">Identity Documents</div>
       <div class="card-sub">Required for verification.</div>
@@ -230,21 +246,23 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
         <input type="file" id="docFile_business_license" accept="image/*,application/pdf" style="display:none" onchange="handleDocUpload(this,'business_license')">
       </div>
 
-      <div class="form-group">
-        <label class="f-label" id="fullNameLabel">Full Name <span class="f-req">*</span></label>
-        <input class="f-input" id="fFullName" placeholder="Your full legal name">
-      </div>
-      <div class="form-group">
-        <label class="f-label" id="idNumberLabel">ID Card / Passport Number</label>
-        <input class="f-input" id="fIdNumber" placeholder="e.g. 001234567">
-      </div>
-      <div class="form-group">
-        <label class="f-label">Birthdate</label>
-        <input class="f-input" type="date" id="fBirthdate">
-      </div>
-      <div class="form-group">
-        <label class="f-label">Address</label>
-        <input class="f-input" id="fAddress" placeholder="Street, city, province">
+      <div id="individualFieldsGroup">
+        <div class="form-group">
+          <label class="f-label">Full Name <span class="f-req">*</span></label>
+          <input class="f-input" id="fFullName" placeholder="Your full legal name">
+        </div>
+        <div class="form-group">
+          <label class="f-label">ID Card / Passport Number</label>
+          <input class="f-input" id="fIdNumber" placeholder="e.g. 001234567">
+        </div>
+        <div class="form-group">
+          <label class="f-label">Birthdate</label>
+          <input class="f-input" type="date" id="fBirthdate">
+        </div>
+        <div class="form-group">
+          <label class="f-label">Address</label>
+          <input class="f-input" id="fAddress" placeholder="Street, city, province">
+        </div>
       </div>
 
       <div class="btn-row">
@@ -423,6 +441,37 @@ function renderNamePreview() {
   document.getElementById('namePreviewAva').textContent = (name || 'BD').trim().slice(0, 2).toUpperCase();
 }
 
+// Sets the upload-icon slot's look for one of three states: empty (no
+// file yet), a PDF (badge, since a PDF can't be thumbnailed inline without
+// a rendering library this project doesn't have), or an image (real
+// thumbnail via the signed R2 URL as a background-image). Always resets
+// every inline style property it might have set on a previous call first
+// (via cssText = ''), so switching business type back and forth or
+// re-uploading a different file type never leaves a stale background/font
+// override behind from the last state.
+function setDocIcon(icon, doc) {
+  icon.style.cssText = '';
+  if (!doc) { icon.textContent = '📄'; return; }
+  const isPdf = /\.pdf(\?|$)/i.test(doc.file_url || '');
+  if (isPdf) {
+    icon.textContent = 'PDF';
+    icon.style.cssText = 'background:var(--black);color:#fff;font-size:9px;font-weight:800;letter-spacing:.3px;';
+  } else if (doc.url) {
+    // doc.url is a short-lived presigned GET URL from signDocuments()
+    // (routes/shops.js) -- server-generated, but quotes are still stripped
+    // before interpolating into an inline style, matching the same
+    // defensive pattern shop.html already uses for SHOP.cover_url.
+    icon.textContent = '';
+    icon.style.cssText = `background-image:url("${doc.url.replace(/"/g, '')}");background-size:cover;background-position:center;`;
+  } else {
+    // Uploaded, but no signed URL available (R2_DOCS_BUCKET_NAME unset or
+    // signing failed server-side -- signDocuments() falls back to
+    // url:null rather than erroring) -- fall back to a plain checkmark.
+    icon.textContent = '✓';
+    icon.style.cssText = 'background:var(--green);color:#fff;';
+  }
+}
+
 function renderDocs() {
   const isBusiness = STATE._businessType === 'business';
   const idCardRow  = document.getElementById('docRow_id_card');
@@ -432,27 +481,18 @@ function renderDocs() {
   // entirely as of this step redesign, not just hidden).
   idCardRow.style.display = isBusiness ? 'none' : '';
   bizRow.style.display    = isBusiness ? '' : 'none';
+  // Phase 3B: full_name/id_number/birthdate/address are individual-only.
+  document.getElementById('individualFieldsGroup').style.display = isBusiness ? 'none' : '';
 
   ['id_card', 'business_license'].forEach(type => {
     const doc = STATE.documents.find(d => d.doc_type === type);
     const row = document.getElementById('docRow_' + type);
     const sub = document.getElementById('docSub_' + type);
     const icon = document.getElementById('docIcon_' + type);
-    if (doc) {
-      row.classList.add('done');
-      icon.textContent = '✓';
-      sub.textContent = 'Uploaded — ' + fmtDate(doc.uploaded_at);
-    } else {
-      row.classList.remove('done');
-      icon.textContent = '📄';
-      sub.textContent = 'Not uploaded yet';
-    }
+    row.classList.toggle('done', !!doc);
+    setDocIcon(icon, doc);
+    sub.textContent = doc ? 'Uploaded — ' + fmtDate(doc.uploaded_at) : 'Not uploaded yet';
   });
-
-  document.getElementById('fullNameLabel').innerHTML =
-    (isBusiness ? 'Contact Person Name' : 'Full Name') + ' <span class="f-req">*</span>';
-  document.getElementById('idNumberLabel').textContent =
-    isBusiness ? 'Business Registration Number' : 'ID Card / Passport Number';
 }
 
 /* ── Step navigation ── */
@@ -551,7 +591,13 @@ async function saveStep4AndContinue() {
   }
 }
 
+// Phase 3B: business shops don't show (or collect) these fields anymore —
+// returns {} for business, so saveStep5AndContinue() below knows there's
+// nothing to PATCH (an empty PATCH body is a 400 from the backend, not a
+// no-op, so that has to be handled as "skip the call entirely", not just
+// "send an empty object").
 function collectStep4Fields() {
+  if (STATE._businessType === 'business') return {};
   return {
     full_name: document.getElementById('fFullName').value.trim() || null,
     id_number: document.getElementById('fIdNumber').value.trim() || null,
@@ -561,8 +607,10 @@ function collectStep4Fields() {
 }
 
 async function saveStep5AndContinue() {
+  const fields = collectStep4Fields();
+  if (!Object.keys(fields).length) { goStep(5); return; } // business path — nothing to save at this step
   try {
-    const { shop } = await ShopsAPI.update(collectStep4Fields());
+    const { shop } = await ShopsAPI.update(fields);
     STATE.shop = shop;
     goStep(5);
   } catch(e) {
