@@ -123,3 +123,23 @@ end-to-end จริงผ่าน API ตรงๆ** จำลอง exact pay
   deploy อยู่จริง (`bards-shop`) ตั้งใจเก็บไว้เป็น fallback ตามที่เอกสารนั้นระบุไว้ตรงๆ — การ cleanup ลบ
   service เดิมทิ้งจริงเป็น "Phase 4" ของงานนั้นที่ยังไม่เริ่ม **ไม่เกี่ยวกับ scope apply flow rebuild ในไฟล์
   นี้เลย** บันทึกไว้ที่นี่เผื่ออนาคตหยิบกลับมาทำ ไม่ใช่ TODO ของ tracker นี้
+- **บั๊กที่เจอระหว่างเจ้าของโปรเจกต์ทดสอบ Phase 6 ด้วยตาจริง (2026-08-15):**
+  1. `seller-products.html`'s "Add Product" → upload รูป ขึ้น "No token. Please sign in." ทั้งที่ login
+     seller อยู่จริง — root cause: `handleFiles()` อ่าน token ผ่าน `Auth.getToken()` (customer/admin
+     identity) ตรงๆ แทนที่จะผ่าน `_activeAuth()` (seller-aware helper, `public-shared/api.js`) เหมือนจุด
+     อื่นทั้งหมดในไฟล์เดียวกัน — seller session จริงมีแต่ `SellerAuth` token ไม่มี `Auth` token เลย
+     `Auth.getToken()` เลย null เสมอ ไม่ส่ง `Authorization` header ไปเลย ใช้ได้แค่ตอน admin เข้าข้าม domain
+     ผ่าน shared `Auth` session เท่านั้น (เป็นบั๊กเก่าที่มีมาก่อน Phase 5/6 ไม่เกี่ยวกับงานรอบนี้ แค่เพิ่งเจอ
+     ระหว่างทดสอบ) แก้แล้ว (commit `be3a898`) ยืนยันด้วยการยิง `POST /seller/upload` จริงด้วย seller JWT
+     ผ่าน 200 คืน URL จริง
+  2. บัญชีทดสอบ Phase 6 เดิม (`bardsphase6indiv`/`bardsphase6biz`) มี shop ติดมาจากตอนทดสอบ backend API
+     รอบก่อน (status `pending`) ทำให้ login แล้วเด้งเข้า `/seller` dashboard ตรงๆ แทนที่จะเจอฟอร์ม `/apply`
+     ตั้งแต่ Step 1 — สร้างบัญชีทดสอบใหม่เพิ่ม 2 บัญชีที่**ยังไม่มี shop เลย** (signup อย่างเดียว ไม่ยิง
+     `POST /apply` ให้): `hnunghofficial+bardsphase6freshindiv@gmail.com` /
+     `hnunghofficial+bardsphase6freshbiz@gmail.com` (รหัสผ่าน `testpass123` ทั้งคู่) ยืนยันแล้วว่า
+     `shop_id IS NULL` ทั้งสองบัญชี — ใช้เดินฟอร์มตั้งแต่ Step 1 ได้จริง (บัญชีเดิม 2 อันที่มี shop แล้วยัง
+     เก็บไว้เหมือนเดิม ใช้ทดสอบ "resume" ของ Phase 6 ได้ต่อ)
+  - เรื่องแยกต่างหาก (ไม่ใช่บั๊กจริง แค่ตั้งค่าทดสอบผิด): "SEND CODE" ขึ้น "Internal error" รอบแรกที่ทดสอบ
+    เพราะรัน local server ที่ port `3034` ซึ่งไม่อยู่ใน CORS allow-list ของ `server-seller.js`
+    (`localhost:3000`/`5500` เท่านั้นที่อนุญาตไว้) ทำให้ทุก request รวมถึงโหลด `api.js` เองโดนบล็อกไปด้วย —
+    ย้ายไปรัน local server ที่ port `3000` แทน ไม่เกี่ยวกับ Resend/Phase 5 เลย ไม่ต้องแก้โค้ดอะไร
