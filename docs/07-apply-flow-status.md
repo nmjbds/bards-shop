@@ -22,7 +22,42 @@ Phase 4: Twilio Verify SMS OTP — โค้ด backend+frontend เสร็จ
 - TODO ค้าง: ต้องเพิ่ม validation จำกัดเฉพาะเบอร์กัมพูชาหลังทดสอบผ่าน
 
 ## ยังไม่เริ่ม
-- Phase 5: signup.html → email-only + ยืนยันด้วยโค้ดอีเมลจาก no-reply@bardskh.com (กำลังสำรวจอยู่)
+- **Phase 5: signup.html → email-only + ยืนยันด้วยโค้ดอีเมลจาก no-reply@bardskh.com — เริ่มสำรวจแล้ว
+  (2026-08-15), ยังไม่แก้โค้ด** ผลสำรวจ:
+  - `public-seller-src/signup.html` ตอนนี้เป็น 4-step flow: Step 1 = Email+**Phone** (ทั้งคู่ required) →
+    ปุ่ม "SEND CODE" เรียก email OTP, Step 2 = กรอกโค้ด OTP 6 หลักที่ส่งไปอีเมล, Step 3 = Password+Confirm
+    → `POST /signup`, Step 4 = success → ไป `/apply` — **มีระบบ email OTP ที่สมบูรณ์อยู่แล้ว** ไม่ต้องสร้าง
+    ใหม่ทั้งหมดตามที่กังวลไว้แต่แรก
+  - Backend `routes/authSeller.js` มี endpoint ครบ: `/request-otp` (purpose signup/signin),
+    `/verify-otp` (คืน short-lived otpToken ให้ `/signup` ใช้ต่อ), `/signup`, `/signin`, `/signin-otp`,
+    `/refresh`, `/logout`, `/me` — ส่งอีเมลผ่าน `services/mailer.js`'s `sendMail()` (shared
+    nodemailer/Gmail SMTP transporter ตัวเดียวกับ forgot-password ของ customer)
+  - `seller_accounts.email_verified_at` (TIMESTAMPTZ, nullable) คือ verified-status column ที่มีอยู่แล้ว
+    — set เป็น `NOW()` ทันทีตอน `POST /signup` สำเร็จ เพราะ OTP บังคับ verify ก่อนสร้าง account เสมออยู่
+    แล้ว (ไม่มี state "สมัครแล้วแต่ยัง verify ไม่ผ่าน" ค้างอยู่เลย)
+  - **ส่งจากอีเมลอะไรจริง**: เช็ค `.env` แล้ว `MAIL_FROM="Bards" <hnunghofficial@gmail.com>`,
+    `SMTP_USER=hnunghofficial@gmail.com` — **ส่งจาก Gmail ส่วนตัวจริง ไม่ใช่ no-reply@bardskh.com** ไม่มี
+    config ใดๆ ในระบบอ้างถึง mail ของโดเมน bardskh.com เลยตอนนี้ — เปลี่ยนเป็น no-reply@bardskh.com ได้ 2
+    ทาง (**ต้องคุยกับเจ้าของโปรเจกต์ก่อนเริ่ม ไม่ใช่แค่เปลี่ยนโค้ด**): (a) ตั้ง `no-reply@bardskh.com` เป็น
+    Gmail "Send As" alias ในบัญชี `hnunghofficial@gmail.com` เดิม — เร็ว/ฟรี แต่บาง mail client อาจยังโชว์
+    "via gmail.com" และ SPF/DKIM ไม่เต็มร้อย หรือ (b) ตั้ง domain email จริงของ bardskh.com (Google
+    Workspace หรือ transactional email service เช่น SendGrid/SES ที่ verify DNS ของโดเมนเอง) — infra งาน
+    แยกต่างหาก ไม่ใช่แค่แก้ `.env`
+  - **ช่องเบอร์โทรตอนนี้ required ทั้งสองฝั่ง** (frontend JS validate ความยาว≥6, backend zod
+    `phoneSchema` เดียวกัน, DB column `seller_accounts.phone` เป็น `NOT NULL UNIQUE`) **แต่ไม่ verify ผ่าน
+    SMS ที่ signup เลย** — เก็บไว้เฉยๆ เช็คแล้วพบว่า `apply.html` Step 5 (Phase 4, Twilio Verify) เก็บเบอร์
+    โทร**อีกรอบหนึ่งต่างหาก**และ verify ด้วย SMS OTP จริงตรงนั้น — เบอร์ที่กรอกตอน signup กับตอน apply เป็น
+    คนละช่อง ไม่มี prefill/sync ข้ามกันเลย → **เบอร์ที่ signup ซ้ำซ้อน 100% กับของ apply.html และไม่เคยถูก
+    verify จริง** ตรงกับที่ต้องการตัดออกทั้งหมด ให้เหลือ signup ด้วยอีเมล+รหัสผ่านอย่างเดียว (phone/SMS
+    verification ยังทำที่ apply.html เหมือนเดิม ไม่กระทบ)
+  - **สรุปแนวทางที่แนะนำ (ยังไม่ได้เริ่มเขียนโค้ด รอคำสั่ง)**: (1) ตัด field เบอร์โทร + step ที่เกี่ยวข้อง
+    ออกจาก `signup.html`, แก้ `SellerAuthAPI.signup()` (`public-shared/api.js:339`) ให้ไม่ส่ง `phone`,
+    (2) แก้ `signupSchema`/`POST /signup` ใน `routes/authSeller.js` ให้ไม่ต้องรับ/บังคับ `phone`, (3) แก้
+    schema DB: `seller_accounts.phone` ต้องเปลี่ยนจาก `NOT NULL UNIQUE` เป็น nullable (ต้อง ALTER COLUMN,
+    กระทบแถวเดิมถ้ามี — ต้องเช็คว่ามี seller จริงสมัครแล้วกี่คนก่อนแก้), (4) ตัดสินใจเรื่อง MAIL_FROM ก่อน
+    (ข้อบนสุด) แล้วอัปเดต `.env`/mailer config ตาม — ยังไม่ได้ประเมิน `public-customer-src`/`public-admin-src`
+    ว่ามีจุดไหนอ้างอิง `seller_accounts.phone` แบบคาดว่ามีค่าเสมอหรือไม่ (เช่น admin ดูรายชื่อ seller) ต้อง
+    เช็คเพิ่มก่อนแก้ schema จริง
 - Phase 6: Popup สรุปตรวจสอบก่อน submit + เปลี่ยนเป็น atomic submit
 - Phase 7: หน้า /settle/verification + /settle/verification-result
 - Phase 8: ปรับ UI ให้มีภาพประกอบ/สีสัน มืออาชีพแบบ TikTok
