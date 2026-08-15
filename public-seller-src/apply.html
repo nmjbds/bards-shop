@@ -846,12 +846,44 @@ function handleDocSelect(input, docType) {
   renderDocs();
 }
 
-/* ── Final submit / resubmit / save-changes (already approved) ── */
+/* ── Final submit (Phase 6) ──────────────────────────────────────────────
+   Every field this form collects is gathered here in one shot and sent as
+   a single POST /apply (brand new shop) or PATCH /me (resuming/editing an
+   existing one) — both already accept the full field set in one request
+   (shopApplySchema/shopUpdateSchema, routes/shops.js), so no backend change
+   was needed for this. Then any newly-picked document file(s) upload, then
+   a resubmit call if this was a rejected/needs_info application coming
+   back.
+
+   Not a real database transaction across those calls (POST/PATCH,
+   POST /me/documents, POST /me/resubmit are three separate endpoints/
+   tables — out of scope to change per the plan) so this can't be truly
+   atomic. What it can be is *idempotent*: STATE.shop is set the instant the
+   first call succeeds, so if a later step fails and the seller presses
+   Submit again, this function checks STATE.shop and sends a PATCH instead
+   of re-POSTing, and skips any document already removed from
+   STATE._pendingDocs by a prior successful upload. A retry after a partial
+   failure only re-attempts what didn't finish. ── */
+function collectAllFields() {
+  const fields = {
+    name:          collectStep1Fields().name,
+    category_id:   document.getElementById('fCategory').value || null,
+    business_type: STATE._businessType || null,
+    phone:         document.getElementById('fPhone').value.trim(),
+    ...collectStep4Fields(), // {} for business — leaves full_name/id_number/birthdate/address untouched server-side
+  };
+  return fields;
+}
+
 async function handleFinalSubmit() {
   const alreadyApproved = STATE.shop && STATE.shop.status === 'approved';
+  const popupOpen = document.getElementById('reviewModal').classList.contains('show');
+  const btn = document.getElementById(popupOpen ? 'submitBtn' : 'step5NextBtn');
 
   // Terms/documents are first-application requirements only — an already-
-  // approved seller editing their profile already agreed to these once.
+  // approved seller editing their profile already agreed to these once and
+  // never sees the popup at all (continueFromStep5() routes them straight
+  // here instead).
   if (!alreadyApproved) {
     if (!STATE.terms.agreement || !STATE.terms.privacy || !STATE.terms.commission) {
       showErr('Please accept all three agreements to continue.');
@@ -859,35 +891,62 @@ async function handleFinalSubmit() {
     }
     const isBusiness = STATE._businessType === 'business';
     const requiredDocType = isBusiness ? 'business_license' : 'id_card';
-    const hasRequiredDoc = STATE.documents.some(d => d.doc_type === requiredDocType);
+    const hasRequiredDoc = STATE.documents.some(d => d.doc_type === requiredDocType) || !!STATE._pendingDocs[requiredDocType];
     if (!hasRequiredDoc) {
       showErr(isBusiness ? 'Please upload your business registration certificate (Step 4).' : 'Please upload your ID card / passport (Step 4).');
       return;
     }
   }
 
-  const btn = document.getElementById('submitBtn');
   btn.classList.add('loading');
+  clearErr();
+  let stage = 'save your info';
   try {
+    const fields = collectAllFields();
+    if (STATE.shop) {
+      const { shop } = await ShopsAPI.update(fields);
+      STATE.shop = shop;
+    } else {
+      const { shop } = await ShopsAPI.apply(fields);
+      STATE.shop = shop;
+    }
+
+    stage = 'upload your documents';
+    for (const docType of Object.keys(STATE._pendingDocs)) {
+      const file = STATE._pendingDocs[docType];
+      if (!file) continue;
+      const { document: doc } = await ShopsAPI.uploadDocument(file, docType);
+      STATE.documents = STATE.documents.filter(d => d.doc_type !== docType).concat(doc);
+      delete STATE._pendingDocs[docType];
+      if (STATE._pendingDocPreviewUrls[docType]) {
+        URL.revokeObjectURL(STATE._pendingDocPreviewUrls[docType]);
+        delete STATE._pendingDocPreviewUrls[docType];
+      }
+    }
+
+    stage = 'submit your application';
+    const resubmit = !alreadyApproved && ['rejected', 'needs_info'].includes(STATE.shop.status);
+    if (resubmit) { await ShopsAPI.resubmit(); STATE.shop.status = 'pending'; }
+
+    btn.classList.remove('loading');
+    clearUnsavedGuard();
+
     if (alreadyApproved) {
-      // Nothing left to flush here — every field left in this form now
-      // saves as-you-go on its own step's Continue button (Phase 3 removed
-      // the one field group, bank/return_address, that used to need a
-      // final catch-all save here). This click just confirms nothing's
-      // pending.
-      btn.classList.remove('loading');
       toast('✓ Changes saved');
       return;
     }
-    const resubmit = STATE.shop && ['rejected', 'needs_info'].includes(STATE.shop.status);
-    if (resubmit) await ShopsAPI.resubmit();
-    btn.classList.remove('loading');
+
+    closeReviewPopup();
     document.getElementById('statusBanner').classList.remove('show');
     document.getElementById('stepsNav').style.display = 'none';
     showOnly('panelDone');
   } catch(e) {
     btn.classList.remove('loading');
-    showErr(e.message || 'Could not submit — please try again.');
+    // STATE.shop being set means at least the shop row itself is saved —
+    // reassure the seller a retry won't duplicate anything, it'll just pick
+    // up wherever this attempt stopped (see this function's header comment).
+    const retryNote = STATE.shop ? ' Your info so far has been saved — it’s safe to press Submit again.' : '';
+    showErr((e.message || `Could not ${stage}.`) + retryNote);
   }
 }
 
