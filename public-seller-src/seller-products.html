@@ -527,8 +527,12 @@ async function handleFiles(fileList) {
   toUpload.forEach(() => _images.push({ url: '', type: 'uploading' }));
   renderImgGrid();
 
-  // Batch upload ทุกไฟล์ในครั้งเดียว
-  const token = Auth.getToken();
+  // Batch upload ทุกไฟล์ในครั้งเดียว — _activeAuth() (public-shared/api.js), not Auth
+  // directly: a real seller session only has a SellerAuth token, never an Auth
+  // one, so Auth.getToken() was always null for them and every upload here 401'd
+  // with "No token" even while fully signed in (found 2026-08-15) — only worked
+  // for an admin browsing in cross-domain via the shared Auth session.
+  const token = _activeAuth().getToken();
   const fd = new FormData();
   toUpload.forEach(f => fd.append('images', f));
   try {
