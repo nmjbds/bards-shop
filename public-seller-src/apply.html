@@ -115,6 +115,19 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .done-title{font-family:'Bebas Neue';font-size:20px;letter-spacing:2px;margin-bottom:8px;}
 .done-sub{font-size:12.5px;color:var(--gray-400);line-height:1.6;max-width:340px;margin:0 auto;}
 
+/* Review popup (Phase 6) — replaces the old in-form Step 6 "Review & Submit"
+   panel. A real full-viewport overlay (not nested inside .wrap, which is
+   max-width:560px and would clip/misposition a backdrop) so it sits above
+   everything including the step nav and status banner. */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,10,10,.55);z-index:1000;overflow-y:auto;padding:32px 16px 60px;}
+.modal-overlay.show{display:flex;justify-content:center;}
+.modal-card{width:100%;max-width:560px;height:fit-content;}
+.review-list{margin-bottom:18px;}
+.review-row{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--gray-100);}
+.review-row:last-child{border-bottom:none;}
+.review-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-400);flex-shrink:0;padding-top:1px;}
+.review-value{font-size:12.5px;font-weight:600;text-align:right;word-break:break-word;}
+
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(4px);background:var(--black);color:#fff;padding:11px 16px;border-radius:10px;font-size:12.5px;font-weight:600;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;box-shadow:var(--shadow-modal);}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
@@ -329,6 +342,43 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- ══════ Review popup (Phase 6) — replaces the old in-form Step 6.
+     Opened from Step 5's Continue (continueFromStep5()) for a new or
+     resubmitted application; an already-approved shop editing its profile
+     skips this entirely and saves directly. Read-only summary + the same 3
+     agreement checkboxes the old Step 6 panel had, moved in here. ══════ -->
+<div class="modal-overlay" id="reviewModal">
+  <div class="modal-card bc-card fu">
+    <div class="err-banner" id="popupErrBanner">
+      <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span id="popupErrMsg"></span>
+    </div>
+
+    <div class="card-title">Review Your Information</div>
+    <div class="card-sub">Please confirm everything below is correct — we'll use it to verify your identity.</div>
+
+    <div class="review-list" id="reviewList"></div>
+
+    <div class="terms-row" onclick="toggleTerm(this,'agreement')">
+      <div class="checkbox" id="boxAgreement"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="terms-text">I agree to the Bards Marketplace Agreement</div>
+    </div>
+    <div class="terms-row" onclick="toggleTerm(this,'privacy')">
+      <div class="checkbox" id="boxPrivacy"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="terms-text">I agree to the Privacy Policy</div>
+    </div>
+    <div class="terms-row" onclick="toggleTerm(this,'commission')">
+      <div class="checkbox" id="boxCommission"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div class="terms-text">I understand and accept the commission structure</div>
+    </div>
+
+    <div class="btn-row">
+      <button class="bc-btn bc-btn--ghost" onclick="closeReviewPopup()">Back</button>
+      <button class="bc-btn bc-btn--primary" id="submitBtn" onclick="handleFinalSubmit()">Submit Application</button>
+    </div>
   </div>
 </div>
 
@@ -576,11 +626,62 @@ function setBusinessType(type, silent) {
   if (!silent) renderDocs();
 }
 
-/* ── Terms checkboxes ── */
+/* ── Terms checkboxes (now live inside the review popup, Phase 6) ── */
 function toggleTerm(row, key) {
   STATE.terms[key] = !STATE.terms[key];
   const boxId = 'box' + key.charAt(0).toUpperCase() + key.slice(1);
   document.getElementById(boxId).classList.toggle('on', STATE.terms[key]);
+  markDirty();
+}
+
+/* ── Review popup (Phase 6) ── */
+function reviewRow(label, value) {
+  return `<div class="review-row"><div class="review-label">${escapeHtml(label)}</div><div class="review-value">${escapeHtml(value || '—')}</div></div>`;
+}
+
+function renderReviewSummary() {
+  const isBusiness = STATE._businessType === 'business';
+  const catSel = document.getElementById('fCategory');
+  const catName = catSel.selectedIndex > 0 ? catSel.options[catSel.selectedIndex].textContent : '—';
+
+  const rows = [
+    reviewRow('Store Name', document.getElementById('fName').value.trim()),
+    reviewRow('Category', catName),
+    reviewRow('Business Type', isBusiness ? 'Business' : 'Individual'),
+  ];
+
+  if (isBusiness) {
+    const pending  = STATE._pendingDocs.business_license;
+    const existing = STATE.documents.find(d => d.doc_type === 'business_license');
+    rows.push(reviewRow('Business Registration', pending ? pending.name : (existing ? 'Uploaded' : 'Not uploaded')));
+  } else {
+    rows.push(reviewRow('Full Name', document.getElementById('fFullName').value.trim()));
+    rows.push(reviewRow('ID Number', document.getElementById('fIdNumber').value.trim()));
+    rows.push(reviewRow('Birthdate', document.getElementById('fBirthdate').value));
+    rows.push(reviewRow('Address', document.getElementById('fAddress').value.trim()));
+    const pending  = STATE._pendingDocs.id_card;
+    const existing = STATE.documents.find(d => d.doc_type === 'id_card');
+    rows.push(reviewRow('ID Card / Passport', pending ? pending.name : (existing ? 'Uploaded' : 'Not uploaded')));
+  }
+
+  const phone = document.getElementById('fPhone').value.trim();
+  rows.push(reviewRow('Phone', phone + (STATE._phoneVerified ? ' ✓ Verified' : '')));
+  rows.push(reviewRow('Email', document.getElementById('fEmail').value));
+
+  document.getElementById('reviewList').innerHTML = rows.join('');
+}
+
+function openReviewPopup() {
+  clearErr();
+  renderReviewSummary();
+  document.getElementById('reviewModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeReviewPopup() {
+  document.getElementById('reviewModal').classList.remove('show');
+  document.body.style.overflow = '';
+  clearErr();
 }
 
 /* ── Phase 6 (deferred save): every step below is now pure client-side
@@ -795,12 +896,26 @@ function fmtDate(iso) {
   try { return new Date(iso).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' }); }
   catch(e) { return ''; }
 }
+// Popup-aware (Phase 6) — the in-form #errBanner sits behind the review
+// popup's own overlay once it's open, so an error from that stage (failed
+// submit, unchecked agreement, etc.) has to render inside #popupErrBanner
+// instead, or it'd be invisible.
 function showErr(msg) {
-  document.getElementById('errMsg').textContent = msg;
-  document.getElementById('errBanner').classList.add('show');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const popupOpen = document.getElementById('reviewModal').classList.contains('show');
+  if (popupOpen) {
+    document.getElementById('popupErrMsg').textContent = msg;
+    document.getElementById('popupErrBanner').classList.add('show');
+    document.getElementById('popupErrBanner').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } else {
+    document.getElementById('errMsg').textContent = msg;
+    document.getElementById('errBanner').classList.add('show');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 }
-function clearErr() { document.getElementById('errBanner').classList.remove('show'); }
+function clearErr() {
+  document.getElementById('errBanner').classList.remove('show');
+  document.getElementById('popupErrBanner').classList.remove('show');
+}
 
 let _tt;
 function toast(m) {
