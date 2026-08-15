@@ -690,8 +690,8 @@ const ShopsAPI = {
      tracks the pending code itself), doesn't touch `shops` at all. Callers
      still PATCH /shops/me { phone } separately once verified, same as
      before Phase 4. */
-  startPhoneVerification(phone)       { return apiFetch('/shops/verify-phone/start', { method: 'POST', body: { phone }, auth: true }); },
-  checkPhoneVerification(phone, code) { return apiFetch('/shops/verify-phone/check', { method: 'POST', body: { phone, code }, auth: true }); },
+  startPhoneVerification(phone, dialCode)       { return apiFetch('/shops/verify-phone/start', { method: 'POST', body: { phone, dial_code: dialCode }, auth: true }); },
+  checkPhoneVerification(phone, code, dialCode) { return apiFetch('/shops/verify-phone/check', { method: 'POST', body: { phone, code, dial_code: dialCode }, auth: true }); },
 
   /* Document upload — multipart, not through apiFetch() (same reason as
      AuthAPI.uploadAvatar above: always sends JSON). Token picked via

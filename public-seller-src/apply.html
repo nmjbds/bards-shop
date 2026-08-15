@@ -96,16 +96,33 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .bc-btn{flex:1;}
 .bc-btn--ghost{flex:0 0 110px;}
 
-/* Phone verification (Phase 4, Step 5) — input + action button side by
-   side. Overrides .bc-btn's width:100% (components.css) and this file's
-   own flex:1 above via a 2-class-specificity descendant selector, rather
-   than adding a modifier class to every button used inside it. */
+/* Phone verification (Phase 4, Step 5) — the OTP-code row (input + Verify
+   button side by side) reuses this. Overrides .bc-btn's width:100%
+   (components.css) and this file's own flex:1 above via a
+   2-class-specificity descendant selector, rather than adding a modifier
+   class to every button used inside it. */
 .inline-row{display:flex;gap:8px;}
 .inline-row .f-input{flex:1;}
 .inline-row .bc-btn{flex:0 0 auto;width:auto;height:46px;padding:0 16px;white-space:nowrap;}
 .verified-badge{display:flex;align-items:center;gap:8px;border:1.5px solid #BBF7D0;background:#F0FDF4;border-radius:var(--radius-sm);padding:11px 14px;font-size:12.5px;font-weight:700;color:#166534;}
 .verified-badge button{background:none;border:none;color:var(--gray-400);font-size:11px;font-weight:600;text-decoration:underline;cursor:pointer;margin-left:auto;padding:0;}
 .verified-badge button:hover{color:var(--black);}
+
+/* Phone field (redesigned, TikTok Seller Center reference) — dial-code
+   select + local-number input + a "Send code" text link all share one
+   bordered box (matches the reference's "TH +66 | 81 234 5678  Send code"
+   layout), instead of the input and a full-width Send Code button being
+   two separate elements. */
+.phone-box{display:flex;align-items:center;height:46px;border:1.5px solid var(--gray-200);border-radius:var(--radius-sm);background:var(--white);transition:border-color .2s;overflow:hidden;}
+.phone-box:focus-within{border-color:var(--black);}
+.phone-dial{flex-shrink:0;max-width:96px;height:100%;border:none;background:transparent;padding:0 6px 0 12px;font-family:'Space Grotesk',sans-serif;font-size:12.5px;font-weight:700;color:var(--black);outline:none;-webkit-appearance:none;appearance:none;}
+.phone-div{flex-shrink:0;width:1.5px;align-self:stretch;margin:9px 0;background:var(--gray-200);}
+.phone-num{flex:1;min-width:0;height:100%;border:none;background:transparent;padding:0 10px;font-family:'Space Grotesk',sans-serif;font-size:13px;color:var(--black);outline:none;}
+.phone-num::placeholder{color:var(--gray-300);}
+.phone-dial:disabled,.phone-num:disabled{color:var(--gray-400);}
+.phone-send-link{flex-shrink:0;background:none;border:none;color:var(--black);font-size:11.5px;font-weight:700;cursor:pointer;padding:0 14px 0 8px;white-space:nowrap;}
+.phone-send-link:hover:not(:disabled){text-decoration:underline;}
+.phone-send-link:disabled{color:var(--gray-300);cursor:default;}
 
 .err-banner{background:#FEF2F2;border:1.5px solid #FECACA;border-radius:var(--radius-sm);padding:11px 13px;font-size:12px;color:var(--red);margin-bottom:16px;display:none;align-items:center;gap:8px;}
 .err-banner.show{display:flex;}
@@ -307,15 +324,20 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       </div>
       <div class="form-group">
         <label class="f-label">Phone <span class="f-req">*</span></label>
-        <div class="inline-row">
-          <input class="f-input" id="fPhone" placeholder="012 345 678">
-          <button class="bc-btn bc-btn--primary" id="phoneSendBtn" onclick="handleSendCode()">Send Code</button>
+        <div class="phone-box">
+          <select class="phone-dial" id="fDialCode"></select>
+          <div class="phone-div"></div>
+          <input class="phone-num" id="fPhone" placeholder="12 345 678" inputmode="tel">
+          <button type="button" class="phone-send-link" id="phoneSendBtn" onclick="handleSendCode()">Send code</button>
         </div>
         <div class="f-hint" id="phoneHint">We'll text you a 6-digit code to verify this number.</div>
 
-        <div class="inline-row" id="otpRow" style="display:none">
-          <input class="f-input" id="fOtpCode" placeholder="6-digit code" inputmode="numeric" maxlength="6">
-          <button class="bc-btn bc-btn--primary" id="otpVerifyBtn" onclick="handleVerifyCode()">Verify</button>
+        <!-- Always visible (TikTok reference) — the code field doesn't pop
+             in only after "Send code" is pressed anymore, it's just
+             disabled until there's an actual pending code to check. -->
+        <div class="inline-row" id="otpRow">
+          <input class="f-input" id="fOtpCode" placeholder="6-digit code" inputmode="numeric" maxlength="6" disabled>
+          <button class="bc-btn bc-btn--primary" id="otpVerifyBtn" onclick="handleVerifyCode()" disabled>Verify</button>
         </div>
 
         <div class="verified-badge" id="phoneVerifiedBadge" style="display:none">
@@ -403,6 +425,143 @@ let STATE = {
   _pendingDocs: {},
   _pendingDocPreviewUrls: {},
 };
+
+/* ── Country dial code selector — open to any country for now (per the
+   project owner, so testing isn't blocked by the marketplace being
+   Cambodia-only) — TODO once real testing/launch is closer: lock this
+   list down to +855 only. Cambodia is still pinned first and selected by
+   default since it's the actual target market; everything else is sorted
+   alphabetically below it. Rendered from data (not hand-written <option>
+   tags) matching how #fCategory is populated elsewhere on this same page. */
+const DIAL_CODES = [
+  { c:'KH', d:'+855', n:'Cambodia' },
+  { c:'AF', d:'+93',  n:'Afghanistan' }, { c:'AL', d:'+355', n:'Albania' },
+  { c:'DZ', d:'+213', n:'Algeria' },     { c:'AD', d:'+376', n:'Andorra' },
+  { c:'AO', d:'+244', n:'Angola' },      { c:'AR', d:'+54',  n:'Argentina' },
+  { c:'AM', d:'+374', n:'Armenia' },     { c:'AU', d:'+61',  n:'Australia' },
+  { c:'AT', d:'+43',  n:'Austria' },     { c:'AZ', d:'+994', n:'Azerbaijan' },
+  { c:'BH', d:'+973', n:'Bahrain' },     { c:'BD', d:'+880', n:'Bangladesh' },
+  { c:'BY', d:'+375', n:'Belarus' },     { c:'BE', d:'+32',  n:'Belgium' },
+  { c:'BZ', d:'+501', n:'Belize' },      { c:'BJ', d:'+229', n:'Benin' },
+  { c:'BT', d:'+975', n:'Bhutan' },      { c:'BO', d:'+591', n:'Bolivia' },
+  { c:'BA', d:'+387', n:'Bosnia and Herzegovina' }, { c:'BW', d:'+267', n:'Botswana' },
+  { c:'BR', d:'+55',  n:'Brazil' },      { c:'BN', d:'+673', n:'Brunei' },
+  { c:'BG', d:'+359', n:'Bulgaria' },    { c:'BF', d:'+226', n:'Burkina Faso' },
+  { c:'BI', d:'+257', n:'Burundi' },     { c:'CM', d:'+237', n:'Cameroon' },
+  { c:'CA', d:'+1',   n:'Canada' },      { c:'CV', d:'+238', n:'Cape Verde' },
+  { c:'CF', d:'+236', n:'Central African Republic' }, { c:'TD', d:'+235', n:'Chad' },
+  { c:'CL', d:'+56',  n:'Chile' },       { c:'CN', d:'+86',  n:'China' },
+  { c:'CO', d:'+57',  n:'Colombia' },    { c:'KM', d:'+269', n:'Comoros' },
+  { c:'CG', d:'+242', n:'Congo' },       { c:'CD', d:'+243', n:'Congo (DRC)' },
+  { c:'CR', d:'+506', n:'Costa Rica' },  { c:'HR', d:'+385', n:'Croatia' },
+  { c:'CU', d:'+53',  n:'Cuba' },        { c:'CY', d:'+357', n:'Cyprus' },
+  { c:'CZ', d:'+420', n:'Czechia' },     { c:'DK', d:'+45',  n:'Denmark' },
+  { c:'DJ', d:'+253', n:'Djibouti' },    { c:'DO', d:'+1',   n:'Dominican Republic' },
+  { c:'EC', d:'+593', n:'Ecuador' },     { c:'EG', d:'+20',  n:'Egypt' },
+  { c:'SV', d:'+503', n:'El Salvador' }, { c:'EE', d:'+372', n:'Estonia' },
+  { c:'ET', d:'+251', n:'Ethiopia' },    { c:'FJ', d:'+679', n:'Fiji' },
+  { c:'FI', d:'+358', n:'Finland' },     { c:'FR', d:'+33',  n:'France' },
+  { c:'GA', d:'+241', n:'Gabon' },       { c:'GM', d:'+220', n:'Gambia' },
+  { c:'GE', d:'+995', n:'Georgia' },     { c:'DE', d:'+49',  n:'Germany' },
+  { c:'GH', d:'+233', n:'Ghana' },       { c:'GR', d:'+30',  n:'Greece' },
+  { c:'GT', d:'+502', n:'Guatemala' },   { c:'GN', d:'+224', n:'Guinea' },
+  { c:'GY', d:'+592', n:'Guyana' },      { c:'HT', d:'+509', n:'Haiti' },
+  { c:'HN', d:'+504', n:'Honduras' },    { c:'HK', d:'+852', n:'Hong Kong' },
+  { c:'HU', d:'+36',  n:'Hungary' },     { c:'IS', d:'+354', n:'Iceland' },
+  { c:'IN', d:'+91',  n:'India' },       { c:'ID', d:'+62',  n:'Indonesia' },
+  { c:'IR', d:'+98',  n:'Iran' },        { c:'IQ', d:'+964', n:'Iraq' },
+  { c:'IE', d:'+353', n:'Ireland' },     { c:'IL', d:'+972', n:'Israel' },
+  { c:'IT', d:'+39',  n:'Italy' },       { c:'CI', d:'+225', n:'Ivory Coast' },
+  { c:'JM', d:'+1',   n:'Jamaica' },     { c:'JP', d:'+81',  n:'Japan' },
+  { c:'JO', d:'+962', n:'Jordan' },      { c:'KZ', d:'+7',   n:'Kazakhstan' },
+  { c:'KE', d:'+254', n:'Kenya' },       { c:'KW', d:'+965', n:'Kuwait' },
+  { c:'KG', d:'+996', n:'Kyrgyzstan' },  { c:'LA', d:'+856', n:'Laos' },
+  { c:'LV', d:'+371', n:'Latvia' },      { c:'LB', d:'+961', n:'Lebanon' },
+  { c:'LS', d:'+266', n:'Lesotho' },     { c:'LR', d:'+231', n:'Liberia' },
+  { c:'LY', d:'+218', n:'Libya' },       { c:'LI', d:'+423', n:'Liechtenstein' },
+  { c:'LT', d:'+370', n:'Lithuania' },   { c:'LU', d:'+352', n:'Luxembourg' },
+  { c:'MO', d:'+853', n:'Macau' },       { c:'MG', d:'+261', n:'Madagascar' },
+  { c:'MW', d:'+265', n:'Malawi' },      { c:'MY', d:'+60',  n:'Malaysia' },
+  { c:'MV', d:'+960', n:'Maldives' },    { c:'ML', d:'+223', n:'Mali' },
+  { c:'MT', d:'+356', n:'Malta' },       { c:'MR', d:'+222', n:'Mauritania' },
+  { c:'MU', d:'+230', n:'Mauritius' },   { c:'MX', d:'+52',  n:'Mexico' },
+  { c:'MD', d:'+373', n:'Moldova' },     { c:'MC', d:'+377', n:'Monaco' },
+  { c:'MN', d:'+976', n:'Mongolia' },    { c:'ME', d:'+382', n:'Montenegro' },
+  { c:'MA', d:'+212', n:'Morocco' },     { c:'MZ', d:'+258', n:'Mozambique' },
+  { c:'MM', d:'+95',  n:'Myanmar' },     { c:'NA', d:'+264', n:'Namibia' },
+  { c:'NP', d:'+977', n:'Nepal' },       { c:'NL', d:'+31',  n:'Netherlands' },
+  { c:'NZ', d:'+64',  n:'New Zealand' }, { c:'NI', d:'+505', n:'Nicaragua' },
+  { c:'NE', d:'+227', n:'Niger' },       { c:'NG', d:'+234', n:'Nigeria' },
+  { c:'KP', d:'+850', n:'North Korea' }, { c:'MK', d:'+389', n:'North Macedonia' },
+  { c:'NO', d:'+47',  n:'Norway' },      { c:'OM', d:'+968', n:'Oman' },
+  { c:'PK', d:'+92',  n:'Pakistan' },    { c:'PA', d:'+507', n:'Panama' },
+  { c:'PG', d:'+675', n:'Papua New Guinea' }, { c:'PY', d:'+595', n:'Paraguay' },
+  { c:'PE', d:'+51',  n:'Peru' },        { c:'PH', d:'+63',  n:'Philippines' },
+  { c:'PL', d:'+48',  n:'Poland' },      { c:'PT', d:'+351', n:'Portugal' },
+  { c:'QA', d:'+974', n:'Qatar' },       { c:'RO', d:'+40',  n:'Romania' },
+  { c:'RU', d:'+7',   n:'Russia' },      { c:'RW', d:'+250', n:'Rwanda' },
+  { c:'SA', d:'+966', n:'Saudi Arabia' },{ c:'SN', d:'+221', n:'Senegal' },
+  { c:'RS', d:'+381', n:'Serbia' },      { c:'SC', d:'+248', n:'Seychelles' },
+  { c:'SL', d:'+232', n:'Sierra Leone' },{ c:'SG', d:'+65',  n:'Singapore' },
+  { c:'SK', d:'+421', n:'Slovakia' },    { c:'SI', d:'+386', n:'Slovenia' },
+  { c:'SO', d:'+252', n:'Somalia' },     { c:'ZA', d:'+27',  n:'South Africa' },
+  { c:'KR', d:'+82',  n:'South Korea' }, { c:'SS', d:'+211', n:'South Sudan' },
+  { c:'ES', d:'+34',  n:'Spain' },       { c:'LK', d:'+94',  n:'Sri Lanka' },
+  { c:'SD', d:'+249', n:'Sudan' },       { c:'SR', d:'+597', n:'Suriname' },
+  { c:'SE', d:'+46',  n:'Sweden' },      { c:'CH', d:'+41',  n:'Switzerland' },
+  { c:'SY', d:'+963', n:'Syria' },       { c:'TW', d:'+886', n:'Taiwan' },
+  { c:'TJ', d:'+992', n:'Tajikistan' },  { c:'TZ', d:'+255', n:'Tanzania' },
+  { c:'TH', d:'+66',  n:'Thailand' },    { c:'TG', d:'+228', n:'Togo' },
+  { c:'TO', d:'+676', n:'Tonga' },       { c:'TT', d:'+1',   n:'Trinidad and Tobago' },
+  { c:'TN', d:'+216', n:'Tunisia' },     { c:'TR', d:'+90',  n:'Turkey' },
+  { c:'TM', d:'+993', n:'Turkmenistan' },{ c:'UG', d:'+256', n:'Uganda' },
+  { c:'UA', d:'+380', n:'Ukraine' },     { c:'AE', d:'+971', n:'United Arab Emirates' },
+  { c:'GB', d:'+44',  n:'United Kingdom' }, { c:'US', d:'+1', n:'United States' },
+  { c:'UY', d:'+598', n:'Uruguay' },     { c:'UZ', d:'+998', n:'Uzbekistan' },
+  { c:'VU', d:'+678', n:'Vanuatu' },     { c:'VE', d:'+58',  n:'Venezuela' },
+  { c:'VN', d:'+84',  n:'Vietnam' },     { c:'YE', d:'+967', n:'Yemen' },
+  { c:'ZM', d:'+260', n:'Zambia' },      { c:'ZW', d:'+263', n:'Zimbabwe' },
+];
+const DEFAULT_DIAL_CODE = '+855';
+
+function renderDialCodes() {
+  const sel = document.getElementById('fDialCode');
+  const kh = DIAL_CODES[0]; // pinned first, matches DEFAULT_DIAL_CODE
+  const rest = DIAL_CODES.slice(1).sort((a, b) => a.n.localeCompare(b.n));
+  [kh, ...rest].forEach(entry => {
+    const o = document.createElement('option');
+    o.value = entry.d;
+    o.textContent = `${entry.c} ${entry.d}`;
+    o.title = entry.n;
+    sel.appendChild(o);
+  });
+  sel.value = DEFAULT_DIAL_CODE;
+}
+renderDialCodes();
+
+// Longest-dial-code-first so a shared/short prefix (there are several +1
+// countries in the list above) never gets picked over a more specific match
+// -- defensive, not currently load-bearing since no two dial codes in this
+// list are numeric prefixes of each other.
+function dialCodeFromE164(phone) {
+  return DIAL_CODES
+    .slice()
+    .sort((a, b) => b.d.length - a.d.length)
+    .find(entry => phone.startsWith(entry.d));
+}
+
+// Combines the two phone fields into one E.164-ish string for saving
+// (`shops.phone`) and for the review popup — strips a leading trunk 0 from
+// the local part first, same normalization normalizePhoneKH() applies
+// server-side before actually sending to Twilio, so the saved value always
+// matches what was actually verified rather than a slightly different
+// string (e.g. saving "+8550123..." while "+855123..." is what got
+// verified).
+function fullPhoneE164() {
+  const dial = document.getElementById('fDialCode').value;
+  const local = document.getElementById('fPhone').value.trim().replace(/^0+/, '');
+  return dial + local;
+}
 
 /* ── Auth guard — seller identity split: must be signed in through
    seller.bardskh.com's OWN signup/signin (SellerAuth), not a bardskh.com
@@ -504,7 +663,19 @@ function prefillFromShop(s) {
   document.getElementById('fIdNumber').value = s.id_number || '';
   document.getElementById('fBirthdate').value = s.birthdate ? s.birthdate.slice(0, 10) : '';
   document.getElementById('fAddress').value = s.address || '';
-  document.getElementById('fPhone').value = s.phone || '';
+  // s.phone is saved as a full E.164 string (dial code + number, see
+  // collectAllFields()) -- split it back into the two fields the country
+  // selector expects. Falls back to showing the raw value with the dial
+  // code left at its default if it doesn't match anything in DIAL_CODES
+  // (e.g. a value saved before this selector existed).
+  if (s.phone) {
+    const match = dialCodeFromE164(s.phone);
+    document.getElementById('fDialCode').value = match ? match.d : DEFAULT_DIAL_CODE;
+    document.getElementById('fPhone').value = match ? s.phone.slice(match.d.length) : s.phone;
+  } else {
+    document.getElementById('fDialCode').value = DEFAULT_DIAL_CODE;
+    document.getElementById('fPhone').value = '';
+  }
 }
 
 /* ── Step 1 store-name live preview — mirrors product.html's actual shop
@@ -664,8 +835,7 @@ function renderReviewSummary() {
     rows.push(reviewRow('ID Card / Passport', pending ? pending.name : (existing ? 'Uploaded' : 'Not uploaded')));
   }
 
-  const phone = document.getElementById('fPhone').value.trim();
-  rows.push(reviewRow('Phone', phone + (STATE._phoneVerified ? ' ✓ Verified' : '')));
+  rows.push(reviewRow('Phone', fullPhoneE164() + (STATE._phoneVerified ? ' ✓ Verified' : '')));
   rows.push(reviewRow('Email', document.getElementById('fEmail').value));
 
   document.getElementById('reviewList').innerHTML = rows.join('');
@@ -761,46 +931,64 @@ function continueFromStep5() {
   }
 }
 
-/* ── Phone verification (Phase 4) — three UI stages: 'edit' (phone input
-   editable, Send Code visible), 'code-sent' (phone locked, OTP input
-   visible), 'verified' (green badge, everything else hidden). Verification
-   state is intentionally never persisted server-side or restored on
-   reload (see the Phase 4 report) -- STATE._phoneVerified always starts
-   false, even if `shop.phone` already has a saved value from a previous
-   session, so reloading this page always requires re-verifying before
-   Step 5's Continue will proceed again. ── */
+/* ── Phone verification (Phase 4, country-code picker added — see
+   DIAL_CODES above) — three stages: 'edit' (dial code + number editable,
+   "Send code" link visible), 'code-sent' (locked, OTP field enabled),
+   'verified' (green badge). Unlike the old design, the OTP row is never
+   display:none'd — it's always in the layout (matches the TikTok reference:
+   the code field sits under the phone field from the start), only its
+   enabled/disabled state changes, so nothing pops into existence mid-form.
+   Verification state is intentionally never persisted server-side or
+   restored on reload (see the Phase 4 report) -- STATE._phoneVerified
+   always starts false, even if `shop.phone` already has a saved value from
+   a previous session, so reloading this page always requires re-verifying
+   before Step 5's Continue will proceed again. ── */
 function setPhoneStage(stage) {
-  document.getElementById('fPhone').disabled = stage !== 'edit';
-  document.getElementById('phoneSendBtn').style.display = stage === 'edit' ? '' : 'none';
-  document.getElementById('otpRow').style.display = stage === 'code-sent' ? 'flex' : 'none';
+  const editable = stage === 'edit';
+  document.getElementById('fDialCode').disabled = !editable;
+  document.getElementById('fPhone').disabled = !editable;
+  const sendBtn = document.getElementById('phoneSendBtn');
+  sendBtn.style.display = editable ? '' : 'none';
+  sendBtn.disabled = false;
+  sendBtn.textContent = 'Send code';
+
+  const codeSent = stage === 'code-sent';
+  document.getElementById('fOtpCode').disabled = !codeSent;
+  document.getElementById('otpVerifyBtn').disabled = !codeSent;
+  if (!codeSent) document.getElementById('fOtpCode').value = '';
+
   document.getElementById('phoneVerifiedBadge').style.display = stage === 'verified' ? 'flex' : 'none';
   document.getElementById('phoneHint').style.display = stage === 'verified' ? 'none' : '';
 }
 
 async function handleSendCode() {
   const phone = document.getElementById('fPhone').value.trim();
+  const dialCode = document.getElementById('fDialCode').value;
   if (!phone) { showErr('Please enter your phone number first.'); return; }
   const btn = document.getElementById('phoneSendBtn');
-  btn.classList.add('loading');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
   try {
-    await ShopsAPI.startPhoneVerification(phone);
-    STATE._verifyingPhone = phone; // exact string sent to /start -- reused for /check below
+    await ShopsAPI.startPhoneVerification(phone, dialCode);
+    STATE._verifyingPhone = phone;       // exact string sent to /start -- reused for /check below
+    STATE._verifyingDialCode = dialCode;
     setPhoneStage('code-sent');
     toast('Code sent!');
   } catch(e) {
+    btn.disabled = false;
+    btn.textContent = 'Send code';
     showErr(e.message || 'Could not send verification code.');
-  } finally {
-    btn.classList.remove('loading');
   }
 }
 
 async function handleVerifyCode() {
+  if (!STATE._verifyingPhone) { showErr('Please send a code first.'); return; }
   const code = document.getElementById('fOtpCode').value.trim();
   if (code.length !== 6) { showErr('Please enter the 6-digit code.'); return; }
   const btn = document.getElementById('otpVerifyBtn');
   btn.classList.add('loading');
   try {
-    await ShopsAPI.checkPhoneVerification(STATE._verifyingPhone, code);
+    await ShopsAPI.checkPhoneVerification(STATE._verifyingPhone, code, STATE._verifyingDialCode);
     STATE._phoneVerified = true;
     setPhoneStage('verified');
     toast('✓ Phone verified');
@@ -814,6 +1002,7 @@ async function handleVerifyCode() {
 function resetPhoneVerification() {
   STATE._phoneVerified = false;
   STATE._verifyingPhone = null;
+  STATE._verifyingDialCode = null;
   document.getElementById('fOtpCode').value = '';
   setPhoneStage('edit');
 }
@@ -869,7 +1058,7 @@ function collectAllFields() {
     name:          collectStep1Fields().name,
     category_id:   document.getElementById('fCategory').value || null,
     business_type: STATE._businessType || null,
-    phone:         document.getElementById('fPhone').value.trim(),
+    phone:         fullPhoneE164(),
     ...collectStep4Fields(), // {} for business — leaves full_name/id_number/birthdate/address untouched server-side
   };
   return fields;

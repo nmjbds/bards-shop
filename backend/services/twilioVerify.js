@@ -20,27 +20,35 @@ function getClient() {
   return _client;
 }
 
-// Cambodia-only marketplace (see CLAUDE.md, apply.html's old country
-// default) -- no country-code picker anywhere in this form, so normalizing
-// straight to +855 here is the single source of truth rather than trusting
-// the frontend to format it. A caller that already sent a '+'-prefixed
-// (E.164-ish) number is left as-is -- covers a seller who typed their own
-// country code for some reason, or a future non-Cambodia caller, without
-// mangling it.
-function normalizePhoneKH(raw) {
+// Cambodia is still the target market, but apply.html Step 5 now has a
+// country-code picker (open to any country for now, see the frontend --
+// TODO once real testing/launch is closer: lock this back down to +855
+// only, per the project owner's plan) -- so this can no longer just
+// hardcode +855. `dialCode` (e.g. '+66') is whatever the seller picked in
+// that dropdown; DEFAULT_DIAL_CODE only matters if a caller omits it
+// (shouldn't happen from apply.html itself, but keeps this function safe
+// to call directly). A caller that already sent a '+'-prefixed (E.164-ish)
+// `raw` value is left as-is regardless of `dialCode` -- covers a seller
+// who pasted their own full international number.
+const DEFAULT_DIAL_CODE = '+855';
+
+function normalizePhoneKH(raw, dialCode) {
   const digits = String(raw || '').replace(/[^\d+]/g, '');
   if (digits.startsWith('+')) return digits;
-  // Already has the country code but is missing the leading '+' (e.g. a
-  // seller pasted "855123456789") -- don't double-prepend +855 on top of
-  // it. length>=10 rules out a Cambodian local number coincidentally
-  // starting with the digits 855 (those all start with a leading 0, e.g.
-  // "085xxxxxxx", which fails this startsWith check anyway).
-  if (digits.startsWith('855') && digits.length >= 10) return '+' + digits;
-  return '+855' + digits.replace(/^0+/, '');
+  const dial = String(dialCode || DEFAULT_DIAL_CODE).replace(/[^\d+]/g, '');
+  const dialDigits = dial.startsWith('+') ? dial.slice(1) : dial;
+  // Already has the dial code but is missing the leading '+' (e.g. a
+  // seller pasted "855123456789") -- don't double-prepend the dial code on
+  // top of it. length>dialDigits.length rules out a local number
+  // coincidentally starting with the same digits as the dial code (those
+  // all start with a leading 0 locally, e.g. "085xxxxxxx", which fails
+  // this startsWith check anyway).
+  if (digits.startsWith(dialDigits) && digits.length > dialDigits.length) return '+' + digits;
+  return (dial.startsWith('+') ? dial : '+' + dial) + digits.replace(/^0+/, '');
 }
 
-async function startVerification(rawPhone) {
-  const to = normalizePhoneKH(rawPhone);
+async function startVerification(rawPhone, dialCode) {
+  const to = normalizePhoneKH(rawPhone, dialCode);
   await getClient().verify.v2
     .services(process.env.TWILIO_VERIFY_SERVICE_SID)
     .verifications.create({ to, channel: 'sms' });
@@ -51,8 +59,8 @@ async function startVerification(rawPhone) {
 // (status 'approved') -- never trusts a bare "no error thrown" as success,
 // since verificationChecks.create() resolves normally even for a wrong
 // code (it comes back with status:'pending', not a rejected promise).
-async function checkVerification(rawPhone, code) {
-  const to = normalizePhoneKH(rawPhone);
+async function checkVerification(rawPhone, code, dialCode) {
+  const to = normalizePhoneKH(rawPhone, dialCode);
   const result = await getClient().verify.v2
     .services(process.env.TWILIO_VERIFY_SERVICE_SID)
     .verificationChecks.create({ to, code });

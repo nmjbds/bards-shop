@@ -221,11 +221,18 @@ const checklistSchema = z.object(
 
 const docTypeSchema = z.enum(['id_card', 'business_license', 'tax_document']);
 
-// Deliberately loose (min 6, no format regex) -- same reasoning as
+// Deliberately loose (min 4, no format regex) -- same reasoning as
 // authSeller.js's phoneSchema: normalizePhoneKH() (services/twilioVerify.js)
 // is what actually decides what's sent to Twilio, this is just a sanity
-// floor against an empty/obviously-too-short value before that.
-const phoneVerifySchema = z.object({ phone: z.string().trim().min(6, 'Please enter a valid phone number.').max(30) });
+// floor against an empty/obviously-too-short value before that. `phone` is
+// just the local number now -- `dial_code` (optional, defaults to +855
+// server-side) is whatever the seller picked in apply.html Step 5's country
+// selector, open to any country for now (see normalizePhoneKH's comment for
+// the TODO to lock this back to +855-only later).
+const phoneVerifySchema = z.object({
+  phone: z.string().trim().min(4, 'Please enter a valid phone number.').max(30),
+  dial_code: z.string().trim().regex(/^\+\d{1,4}$/, 'Invalid country code.').optional(),
+});
 const phoneVerifyCheckSchema = phoneVerifySchema.extend({
   code: z.string().trim().length(6, 'Code must be 6 digits.'),
 });
@@ -523,7 +530,7 @@ router.post('/me/branding', requireAuth, requireSellerAccount, (req, res) => {
 // this section.
 router.post('/verify-phone/start', requireAuth, requireSellerAccount, phoneVerifyStartRateLimit, validate(phoneVerifySchema), async (req, res) => {
   try {
-    await startVerification(req.body.phone);
+    await startVerification(req.body.phone, req.body.dial_code);
     res.json({ ok: true });
   } catch(e) {
     console.error('[TWILIO VERIFY START]', e.code, e.message);
@@ -552,7 +559,7 @@ router.post('/verify-phone/start', requireAuth, requireSellerAccount, phoneVerif
 // clicked, same as before Phase 4.
 router.post('/verify-phone/check', requireAuth, requireSellerAccount, phoneVerifyCheckRateLimit, validate(phoneVerifyCheckSchema), async (req, res) => {
   try {
-    const approved = await checkVerification(req.body.phone, req.body.code);
+    const approved = await checkVerification(req.body.phone, req.body.code, req.body.dial_code);
     if (!approved) return res.status(400).json({ error: 'Invalid or expired code.' });
     res.json({ ok: true, verified: true });
   } catch(e) {
