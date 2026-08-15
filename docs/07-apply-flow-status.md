@@ -12,7 +12,7 @@
 - Phase 3: Restructure apply.html step order ตาม TikTok ref, ตัด field นอก scope
 - Phase 3B: Step 4 แยกตาม business type + preview ไฟล์
 
-## เขียนโค้ดเสร็จ แต่ยังไม่ push — หยุดไว้ก่อน
+## เขียนโค้ดเสร็จ แต่ยังไม่ push
 Phase 4: Twilio Verify SMS OTP — โค้ด backend+frontend เสร็จสมบูรณ์ทั้งหมดแล้ว แต่หยุดการทดสอบ end-to-end ไว้ก่อน สาเหตุ:
 - ไม่มีเบอร์กัมพูชาจริงให้ทดสอบ ลองใช้เบอร์ไทย (+66936406304) แทนแต่ Twilio trial account บล็อกการ verify caller ID ของเบอร์ไทยทั้ง SMS และ Call (ประเทศที่ถูกจำกัด)
 - ลองหาทาง Twilio Verify test/magic phone number (+85512345678) แต่ไม่ยืนยันได้ชัดว่า Twilio Verify API รองรับ test credentials แบบเดียวกับ Messages API จริงหรือไม่ (เอกสาร Twilio ไม่ชัดเจนพอ)
@@ -21,43 +21,37 @@ Phase 4: Twilio Verify SMS OTP — โค้ด backend+frontend เสร็จ
 - ตัดสินใจ: หยุดพยายามแก้ตอนนี้ เลื่อนไปทดสอบตอนใกล้เปิดใช้งานจริง (ตอนนั้นจะ upgrade Twilio อยู่แล้ว) ไปทำ Phase 5-8 ต่อก่อน
 - TODO ค้าง: ต้องเพิ่ม validation จำกัดเฉพาะเบอร์กัมพูชาหลังทดสอบผ่าน
 
+**Phase 5: signup.html → email-only + Resend — เสร็จแล้ว (2026-08-15), ทดสอบผ่านครบ, ยังไม่ push**
+- `services/mailer.js`'s `sendMail()` เปลี่ยนจาก Gmail SMTP ไปใช้ Resend (`RESEND_API_KEY` ใน `.env`,
+  โดเมน bardskh.com verified บน Resend แล้วโดยเจ้าของโปรเจกต์ก่อนเริ่มงาน) ส่งจาก
+  `Bards <no-reply@bardskh.com>` — เช็คก่อนแก้แล้วว่า `sendMail()` มีผู้เรียกจุดเดียวในโปรเจกต์คือ
+  `routes/authSeller.js` (forgot-password ของ customer ใน `routes/auth.js` กับ `services/notify.js` เรียก
+  `transporter` ของ Gmail ตรงๆ คนละทาง ไม่ผ่าน `sendMail()` เลย) — จึงแก้ implementation ของ `sendMail()`
+  ตรงๆ ได้เลยโดยไม่กระทบ flow อื่น ไม่ต้องเพิ่ม provider parameter ตามที่กังวลไว้แต่แรก (export `transporter`
+  ดิบยังอยู่เหมือนเดิม ไม่แตะ) เพิ่ม dependency `resend` (`npm install resend`, อยู่ใน `package.json`/
+  `package-lock.json` แล้ว)
+- ตัด phone ออกจาก seller signup ทั้ง stack: `public-seller-src/signup.html` (เอา phone input+validate+
+  ตัวแปร `_phone` ออกจาก Step 1), `public-shared/api.js`'s `SellerAuthAPI.signup()` (ไม่ส่ง `phone` ใน
+  body แล้ว), `routes/authSeller.js`'s `signupSchema`+`POST /signup` (ไม่รับ/ไม่ insert `phone`), DB:
+  `seller_accounts.phone` เปลี่ยนจาก `NOT NULL UNIQUE` เป็น `UNIQUE` เฉยๆ (nullable) ผ่าน
+  `ALTER TABLE ... DROP NOT NULL` ใน `db.js` (เช็คก่อนแก้: มี seller จริงอยู่แล้ว 3 คน ทุกคนมี phone ครบอยู่
+  แล้ว ไม่มีแถวไหนถูกกระทบ/เสียข้อมูล — migration รันจริงผ่าน `initDb()` แล้ว ยืนยัน `is_nullable='YES'`)
+  phone/SMS verification ยังอยู่ที่ `apply.html` Step 5 เหมือนเดิมทุกประการ ไม่ได้แตะ
+- **ทดสอบแล้ว**: รัน `server-seller.js` local ชี้ DB จริง (Supabase ตัวเดียวกับ production — โปรเจกต์นี้ไม่มี
+  DB แยก dev/prod) → สมัคร seller ทดสอบ 1 คนแบบ end-to-end จริงผ่าน API (request-otp → verify-otp →
+  signup) ยืนยัน: (1) `POST /signup` ไม่ต้องส่ง `phone` เลย สร้างบัญชีสำเร็จ `phone:null`, (2) เช็คผ่าน
+  Resend API ตรง (`GET /emails`) ว่าอีเมลที่ส่งจริงมี `"from":"Bards <no-reply@bardskh.com>"` และ
+  `last_event:"delivered"` จริง (ไม่ใช่แค่เช็คว่า request ไม่ error) — ลบบัญชี/OTP ทดสอบทิ้งจาก DB หมดแล้ว
+  หลังทดสอบ **หมายเหตุ**: ไม่ได้เปิดอีเมลจริงเพื่อดู header ด้วยตาเจ้าของโปรเจกต์เอง (ไม่มีสิทธิ์เข้าถึง
+  inbox) — ใช้ Resend API เป็นหลักฐานแทน แนะนำให้เจ้าของโปรเจกต์เปิดอีเมลที่ได้รับจริง (ส่งไปที่
+  `hnunghofficial+bardstest1@gmail.com`) ดูอีกรอบเพื่อความชัวร์ก่อน push
+- **เช็คแล้ว**: `public-admin-src`/`public-customer-src` มีจุดเดียวที่โชว์ "Phone" ในบริบท seller คือ
+  `admin-shops.html:275` (`s.phone` ใน shop detail panel) — ตรวจแล้วว่านี่คือ `shops.phone` (คนละคอลัมน์
+  กับ `seller_accounts.phone`, มาจาก `SELECT * FROM shops WHERE id=$1` ใน `GET /api/shops/:id`) คือเบอร์ที่
+  apply.html Step 5 เก็บ+verify ผ่าน Twilio ต่างหาก **ไม่ใช่**คอลัมน์ที่เพิ่งแก้เป็น nullable รอบนี้เลย —
+  ไม่มีความเสี่ยงกระทบหน้าไหน
+
 ## ยังไม่เริ่ม
-- **Phase 5: signup.html → email-only + ยืนยันด้วยโค้ดอีเมลจาก no-reply@bardskh.com — เริ่มสำรวจแล้ว
-  (2026-08-15), ยังไม่แก้โค้ด** ผลสำรวจ:
-  - `public-seller-src/signup.html` ตอนนี้เป็น 4-step flow: Step 1 = Email+**Phone** (ทั้งคู่ required) →
-    ปุ่ม "SEND CODE" เรียก email OTP, Step 2 = กรอกโค้ด OTP 6 หลักที่ส่งไปอีเมล, Step 3 = Password+Confirm
-    → `POST /signup`, Step 4 = success → ไป `/apply` — **มีระบบ email OTP ที่สมบูรณ์อยู่แล้ว** ไม่ต้องสร้าง
-    ใหม่ทั้งหมดตามที่กังวลไว้แต่แรก
-  - Backend `routes/authSeller.js` มี endpoint ครบ: `/request-otp` (purpose signup/signin),
-    `/verify-otp` (คืน short-lived otpToken ให้ `/signup` ใช้ต่อ), `/signup`, `/signin`, `/signin-otp`,
-    `/refresh`, `/logout`, `/me` — ส่งอีเมลผ่าน `services/mailer.js`'s `sendMail()` (shared
-    nodemailer/Gmail SMTP transporter ตัวเดียวกับ forgot-password ของ customer)
-  - `seller_accounts.email_verified_at` (TIMESTAMPTZ, nullable) คือ verified-status column ที่มีอยู่แล้ว
-    — set เป็น `NOW()` ทันทีตอน `POST /signup` สำเร็จ เพราะ OTP บังคับ verify ก่อนสร้าง account เสมออยู่
-    แล้ว (ไม่มี state "สมัครแล้วแต่ยัง verify ไม่ผ่าน" ค้างอยู่เลย)
-  - **ส่งจากอีเมลอะไรจริง**: เช็ค `.env` แล้ว `MAIL_FROM="Bards" <hnunghofficial@gmail.com>`,
-    `SMTP_USER=hnunghofficial@gmail.com` — **ส่งจาก Gmail ส่วนตัวจริง ไม่ใช่ no-reply@bardskh.com** ไม่มี
-    config ใดๆ ในระบบอ้างถึง mail ของโดเมน bardskh.com เลยตอนนี้ — เปลี่ยนเป็น no-reply@bardskh.com ได้ 2
-    ทาง (**ต้องคุยกับเจ้าของโปรเจกต์ก่อนเริ่ม ไม่ใช่แค่เปลี่ยนโค้ด**): (a) ตั้ง `no-reply@bardskh.com` เป็น
-    Gmail "Send As" alias ในบัญชี `hnunghofficial@gmail.com` เดิม — เร็ว/ฟรี แต่บาง mail client อาจยังโชว์
-    "via gmail.com" และ SPF/DKIM ไม่เต็มร้อย หรือ (b) ตั้ง domain email จริงของ bardskh.com (Google
-    Workspace หรือ transactional email service เช่น SendGrid/SES ที่ verify DNS ของโดเมนเอง) — infra งาน
-    แยกต่างหาก ไม่ใช่แค่แก้ `.env`
-  - **ช่องเบอร์โทรตอนนี้ required ทั้งสองฝั่ง** (frontend JS validate ความยาว≥6, backend zod
-    `phoneSchema` เดียวกัน, DB column `seller_accounts.phone` เป็น `NOT NULL UNIQUE`) **แต่ไม่ verify ผ่าน
-    SMS ที่ signup เลย** — เก็บไว้เฉยๆ เช็คแล้วพบว่า `apply.html` Step 5 (Phase 4, Twilio Verify) เก็บเบอร์
-    โทร**อีกรอบหนึ่งต่างหาก**และ verify ด้วย SMS OTP จริงตรงนั้น — เบอร์ที่กรอกตอน signup กับตอน apply เป็น
-    คนละช่อง ไม่มี prefill/sync ข้ามกันเลย → **เบอร์ที่ signup ซ้ำซ้อน 100% กับของ apply.html และไม่เคยถูก
-    verify จริง** ตรงกับที่ต้องการตัดออกทั้งหมด ให้เหลือ signup ด้วยอีเมล+รหัสผ่านอย่างเดียว (phone/SMS
-    verification ยังทำที่ apply.html เหมือนเดิม ไม่กระทบ)
-  - **สรุปแนวทางที่แนะนำ (ยังไม่ได้เริ่มเขียนโค้ด รอคำสั่ง)**: (1) ตัด field เบอร์โทร + step ที่เกี่ยวข้อง
-    ออกจาก `signup.html`, แก้ `SellerAuthAPI.signup()` (`public-shared/api.js:339`) ให้ไม่ส่ง `phone`,
-    (2) แก้ `signupSchema`/`POST /signup` ใน `routes/authSeller.js` ให้ไม่ต้องรับ/บังคับ `phone`, (3) แก้
-    schema DB: `seller_accounts.phone` ต้องเปลี่ยนจาก `NOT NULL UNIQUE` เป็น nullable (ต้อง ALTER COLUMN,
-    กระทบแถวเดิมถ้ามี — ต้องเช็คว่ามี seller จริงสมัครแล้วกี่คนก่อนแก้), (4) ตัดสินใจเรื่อง MAIL_FROM ก่อน
-    (ข้อบนสุด) แล้วอัปเดต `.env`/mailer config ตาม — ยังไม่ได้ประเมิน `public-customer-src`/`public-admin-src`
-    ว่ามีจุดไหนอ้างอิง `seller_accounts.phone` แบบคาดว่ามีค่าเสมอหรือไม่ (เช่น admin ดูรายชื่อ seller) ต้อง
-    เช็คเพิ่มก่อนแก้ schema จริง
 - Phase 6: Popup สรุปตรวจสอบก่อน submit + เปลี่ยนเป็น atomic submit
 - Phase 7: หน้า /settle/verification + /settle/verification-result
 - Phase 8: ปรับ UI ให้มีภาพประกอบ/สีสัน มืออาชีพแบบ TikTok
