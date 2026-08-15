@@ -143,3 +143,29 @@ end-to-end จริงผ่าน API ตรงๆ** จำลอง exact pay
     เพราะรัน local server ที่ port `3034` ซึ่งไม่อยู่ใน CORS allow-list ของ `server-seller.js`
     (`localhost:3000`/`5500` เท่านั้นที่อนุญาตไว้) ทำให้ทุก request รวมถึงโหลด `api.js` เองโดนบล็อกไปด้วย —
     ย้ายไปรัน local server ที่ port `3000` แทน ไม่เกี่ยวกับ Resend/Phase 5 เลย ไม่ต้องแก้โค้ดอะไร
+- **Step 5 (Contact) phone field รื้อ UI ตาม TikTok reference (2026-08-15) — เขียนโค้ดเสร็จ, ยังไม่ push**
+  เจอระหว่างเจ้าของโปรเจกต์ทดสอบ Phase 6 ด้วยตาจริง แก้ 3 จุด (commit `f31170f`):
+  1. ช่อง OTP (`#otpRow`) แสดงตลอดใต้ช่องเบอร์แล้ว (ไม่ `display:none` จนกว่าจะกด "Send code" อีกต่อไป) —
+     แค่ disabled จนกว่าจะมีโค้ดที่ส่งไปจริงให้กรอก
+  2. "Send Code" เดิมเป็นปุ่มเต็มความกว้าง ย่อเหลือเป็น text link เล็กๆ (`.phone-send-link`) อยู่ในกรอบ
+     เดียวกับช่องเบอร์ (มุมขวา) แทน
+  3. เพิ่ม country dial-code selector (`#fDialCode`, 173 ประเทศ, generate จาก data array เหมือน
+     `#fCategory`) อยู่ในกรอบเดียวกับช่องเบอร์ (`.phone-box`) — เปิดเลือกได้ทุกประเทศตามที่สั่ง (**TODO
+     ค้าง: ล็อกเหลือแค่ +855 หลังทดสอบผ่าน+upgrade Twilio แล้ว**) default `+855` (กัมพูชา ปักหมุดบนสุดของ
+     list เสมอ ไม่ว่าจะ sort ตามชื่อประเทศยังไง)
+  4. `normalizePhoneKH()` (`services/twilioVerify.js`) รับ dial code จาก UI เป็น parameter ที่สอง แทนที่จะ
+     เดา `+855` เสมอ — ยัง strip leading-0 ของเบอร์ local เหมือนเดิม แค่ต่อกับ dial code ที่เลือกจริงแทน
+     `phoneVerifySchema`/`phoneVerifyCheckSchema` (`routes/shops.js`) เพิ่ม field `dial_code` (optional,
+     fallback `+855` ฝั่ง backend ถ้าไม่ส่งมา) `ShopsAPI.startPhoneVerification()`/`checkPhoneVerification()`
+     (`public-shared/api.js`) ส่งต่อให้ — `shops.phone` เปลี่ยนไปเก็บเป็น E.164 เต็ม (dial code+เบอร์ local
+     ตัด 0 นำหน้าแล้ว) แทนที่จะเก็บแค่เบอร์ local ดิบเหมือนเดิม — `prefillFromShop()` แยกกลับเป็น 2 ช่องตอน
+     resume application เก่า
+  **ทดสอบแล้ว**: unit-test `normalizePhoneKH()` ตรงๆ 8 เคส (KH/TH/US, มี/ไม่มีเลข 0 นำหน้า, ส่ง E.164 มา
+  แล้วเลย, ไม่ส่ง dial code มาเลย) ผ่านหมด — ยืนยันผ่าน API จริงบน server ที่ restart แล้ว (ต้อง restart
+  จริงๆ เพราะแก้ backend route/service — เจอรอบแรกว่า process เก่ายัง cache โค้ดเดิมอยู่ ทดสอบไม่ผ่านเพราะ
+  เหตุนี้ ไม่ใช่บั๊ก): `dial_code` รูปแบบผิด (ไม่มี `+`) ถูก validate ปฏิเสธก่อนถึง Twilio จริง, `dial_code`
+  ถูกต้อง (`+66`) ไหลผ่านไปถึง Twilio จริง (ยืนยันด้วย error response ของ Twilio เองสำหรับเบอร์ปลอมที่ตั้งใจ
+  ใส่ — **ไม่ได้ส่ง SMS จริง** ตามข้อจำกัด Twilio trial account ที่รู้อยู่แล้วจาก Phase 4) เช็ค
+  `DIAL_CODES` ทั้ง 173 รายการแล้วว่าไม่มี ISO code ซ้ำและทุก dial code ผ่าน regex ฝั่ง backend ครบ
+  **ยังไม่ได้ดูด้วยตาจริง**: หน้าตา popup/dropdown/text-link จริงในเบราว์เซอร์ (ไม่มี browser automation
+  tool ในนี้เหมือนรอบก่อนๆ) — รอเจ้าของโปรเจกต์เปิดดูเองอีกรอบ
