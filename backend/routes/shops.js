@@ -6,7 +6,50 @@ const { validate, MIME_EXT } = require('../middleware/validate');
 const { getSignedGetUrl } = require('../services/r2');
 const { sendEmail, sendTelegramToAdmin } = require('../services/notify');
 const { slugify } = require('../helpers/slugify');
+const { startVerification, checkVerification } = require('../services/twilioVerify');
 const router = express.Router();
+
+// ── Rate limiting (Phase 4, phone verification) ───────────────────────
+// Local copy of routes/auth.js's/routes/authSeller.js's makeRateLimit()
+// factory -- same reasoning as authSeller.js's copy: not exported from
+// either of those files, and this router doesn't require anything from
+// them (avoids pulling in unrelated top-level side effects, e.g.
+// routes/auth.js's passport.use(new GoogleStrategy(...)) call, which
+// throws synchronously if GOOGLE_CLIENT_ID isn't set).
+function makeRateLimit({ windowMs, max, message, keyField }) {
+  const attempts = new Map();
+  return function rateLimit(req, res, next) {
+    const ip = req.ip || 'unknown';
+    const key = keyField && req.body?.[keyField] ? `${ip}:${String(req.body[keyField]).toLowerCase()}` : ip;
+    const now = Date.now();
+    const entry = attempts.get(key) || { count: 0, start: now };
+    if (now - entry.start > windowMs) { entry.count = 0; entry.start = now; }
+    entry.count++;
+    attempts.set(key, entry);
+    if (entry.count > max) {
+      const retry = Math.ceil((windowMs - (now - entry.start)) / 1000 / 60) || 1;
+      return res.status(429).json({ error: message(retry) });
+    }
+    next();
+  };
+}
+// Starting a verification is what actually costs money / sends an SMS --
+// keep this one strict. Keyed by IP+phone (not just phone) so it can't be
+// used to lock a stranger's real number out by hammering it from many IPs
+// while still capping how many codes any one caller can trigger.
+const phoneVerifyStartRateLimit = makeRateLimit({
+  windowMs: 60 * 60 * 1000, max: 5, keyField: 'phone',
+  message: (retry) => `Too many verification requests for this number. Please try again in ${retry} minutes.`,
+});
+// Checking a code doesn't send an SMS, but still deserves its own limit --
+// separate from the start limit (a seller legitimately re-checking a
+// mistyped code a few times shouldn't burn through their 5 start-attempts
+// budget) and generous enough not to get in the way of normal typos, while
+// still capping brute-force guessing of the 6-digit code.
+const phoneVerifyCheckRateLimit = makeRateLimit({
+  windowMs: 60 * 60 * 1000, max: 15, keyField: 'phone',
+  message: (retry) => `Too many attempts for this number. Please try again in ${retry} minutes.`,
+});
 
 // ── Cloudflare R2 upload for seller documents (private bucket) ─────────
 // Mirrors routes/seller.js's/auth.js's upload setup, but PutObject targets
@@ -177,6 +220,15 @@ const checklistSchema = z.object(
 ).strict();
 
 const docTypeSchema = z.enum(['id_card', 'business_license', 'tax_document']);
+
+// Deliberately loose (min 6, no format regex) -- same reasoning as
+// authSeller.js's phoneSchema: normalizePhoneKH() (services/twilioVerify.js)
+// is what actually decides what's sent to Twilio, this is just a sanity
+// floor against an empty/obviously-too-short value before that.
+const phoneVerifySchema = z.object({ phone: z.string().trim().min(6, 'Please enter a valid phone number.').max(30) });
+const phoneVerifyCheckSchema = phoneVerifySchema.extend({
+  code: z.string().trim().length(6, 'Code must be 6 digits.'),
+});
 
 // Auto-generated store_slug collision retries (POST /apply below) — capped
 // so a pathological run of collisions can't loop forever. 20 is generous:
@@ -460,6 +512,51 @@ router.post('/me/branding', requireAuth, requireSellerAccount, (req, res) => {
       res.status(500).json({ error: 'Upload failed: ' + e.message });
     }
   });
+});
+
+// ── POST /api/shops/verify-phone/start ── Phase 4, apply.html Step 5 —
+// sends a 6-digit SMS code via Twilio Verify to the given number. No shop
+// row required (unlike documents/branding above) -- phone verification can
+// happen before Step 1 even creates one, since Step 5 comes after it in
+// the form but this doesn't touch `shops` at all itself. Self-serve only
+// (requireSellerAccount, no admin fallback), matching every other route in
+// this section.
+router.post('/verify-phone/start', requireAuth, requireSellerAccount, phoneVerifyStartRateLimit, validate(phoneVerifySchema), async (req, res) => {
+  try {
+    await startVerification(req.body.phone);
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('[TWILIO VERIFY START]', e.code, e.message);
+    // Twilio-specific codes worth a friendlier message than the generic
+    // fallback -- 60200 is "invalid phone number" (e.g. too short/garbled
+    // after normalizePhoneKH()), 60203 is Twilio's own per-number send-rate
+    // cap (distinct from phoneVerifyStartRateLimit above, which is ours).
+    if (e.code === 60200) return res.status(400).json({ error: 'That doesn’t look like a valid phone number.' });
+    if (e.code === 60203) return res.status(429).json({ error: 'Too many codes sent to this number recently. Please try again later.' });
+    res.status(502).json({ error: 'Could not send verification code. Please try again.' });
+  }
+});
+
+// ── POST /api/shops/verify-phone/check ── Phase 4 — checks the code the
+// seller typed back against Twilio. Returns verified:true only when Twilio
+// itself reports the code as approved (checkVerification() below already
+// enforces that, not just "the request didn't error") -- this is a
+// stateless check, nothing is written to `shops` here; apply.html still
+// saves `phone` the normal way via PATCH /me once Step 5's Continue is
+// clicked, same as before Phase 4.
+router.post('/verify-phone/check', requireAuth, requireSellerAccount, phoneVerifyCheckRateLimit, validate(phoneVerifyCheckSchema), async (req, res) => {
+  try {
+    const approved = await checkVerification(req.body.phone, req.body.code);
+    if (!approved) return res.status(400).json({ error: 'Invalid or expired code.' });
+    res.json({ ok: true, verified: true });
+  } catch(e) {
+    console.error('[TWILIO VERIFY CHECK]', e.code, e.message);
+    // 20404 = no pending verification found for this number (expired --
+    // Twilio Verify codes expire after 10 minutes by default -- or check
+    // called without ever calling /start for this number).
+    if (e.code === 20404) return res.status(400).json({ error: 'This code has expired. Please request a new one.' });
+    res.status(502).json({ error: 'Could not verify code. Please try again.' });
+  }
 });
 
 // ── GET /api/shops ── admin: list all shops (review queue). ?status= filter
