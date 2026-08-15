@@ -623,7 +623,7 @@ function setBusinessType(type, silent) {
   document.getElementById('tileIndividual').classList.toggle('on', type === 'individual');
   document.getElementById('tileBusiness').classList.toggle('on', type === 'business');
   STATE._businessType = type;
-  if (!silent) renderDocs();
+  if (!silent) { renderDocs(); markDirty(); } // silent=true is only the initial prefill from a loaded shop, not a real edit
 }
 
 /* ── Terms checkboxes (now live inside the review popup, Phase 6) ── */
@@ -984,6 +984,31 @@ function toast(m) {
   clearTimeout(_tt);
   _tt = setTimeout(() => t.classList.remove('on'), 2200);
 }
+
+/* ── Unsaved-changes guard (Phase 6) — nothing on this page saves until the
+   final submit anymore (previously each step auto-saved on its own
+   Continue, so an accidental refresh only ever lost the current step's
+   edits). Warns on tab close/refresh/navigation-away from the moment
+   anything's been touched until a submit actually succeeds. Native text
+   inputs/selects are caught by the delegated input/change listener below;
+   the tile/checkbox rows use custom onclick handlers instead of real form
+   controls, so setBusinessType()/toggleTerm()/handleDocSelect() call
+   markDirty() explicitly too. Modern browsers ignore any custom
+   e.returnValue message and show their own generic prompt — still worth
+   doing for the baseline "did you mean to leave?" protection. ── */
+let _dirty = false;
+function markDirty() { _dirty = true; }
+function clearUnsavedGuard() { _dirty = false; }
+document.addEventListener('DOMContentLoaded', () => {
+  const wrap = document.querySelector('.wrap');
+  wrap.addEventListener('input', markDirty);
+  wrap.addEventListener('change', markDirty);
+});
+window.addEventListener('beforeunload', (e) => {
+  if (!_dirty) return;
+  e.preventDefault();
+  e.returnValue = '';
+});
 </script>
 </body>
 </html>
