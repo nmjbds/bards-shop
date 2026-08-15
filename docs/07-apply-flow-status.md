@@ -52,7 +52,48 @@ Phase 4: Twilio Verify SMS OTP — โค้ด backend+frontend เสร็จ
   ไม่มีความเสี่ยงกระทบหน้าไหน
 
 ## ยังไม่เริ่ม
-- Phase 6: Popup สรุปตรวจสอบก่อน submit + เปลี่ยนเป็น atomic submit
+- **Phase 6: Popup สรุปตรวจสอบก่อน submit + atomic submit — เริ่มสำรวจแล้ว (2026-08-15), ยังไม่เขียนโค้ด
+  จริง** แผนเต็มอยู่ในรายงานแยกต่างหาก (ดูบทสนทนา 2026-08-15) สรุปสั้น:
+  - **จุด save-as-you-go ปัจจุบันทั้งหมด**: Step1→2 `POST /apply` หรือ `PATCH /me {name}`, Step2→3
+    `PATCH /me {category_id}`, Step3→4 `PATCH /me {business_type}`, Step4→5 `PATCH /me
+    {full_name,id_number,birthdate,address}` (ข้ามถ้า business), Step5→6 `PATCH /me {phone}`,
+    Step6 submit `POST /me/resubmit` (เฉพาะ rejected/needs_info) — บวก `handleDocUpload()` ที่ upload
+    ทันทีตอนเลือกไฟล์ (`POST /me/documents`, ต้องมี `STATE.shop` อยู่ก่อนถึงจะยิงได้)
+  - **Backend ไม่ต้องแก้เลย**: เช็คแล้ว `shopApplySchema`/`shopUpdateSchema` (`routes/shops.js`) รับ field
+    เต็มชุดอยู่แล้วในคำขอเดียว (`name` บังคับอย่างเดียว ที่เหลือ optional ทั้งหมด) — ยืนยันแผน "เก็บ state
+    ฝั่ง client แล้วยิงทีเดียวตอน submit" ทำได้จริงโดยไม่แตะ backend
+  - **ความเสี่ยง/จุดที่ต้องเปลี่ยน flow**: (1) Step 1 เป็นจุดสร้าง shop row จริง (`POST /apply`) — เลื่อนไป
+    submit ตอนจบ แปลว่า `STATE.shop` เป็น null ตลอด step 1-5 ของผู้สมัครใหม่ ต้องตัด guard เดิมใน
+    `handleDocUpload` (`if(!STATE.shop)`) ออก เปลี่ยนเป็นเก็บ `File` object ไว้ใน memory
+    (`STATE._pendingDocs`) แทนการ upload ทันที พร้อม preview ท้องถิ่น (`URL.createObjectURL` สำหรับรูป,
+    badge "PDF" เหมือนเดิมสำหรับ PDF) และควรเพิ่ม client-side validate ชนิด/ขนาดไฟล์ทันที (mirror
+    `MIME_EXT`/10MB limit ฝั่ง backend) เพื่อไม่ให้ error โผล่ครั้งแรกตอนกด submit ท้ายสุด — (2) phone
+    verification (`ShopsAPI.startPhoneVerification`/`checkPhoneVerification`) **ต้องยิงทันทีเหมือนเดิม
+    ห้ามเลื่อน** เพราะเป็น real-time SMS OTP loop ผ่าน Twilio ต้องมีมือถือจริงตอนนั้น — เลื่อนได้แค่การ save
+    `phone` ลง shop row (`PATCH /me {phone}`) เท่านั้น ส่วน verified-status ก็ไม่เคย persist
+    server-side อยู่แล้ว (reset ทุก reload เหมือนเดิม ไม่กระทบ) — (3) `prefillFromShop()`/`ShopsAPI.me()`
+    ตอน `init()` ไม่กระทบเลย ยังโหลดครั้งเดียวตอนเปิดหน้าเหมือนเดิม (สำหรับ resuming application) — จุดที่
+    เปลี่ยนคือหลังจากนั้น ทุก step ไม่ยิง PATCH ต่อ step อีกต่อไป อ่านค่าจาก DOM ตรงๆ ตอน submit จริง
+    (ฟังก์ชัน `collectStepXFields()` ที่มีอยู่แล้วใช้ต่อได้เกือบทั้งหมด) — (4) **retry ไม่ atomic จริงในแง่
+    DB**: ทำ backend transaction เดียวคลุม apply+upload+resubmit ไม่ได้ (ไม่แก้ backend endpoint ตามที่ตกลง)
+    ถ้า `POST /apply` สำเร็จแต่ `POST /me/documents` fail (เช่น เน็ตหลุด) shop จะถูกสร้างไปแล้วแบบไม่มี
+    เอกสาร — ต้องออกแบบ retry ให้ idempotent (เช็คว่า `STATE.shop` ถูกสร้างไปแล้วหรือยัง ถ้าใช่ให้ข้ามไปยิง
+    `PATCH /me` แทน `POST /apply` ตอนกด submit ซ้ำ)
+  - **Popup**: เสนอโชว์ read-only: ชื่อร้าน, หมวดหมู่ (ชื่อจาก dropdown ไม่ใช่ id), ประเภทธุรกิจ, full_name/
+    id_number/birthdate/address (เฉพาะ individual) หรือชื่อไฟล์ business license (เฉพาะ business), เบอร์
+    โทร+badge "Verified", อีเมล (read-only จาก session) — ปุ่ม "Submit"/"Back" (ปิด popup กลับไปแก้ในฟอร์ม
+    ไม่ submit) — **มีทางเลือกออกแบบที่ยังไม่ฟันธง รอ confirm**: (A) เก็บ Step 6 "Review & Submit" เดิม
+    (3 checkbox agreement) ไว้เหมือนเดิมทั้งหมด แล้วเพิ่ม popup เป็นชั้นยืนยันซ้อนอีกชั้นตอนกด "Submit
+    Application" หรือ (B) ยุบ Step 6 เข้า popup ไปเลย (เหลือฟอร์ม 5 step ตรงกับ reference doc เป๊ะๆ, ย้าย 3
+    checkbox agreement เข้าไปอยู่ใน popup) — เอนเอียงไปทาง (B) เพราะตรงกับ spec ในเอกสารอ้างอิงมากกว่า
+    (5-step form + popup ท้ายสุด ไม่ใช่ 6 step) แต่เป็นการเปลี่ยนโครงสร้าง step ที่เห็นชัดเจน ควรถามก่อนเริ่ม
+    เขียนโค้ดจริง — implementation: overlay `<div>` ใหม่ในไฟล์ `apply.html` เอง (ไม่แยก component/ไฟล์ใหม่ —
+    ตรงกับ convention เดิมของโปรเจกต์ที่ไม่มี component framework) reuse `.bc-card` style เดิม
+  - **beforeunload**: ความเสี่ยงเดิม (ปิด/รีเฟรชแล้วไฟล์ที่เลือกไว้หายหมด ต้องเลือกใหม่) **หนักขึ้นกว่าเดิม**
+    ในโมเดล deferred เพราะตอนนี้ไม่มีอะไร save ระหว่างทางเลย (เดิม auto-save ทุก step กันไว้ระดับหนึ่ง) —
+    เสนอ `window.addEventListener('beforeunload', ...)` ที่ trigger ทันทีที่มีการกรอกข้อมูล/เลือกไฟล์ใดๆ
+    (ไม่ใช่แค่ตอนมีไฟล์) จนกว่าจะ submit สำเร็จ — browser สมัยใหม่ไม่ให้ custom message แล้ว (แค่ prompt
+    native ทั่วไป) แต่ยังคุ้มกันอุบัติเหตุพื้นฐานได้
 - Phase 7: หน้า /settle/verification + /settle/verification-result
 - Phase 8: ปรับ UI ให้มีภาพประกอบ/สีสัน มืออาชีพแบบ TikTok
 
