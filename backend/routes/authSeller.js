@@ -71,15 +71,16 @@ const signupRateLimit = makeRateLimit({
 
 // ── Validation schemas ──────────────────────────────────────────
 const emailSchema = z.string().trim().min(1, 'Email is required.').max(200).email('Please enter a valid email address.');
-const phoneSchema = z.string().trim().min(6, 'Please enter a valid phone number.').max(30);
 const purposeSchema = z.enum(['signup', 'signin'], { error: 'Invalid purpose.' });
 
 const requestOtpSchema = z.object({ email: emailSchema, purpose: purposeSchema });
 const verifyOtpSchema  = z.object({ email: emailSchema, code: z.string().trim().length(6, 'Code must be 6 digits.') });
 const signinOtpSchema  = z.object({ email: emailSchema, code: z.string().trim().length(6, 'Code must be 6 digits.') });
+// Phone dropped 2026-08-15 — apply.html Step 5 (Phase 4, Twilio Verify)
+// already collects + SMS-verifies phone for real; the copy that used to be
+// collected here was never verified and never synced with that one.
 const signupSchema = z.object({
   email:    emailSchema,
-  phone:    phoneSchema,
   password: z.string().min(8, 'Password must be at least 8 characters.').max(72),
   otpToken: z.string().min(1, 'Email verification is required.'),
 });
@@ -184,7 +185,7 @@ router.post('/verify-otp', validate(verifyOtpSchema), async (req, res) => {
 // 15-minute window.
 router.post('/signup', signupRateLimit, validate(signupSchema), async (req, res) => {
   try {
-    const { email, phone, password, otpToken } = req.body;
+    const { email, password, otpToken } = req.body;
     const lower = email.toLowerCase();
 
     let payload;
@@ -196,14 +197,12 @@ router.post('/signup', signupRateLimit, validate(signupSchema), async (req, res)
 
     const existsEmail = await query('SELECT id FROM seller_accounts WHERE email=$1', [lower]);
     if (existsEmail.rows.length) return res.status(409).json({ error: 'An account with this email already exists — sign in instead.' });
-    const existsPhone = await query('SELECT id FROM seller_accounts WHERE phone=$1', [phone.trim()]);
-    if (existsPhone.rows.length) return res.status(409).json({ error: 'An account with this phone number already exists.' });
 
     const hash = await bcrypt.hash(password, 12);
     const r = await query(
-      `INSERT INTO seller_accounts(email, phone, password, email_verified_at)
-       VALUES($1,$2,$3,NOW()) RETURNING *`,
-      [lower, phone.trim(), hash]
+      `INSERT INTO seller_accounts(email, password, email_verified_at)
+       VALUES($1,$2,NOW()) RETURNING *`,
+      [lower, hash]
     );
     await query(`UPDATE seller_otp_codes SET used=true WHERE email=$1 AND purpose='signup'`, [lower]);
 
@@ -211,7 +210,7 @@ router.post('/signup', signupRateLimit, validate(signupSchema), async (req, res)
     const token = await issueSession(seller, req, res);
     res.status(201).json({ token, user: safe(seller) });
   } catch(e) {
-    if (e.code === '23505') return res.status(409).json({ error: 'An account with this email or phone already exists.' });
+    if (e.code === '23505') return res.status(409).json({ error: 'An account with this email already exists.' });
     console.error(e); res.status(500).json({ error: 'Server error.' });
   }
 });

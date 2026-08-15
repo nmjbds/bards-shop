@@ -459,13 +459,20 @@ async function initDb() {
       CREATE TABLE IF NOT EXISTS seller_accounts (
         id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
         email             TEXT        NOT NULL UNIQUE,
-        phone             TEXT        NOT NULL UNIQUE,
+        phone             TEXT        UNIQUE,
         password          TEXT        NOT NULL,
         email_verified_at TIMESTAMPTZ,
         created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at        TIMESTAMPTZ
       );
       CREATE INDEX IF NOT EXISTS idx_seller_accounts_email ON seller_accounts(email);
+      -- phone dropped from signup (Phase 5, 2026-08-15) — it was never
+      -- SMS-verified there and fully duplicated apply.html Step 5's real
+      -- Twilio-verified phone field, so it's now optional/nullable instead
+      -- of collected at signup at all. DROP NOT NULL is a no-op on a column
+      -- that's already nullable (fresh installs via the CREATE TABLE above),
+      -- so this is safe to run every boot like the rest of this file.
+      ALTER TABLE seller_accounts ALTER COLUMN phone DROP NOT NULL;
 
       -- Mirrors refresh_tokens above exactly (rotation + reuse-detection
       -- logic in services/sellerSession.js is a straight copy of

@@ -336,8 +336,8 @@ const SellerAuth = {
 const SellerAuthAPI = {
   requestOtp(email, purpose)      { return apiFetch('/auth/seller/request-otp', { method: 'POST', body: { email, purpose } }); },
   verifyOtp(email, code)          { return apiFetch('/auth/seller/verify-otp',  { method: 'POST', body: { email, code } }); },
-  signup(email, phone, password, otpToken) {
-    return apiFetch('/auth/seller/signup', { method: 'POST', body: { email, phone, password, otpToken } })
+  signup(email, password, otpToken) {
+    return apiFetch('/auth/seller/signup', { method: 'POST', body: { email, password, otpToken } })
       .then(d => { if (d?.token) SellerAuth.setSession(d.token, d.user); return d; });
   },
   signin(identifier, password) {
