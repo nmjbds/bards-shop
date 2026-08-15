@@ -26,6 +26,7 @@
     "passport-google-oauth20": "^2.0.0",
     "pg": "^8.11.5",
     "qrcode": "^1.5.3",
+    "resend": "^6.20.0",
     "twilio": "^6.1.0",
     "zod": "^4.4.3"
   }
