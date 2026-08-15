@@ -530,9 +530,15 @@ router.post('/verify-phone/start', requireAuth, requireSellerAccount, phoneVerif
     // Twilio-specific codes worth a friendlier message than the generic
     // fallback -- 60200 is "invalid phone number" (e.g. too short/garbled
     // after normalizePhoneKH()), 60203 is Twilio's own per-number send-rate
-    // cap (distinct from phoneVerifyStartRateLimit above, which is ours).
+    // cap (distinct from phoneVerifyStartRateLimit above, which is ours),
+    // 21608 is trial-account-only: a Twilio trial account can only send to
+    // numbers pre-added as a "Verified Caller ID" in the Console (or a
+    // Verify Service test number, which bypasses this entirely). Found
+    // this gap testing against a real number on the project's trial
+    // account -- it was previously falling through to the generic 502.
     if (e.code === 60200) return res.status(400).json({ error: 'That doesn’t look like a valid phone number.' });
     if (e.code === 60203) return res.status(429).json({ error: 'Too many codes sent to this number recently. Please try again later.' });
+    if (e.code === 21608) return res.status(400).json({ error: 'This number needs to be verified in the Twilio trial account first (or use a Verify test number).' });
     res.status(502).json({ error: 'Could not send verification code. Please try again.' });
   }
 });
