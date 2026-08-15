@@ -176,7 +176,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       </div>
 
       <div class="btn-row">
-        <button class="bc-btn bc-btn--primary" id="step2NextBtn" onclick="saveStep2AndContinue()">Continue</button>
+        <button class="bc-btn bc-btn--primary" id="step2NextBtn" onclick="continueFromStep1()">Continue</button>
       </div>
     </div>
 
@@ -192,7 +192,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 
       <div class="btn-row">
         <button class="bc-btn bc-btn--ghost" onclick="goStep(1)">Back</button>
-        <button class="bc-btn bc-btn--primary" onclick="saveStep3AndContinue()">Continue</button>
+        <button class="bc-btn bc-btn--primary" onclick="continueFromStep2()">Continue</button>
       </div>
     </div>
 
@@ -214,7 +214,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 
       <div class="btn-row">
         <button class="bc-btn bc-btn--ghost" onclick="goStep(2)">Back</button>
-        <button class="bc-btn bc-btn--primary" onclick="saveStep4AndContinue()">Continue</button>
+        <button class="bc-btn bc-btn--primary" onclick="continueFromStep3()">Continue</button>
       </div>
     </div>
 
@@ -278,7 +278,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 
       <div class="btn-row">
         <button class="bc-btn bc-btn--ghost" onclick="goStep(3)">Back</button>
-        <button class="bc-btn bc-btn--primary" onclick="saveStep5AndContinue()">Continue</button>
+        <button class="bc-btn bc-btn--primary" onclick="continueFromStep4()">Continue</button>
       </div>
     </div>
 
@@ -314,31 +314,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 
       <div class="btn-row">
         <button class="bc-btn bc-btn--ghost" onclick="goStep(4)">Back</button>
-        <button class="bc-btn bc-btn--primary" onclick="saveStep6AndContinue()">Continue</button>
-      </div>
-    </div>
-
-    <!-- ══════ Step 6 — Terms + Submit ══════ -->
-    <div class="step-panel" id="panel6">
-      <div class="card-title">Review &amp; Submit</div>
-      <div class="card-sub">Last step.</div>
-
-      <div class="terms-row" onclick="toggleTerm(this,'agreement')">
-        <div class="checkbox" id="boxAgreement"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <div class="terms-text">I agree to the Bards Marketplace Agreement</div>
-      </div>
-      <div class="terms-row" onclick="toggleTerm(this,'privacy')">
-        <div class="checkbox" id="boxPrivacy"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <div class="terms-text">I agree to the Privacy Policy</div>
-      </div>
-      <div class="terms-row" onclick="toggleTerm(this,'commission')">
-        <div class="checkbox" id="boxCommission"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-        <div class="terms-text">I understand and accept the commission structure</div>
-      </div>
-
-      <div class="btn-row">
-        <button class="bc-btn bc-btn--ghost" onclick="goStep(5)">Back</button>
-        <button class="bc-btn bc-btn--primary" id="submitBtn" onclick="handleFinalSubmit()">Submit Application</button>
+        <button class="bc-btn bc-btn--primary" id="step5NextBtn" onclick="continueFromStep5()">Continue</button>
       </div>
     </div>
 
@@ -361,8 +337,22 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 <script src="products.js"></script>
 <script src="api.js"></script>
 <script>
-const STEP_LABELS = ['Store','Category','Business','Docs','Contact','Review'];
-let STATE = { shop: null, documents: [], categories: [], step: 1, terms: { agreement:false, privacy:false, commission:false } };
+// Phase 6: Step 6 ("Review & Submit") folded into the review popup below —
+// the form itself is 5 steps now, matching docs/tiktok-seller-onboarding-
+// flow.md's reference exactly (5-step form + a popup at the very end, not a
+// 6th in-form step).
+const STEP_LABELS = ['Store','Category','Business','Docs','Contact'];
+let STATE = {
+  shop: null, documents: [], categories: [], step: 1,
+  terms: { agreement:false, privacy:false, commission:false },
+  // Phase 6 (deferred save): files picked in Step 4 are held here as real
+  // File objects until the final submit, not uploaded on selection anymore.
+  // Keyed by doc_type ('id_card'|'business_license'). _pendingDocPreviewUrls
+  // holds the matching blob: URL for image files only (PDFs use a static
+  // badge, nothing to revoke) so it can be released on replacement/reload.
+  _pendingDocs: {},
+  _pendingDocPreviewUrls: {},
+};
 
 /* ── Auth guard — seller identity split: must be signed in through
    seller.bardskh.com's OWN signup/signin (SellerAuth), not a bardskh.com
@@ -438,7 +428,10 @@ let STATE = { shop: null, documents: [], categories: [], step: 1, terms: { agree
       showBanner('rejected', 'Application Rejected', escapeHtml(STATE.shop.rejection_reason || 'Please review and resubmit your application.'));
     } else if (STATE.shop && STATE.shop.status === 'approved') {
       showBanner('approved', 'Shop Approved', `Your shop is live. <a href="${bardsCrossHubUrl('seller', '/seller')}" style="color:inherit;font-weight:700;text-decoration:underline;">Go to Dashboard →</a>`);
-      document.getElementById('submitBtn').textContent = 'Save Changes';
+      // Approved shops skip the review popup entirely (Phase 6) -- Step 5's
+      // own Continue button becomes the save action directly, relabeled to
+      // make that clear. See continueFromStep5() below.
+      document.getElementById('step5NextBtn').textContent = 'Save Changes';
     }
     renderSteps();
     goStep(1, true);
@@ -564,69 +557,48 @@ function toggleTerm(row, key) {
   document.getElementById(boxId).classList.toggle('on', STATE.terms[key]);
 }
 
-/* ── Step 1 → 2: this is the first point enough info exists (a store name)
-   to actually create the shop row (POST /apply requires `name`) — earlier
-   this used to happen a step later, before the Store step was split out on
-   its own (Phase 3). If the shop already exists (resuming a pending/
-   rejected/needs_info application), PATCH instead. `name` is the only
-   field this step collects now — store_slug/description/logo/cover_url
-   were cut from this form in Phase 3 commit 2 (store_slug auto-generates
-   server-side from `name`, the rest just stay null until a Shop Settings
-   page exists). ── */
+/* ── Phase 6 (deferred save): every step below is now pure client-side
+   validation + navigation — nothing is sent to the server until the final
+   submit (either the review popup's Submit for a new/resubmitted
+   application, or Step 5's own "Save Changes" for an already-approved shop
+   — see continueFromStep5()/handleFinalSubmit() further down). Previously
+   each step PATCHed/POSTed its own fields immediately on Continue; that's
+   what let the shop row (and any uploaded document) exist mid-form even if
+   the applicant never finished. Trading that for: nothing is persisted
+   until the very end, so an accidental refresh now loses the whole form,
+   not just the current step (see the beforeunload guard below). ── */
+
+/* Collects Step 1's field(s) — also used by collectAllFields() at final
+   submit. `name` is still the only field this step collects (store_slug/
+   description/logo/cover_url were cut from this form in Phase 3 commit 2). */
 function collectStep1Fields() {
   return {
     name: document.getElementById('fName').value.trim(),
   };
 }
 
-async function saveStep2AndContinue() {
-  const btn = document.getElementById('step2NextBtn');
-  const fields = collectStep1Fields();
-  if (!fields.name) { showErr('Store name is required.'); return; }
-  btn.classList.add('loading');
-  try {
-    if (STATE.shop) {
-      const { shop } = await ShopsAPI.update(fields);
-      STATE.shop = shop;
-    } else {
-      const { shop } = await ShopsAPI.apply(fields);
-      STATE.shop = shop;
-    }
-    btn.classList.remove('loading');
-    goStep(2);
-  } catch(e) {
-    btn.classList.remove('loading');
-    showErr(e.message || 'Could not save — please check your info.');
-  }
+function continueFromStep1() {
+  if (!collectStep1Fields().name) { showErr('Store name is required.'); return; }
+  clearErr();
+  goStep(2);
 }
 
-async function saveStep3AndContinue() {
-  try {
-    const { shop } = await ShopsAPI.update({ category_id: document.getElementById('fCategory').value || null });
-    STATE.shop = shop;
-    goStep(3);
-  } catch(e) {
-    showErr(e.message || 'Could not save — please try again.');
-  }
+function continueFromStep2() {
+  clearErr();
+  goStep(3);
 }
 
-async function saveStep4AndContinue() {
+function continueFromStep3() {
   if (!STATE._businessType) { showErr('Please select a business type.'); return; }
-  try {
-    const { shop } = await ShopsAPI.update({ business_type: STATE._businessType });
-    STATE.shop = shop;
-    renderDocs();
-    goStep(4);
-  } catch(e) {
-    showErr(e.message || 'Could not save — please try again.');
-  }
+  clearErr();
+  goStep(4);
 }
 
-// Phase 3B: business shops don't show (or collect) these fields anymore —
-// returns {} for business, so saveStep5AndContinue() below knows there's
-// nothing to PATCH (an empty PATCH body is a 400 from the backend, not a
-// no-op, so that has to be handled as "skip the call entirely", not just
-// "send an empty object").
+// Phase 3B: business shops don't show (or collect) these fields at all —
+// returns {} for business, so collectAllFields() (final submit) knows not
+// to include these keys in the request body, leaving whatever's already on
+// the shop row untouched rather than blanking it out (see PATCH /me's
+// `if (b.field !== undefined)` pattern in routes/shops.js).
 function collectStep4Fields() {
   if (STATE._businessType === 'business') return {};
   return {
@@ -637,28 +609,28 @@ function collectStep4Fields() {
   };
 }
 
-async function saveStep5AndContinue() {
-  const fields = collectStep4Fields();
-  if (!Object.keys(fields).length) { goStep(5); return; } // business path — nothing to save at this step
-  try {
-    const { shop } = await ShopsAPI.update(fields);
-    STATE.shop = shop;
-    goStep(5);
-  } catch(e) {
-    showErr(e.message || 'Could not save — please try again.');
-  }
+function continueFromStep4() {
+  clearErr();
+  goStep(5);
 }
 
-async function saveStep6AndContinue() {
+/* Step 5 → either the review popup (new application / resubmitting a
+   rejected/needs_info one) or a direct save (an already-approved shop just
+   editing its profile — no terms/documents to re-confirm, see
+   handleFinalSubmit()'s alreadyApproved branch). Phone verification itself
+   (handleSendCode/handleVerifyCode below) already happens live via Twilio
+   and was never deferred — only the `PATCH /me {phone}` that persists the
+   now-verified number waits for the final submit, same as every other
+   field on this page now. */
+function continueFromStep5() {
   const phone = document.getElementById('fPhone').value.trim();
   if (!phone) { showErr('Phone number is required.'); return; }
   if (!STATE._phoneVerified) { showErr('Please verify your phone number before continuing.'); return; }
-  try {
-    const { shop } = await ShopsAPI.update({ phone });
-    STATE.shop = shop;
-    goStep(6);
-  } catch(e) {
-    showErr(e.message || 'Could not save — please try again.');
+  clearErr();
+  if (STATE.shop && STATE.shop.status === 'approved') {
+    handleFinalSubmit();
+  } else {
+    openReviewPopup();
   }
 }
 
