@@ -686,6 +686,13 @@ const ShopsAPI = {
   resubmit()             { return apiFetch('/shops/me/resubmit', { method: 'POST', auth: true }); },
   updateChecklist(data)  { return apiFetch('/shops/me/onboarding-checklist', { method: 'PATCH', body: data, auth: true }); },
 
+  /* Phone verification (Phase 4) — stateless on the server (Twilio Verify
+     tracks the pending code itself), doesn't touch `shops` at all. Callers
+     still PATCH /shops/me { phone } separately once verified, same as
+     before Phase 4. */
+  startPhoneVerification(phone)       { return apiFetch('/shops/verify-phone/start', { method: 'POST', body: { phone }, auth: true }); },
+  checkPhoneVerification(phone, code) { return apiFetch('/shops/verify-phone/check', { method: 'POST', body: { phone, code }, auth: true }); },
+
   /* Document upload — multipart, not through apiFetch() (same reason as
      AuthAPI.uploadAvatar above: always sends JSON). Token picked via
      _activeAuth() the same way apiFetch() does internally. doc_type must be

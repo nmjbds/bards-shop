@@ -96,6 +96,17 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .bc-btn{flex:1;}
 .bc-btn--ghost{flex:0 0 110px;}
 
+/* Phone verification (Phase 4, Step 5) — input + action button side by
+   side. Overrides .bc-btn's width:100% (components.css) and this file's
+   own flex:1 above via a 2-class-specificity descendant selector, rather
+   than adding a modifier class to every button used inside it. */
+.inline-row{display:flex;gap:8px;}
+.inline-row .f-input{flex:1;}
+.inline-row .bc-btn{flex:0 0 auto;width:auto;height:46px;padding:0 16px;white-space:nowrap;}
+.verified-badge{display:flex;align-items:center;gap:8px;border:1.5px solid #BBF7D0;background:#F0FDF4;border-radius:var(--radius-sm);padding:11px 14px;font-size:12.5px;font-weight:700;color:#166534;}
+.verified-badge button{background:none;border:none;color:var(--gray-400);font-size:11px;font-weight:600;text-decoration:underline;cursor:pointer;margin-left:auto;padding:0;}
+.verified-badge button:hover{color:var(--black);}
+
 .err-banner{background:#FEF2F2;border:1.5px solid #FECACA;border-radius:var(--radius-sm);padding:11px 13px;font-size:12px;color:var(--red);margin-bottom:16px;display:none;align-items:center;gap:8px;}
 .err-banner.show{display:flex;}
 
@@ -283,7 +294,22 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       </div>
       <div class="form-group">
         <label class="f-label">Phone <span class="f-req">*</span></label>
-        <input class="f-input" id="fPhone" placeholder="012 345 678">
+        <div class="inline-row">
+          <input class="f-input" id="fPhone" placeholder="012 345 678">
+          <button class="bc-btn bc-btn--primary" id="phoneSendBtn" onclick="handleSendCode()">Send Code</button>
+        </div>
+        <div class="f-hint" id="phoneHint">We'll text you a 6-digit code to verify this number.</div>
+
+        <div class="inline-row" id="otpRow" style="display:none">
+          <input class="f-input" id="fOtpCode" placeholder="6-digit code" inputmode="numeric" maxlength="6">
+          <button class="bc-btn bc-btn--primary" id="otpVerifyBtn" onclick="handleVerifyCode()">Verify</button>
+        </div>
+
+        <div class="verified-badge" id="phoneVerifiedBadge" style="display:none">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Phone verified
+          <button type="button" onclick="resetPhoneVerification()">Change number</button>
+        </div>
       </div>
 
       <div class="btn-row">
@@ -395,6 +421,11 @@ let STATE = { shop: null, documents: [], categories: [], step: 1, terms: { agree
     // Guards against picking a future date at the picker level too, on top
     // of the server-side z.iso.date().refine() check (Phase 2).
     document.getElementById('fBirthdate').max = new Date().toISOString().slice(0, 10);
+    // Explicit even though the HTML's default display:none on
+    // #otpRow/#phoneVerifiedBadge already matches 'edit' stage -- keeps
+    // the JS state and the DOM's initial state from silently drifting
+    // apart if either changes later.
+    setPhoneStage('edit');
 
     if (STATE.shop) prefillFromShop(STATE.shop);
     renderNamePreview();
@@ -621,6 +652,7 @@ async function saveStep5AndContinue() {
 async function saveStep6AndContinue() {
   const phone = document.getElementById('fPhone').value.trim();
   if (!phone) { showErr('Phone number is required.'); return; }
+  if (!STATE._phoneVerified) { showErr('Please verify your phone number before continuing.'); return; }
   try {
     const { shop } = await ShopsAPI.update({ phone });
     STATE.shop = shop;
@@ -628,6 +660,63 @@ async function saveStep6AndContinue() {
   } catch(e) {
     showErr(e.message || 'Could not save — please try again.');
   }
+}
+
+/* ── Phone verification (Phase 4) — three UI stages: 'edit' (phone input
+   editable, Send Code visible), 'code-sent' (phone locked, OTP input
+   visible), 'verified' (green badge, everything else hidden). Verification
+   state is intentionally never persisted server-side or restored on
+   reload (see the Phase 4 report) -- STATE._phoneVerified always starts
+   false, even if `shop.phone` already has a saved value from a previous
+   session, so reloading this page always requires re-verifying before
+   Step 5's Continue will proceed again. ── */
+function setPhoneStage(stage) {
+  document.getElementById('fPhone').disabled = stage !== 'edit';
+  document.getElementById('phoneSendBtn').style.display = stage === 'edit' ? '' : 'none';
+  document.getElementById('otpRow').style.display = stage === 'code-sent' ? 'flex' : 'none';
+  document.getElementById('phoneVerifiedBadge').style.display = stage === 'verified' ? 'flex' : 'none';
+  document.getElementById('phoneHint').style.display = stage === 'verified' ? 'none' : '';
+}
+
+async function handleSendCode() {
+  const phone = document.getElementById('fPhone').value.trim();
+  if (!phone) { showErr('Please enter your phone number first.'); return; }
+  const btn = document.getElementById('phoneSendBtn');
+  btn.classList.add('loading');
+  try {
+    await ShopsAPI.startPhoneVerification(phone);
+    STATE._verifyingPhone = phone; // exact string sent to /start -- reused for /check below
+    setPhoneStage('code-sent');
+    toast('Code sent!');
+  } catch(e) {
+    showErr(e.message || 'Could not send verification code.');
+  } finally {
+    btn.classList.remove('loading');
+  }
+}
+
+async function handleVerifyCode() {
+  const code = document.getElementById('fOtpCode').value.trim();
+  if (code.length !== 6) { showErr('Please enter the 6-digit code.'); return; }
+  const btn = document.getElementById('otpVerifyBtn');
+  btn.classList.add('loading');
+  try {
+    await ShopsAPI.checkPhoneVerification(STATE._verifyingPhone, code);
+    STATE._phoneVerified = true;
+    setPhoneStage('verified');
+    toast('✓ Phone verified');
+  } catch(e) {
+    showErr(e.message || 'Invalid or expired code.');
+  } finally {
+    btn.classList.remove('loading');
+  }
+}
+
+function resetPhoneVerification() {
+  STATE._phoneVerified = false;
+  STATE._verifyingPhone = null;
+  document.getElementById('fOtpCode').value = '';
+  setPhoneStage('edit');
 }
 
 /* ── Document upload ── */
