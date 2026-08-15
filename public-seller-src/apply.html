@@ -245,7 +245,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
           <div class="upload-sub" id="docSub_id_card">Not uploaded yet</div>
         </div>
         <button class="upload-btn" onclick="document.getElementById('docFile_id_card').click()">Upload</button>
-        <input type="file" id="docFile_id_card" accept="image/*,application/pdf" style="display:none" onchange="handleDocUpload(this,'id_card')">
+        <input type="file" id="docFile_id_card" accept="image/*,application/pdf" style="display:none" onchange="handleDocSelect(this,'id_card')">
       </div>
       <div class="upload-row" id="docRow_business_license">
         <div class="upload-icon" id="docIcon_business_license">📄</div>
@@ -254,7 +254,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
           <div class="upload-sub" id="docSub_business_license">Not uploaded yet</div>
         </div>
         <button class="upload-btn" onclick="document.getElementById('docFile_business_license').click()">Upload</button>
-        <input type="file" id="docFile_business_license" accept="image/*,application/pdf" style="display:none" onchange="handleDocUpload(this,'business_license')">
+        <input type="file" id="docFile_business_license" accept="image/*,application/pdf" style="display:none" onchange="handleDocSelect(this,'business_license')">
       </div>
 
       <div id="individualFieldsGroup">
@@ -496,6 +496,21 @@ function setDocIcon(icon, doc) {
   }
 }
 
+// Sets the upload-icon slot's look for a file picked locally but not yet
+// uploaded (Phase 6) -- same visual language as setDocIcon() above (PDF
+// badge vs. image thumbnail) but from a File + local blob: URL instead of a
+// server doc row + signed R2 URL.
+function setDocIconForFile(icon, file, previewUrl) {
+  icon.style.cssText = '';
+  if (file.type === 'application/pdf') {
+    icon.textContent = 'PDF';
+    icon.style.cssText = 'background:var(--black);color:#fff;font-size:9px;font-weight:800;letter-spacing:.3px;';
+  } else {
+    icon.textContent = '';
+    icon.style.cssText = `background-image:url("${previewUrl}");background-size:cover;background-position:center;`;
+  }
+}
+
 function renderDocs() {
   const isBusiness = STATE._businessType === 'business';
   const idCardRow  = document.getElementById('docRow_id_card');
@@ -508,14 +523,25 @@ function renderDocs() {
   // Phase 3B: full_name/id_number/birthdate/address are individual-only.
   document.getElementById('individualFieldsGroup').style.display = isBusiness ? 'none' : '';
 
+  // Phase 6: a freshly-picked (not yet uploaded) file always wins over
+  // whatever's already saved on the server for that doc type — it's what
+  // will actually get sent on submit. Switching business type back and
+  // forth never discards either one (same "hide, don't delete" behavior
+  // this already had for server-saved docs before Phase 6).
   ['id_card', 'business_license'].forEach(type => {
-    const doc = STATE.documents.find(d => d.doc_type === type);
+    const pendingFile = STATE._pendingDocs[type];
+    const existingDoc = STATE.documents.find(d => d.doc_type === type);
     const row = document.getElementById('docRow_' + type);
     const sub = document.getElementById('docSub_' + type);
     const icon = document.getElementById('docIcon_' + type);
-    row.classList.toggle('done', !!doc);
-    setDocIcon(icon, doc);
-    sub.textContent = doc ? 'Uploaded — ' + fmtDate(doc.uploaded_at) : 'Not uploaded yet';
+    row.classList.toggle('done', !!(pendingFile || existingDoc));
+    if (pendingFile) {
+      setDocIconForFile(icon, pendingFile, STATE._pendingDocPreviewUrls[type]);
+      sub.textContent = 'Selected — ' + pendingFile.name + ' (uploads when you submit)';
+    } else {
+      setDocIcon(icon, existingDoc);
+      sub.textContent = existingDoc ? 'Uploaded — ' + fmtDate(existingDoc.uploaded_at) : 'Not uploaded yet';
+    }
   });
 }
 
@@ -691,23 +717,32 @@ function resetPhoneVerification() {
   setPhoneStage('edit');
 }
 
-/* ── Document upload ── */
-async function handleDocUpload(input, docType) {
+/* ── Document selection (Phase 6: deferred — kept in memory as a real File,
+   actually uploaded only during the final submit sequence, see
+   handleFinalSubmit() below). Validates type/size client-side up front so a
+   bad file is caught the instant it's picked, not after filling out the
+   rest of the form and hitting Submit at the very end. Limits mirror
+   makeDocUpload()'s multer config in routes/shops.js exactly (10MB,
+   MIME_EXT's whitelist in middleware/validate.js) — duplicated here on
+   purpose rather than fetched from the server, since it's a fixed,
+   rarely-changing constant and this avoids an extra round-trip before the
+   form is even usable. ── */
+const DOC_MAX_SIZE = 10 * 1024 * 1024;
+const DOC_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
+
+function handleDocSelect(input, docType) {
   const file = input.files[0];
+  input.value = ''; // always reset so picking the exact same file twice in a row still fires onchange
   if (!file) return;
-  if (!STATE.shop) { showErr('Please finish Step 1 (Store) first.'); input.value = ''; return; }
-  const row = document.getElementById('docRow_' + docType);
-  const sub = document.getElementById('docSub_' + docType);
-  sub.textContent = 'Uploading…';
-  try {
-    const { document: doc } = await ShopsAPI.uploadDocument(file, docType);
-    STATE.documents = STATE.documents.filter(d => d.doc_type !== docType).concat(doc);
-    renderDocs();
-  } catch(e) {
-    sub.textContent = 'Not uploaded yet';
-    showErr(e.message || 'Document upload failed.');
-  }
-  input.value = '';
+  clearErr();
+  if (!DOC_ALLOWED_TYPES.includes(file.type)) { showErr('Only images or PDF files are allowed.'); return; }
+  if (file.size > DOC_MAX_SIZE) { showErr('File is too large — 10MB maximum.'); return; }
+
+  if (STATE._pendingDocPreviewUrls[docType]) URL.revokeObjectURL(STATE._pendingDocPreviewUrls[docType]);
+  STATE._pendingDocs[docType] = file;
+  STATE._pendingDocPreviewUrls[docType] = file.type === 'application/pdf' ? null : URL.createObjectURL(file);
+  markDirty();
+  renderDocs();
 }
 
 /* ── Final submit / resubmit / save-changes (already approved) ── */
