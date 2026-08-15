@@ -51,51 +51,57 @@ Phase 4: Twilio Verify SMS OTP — โค้ด backend+frontend เสร็จ
   apply.html Step 5 เก็บ+verify ผ่าน Twilio ต่างหาก **ไม่ใช่**คอลัมน์ที่เพิ่งแก้เป็น nullable รอบนี้เลย —
   ไม่มีความเสี่ยงกระทบหน้าไหน
 
+**Phase 6: Popup สรุปตรวจสอบ + atomic submit — เขียนโค้ดเสร็จ (2026-08-15), ทดสอบผ่านครบ, ยังไม่ push**
+`public-seller-src/apply.html` เปลี่ยนจาก save-as-you-go (6 step, PATCH ทุก step) เป็น deferred-save (5
+step + popup, ยิงครั้งเดียวตอนจบ) — commit แยก 5 อันตามลำดับที่วางแผนไว้:
+- **1/5**: `continueFromStep1()`-`continueFromStep4()` (เดิมชื่อ `saveStepXAndContinue`) เหลือแค่ client-side
+  validate + `goStep()` ไม่ยิง API แล้ว — Step 5's `continueFromStep5()` แยกสองทาง: shop `status='approved'`
+  (แก้ profile หลัง approve แล้ว) เรียก `handleFinalSubmit()` ตรงๆ ไม่ผ่าน popup, อื่นๆ เปิด popup
+- **2/5**: `handleDocUpload()` → `handleDocSelect()` — validate type/size ฝั่ง client ทันที (mirror
+  `MIME_EXT`/10MB limit จาก `middleware/validate.js`/`routes/shops.js` เป๊ะ) เก็บ `File` object ไว้ใน
+  `STATE._pendingDocs` แทนการ upload ทันที, preview ท้องถิ่นผ่าน `URL.createObjectURL()` (รูป) หรือ badge
+  "PDF" (เหมือนเดิม) — ตัด guard เดิม `if(!STATE.shop)` ออกเพราะ shop ยังไม่ถูกสร้างตอนนี้แล้ว
+- **3/5**: ยุบ Step 6 ("Review & Submit") เข้า popup overlay ใหม่ (`#reviewModal`, full-viewport, สร้างใน
+  ไฟล์เดียวกันไม่แยก component — ตรงกับ convention เดิม) — ฟอร์มเหลือ 5 step ตรงกับ reference doc เป๊ะ ย้าย
+  3 checkbox agreement เข้า popup, เพิ่ม read-only summary (ชื่อร้าน/หมวดหมู่/ประเภทธุรกิจ/ข้อมูลบัตรหรือ
+  business license/เบอร์+verified/อีเมล) — `showErr()`/`clearErr()` แก้ให้ popup-aware (error banner คนละ
+  ตัวข้างในและข้างนอก popup เพราะ backdrop บังของเดิม)
+- **4/5**: `handleFinalSubmit()` เขียนใหม่ทั้งหมด — `collectAllFields()` รวบ field ทั้งหมดยิงครั้งเดียว
+  (`POST /apply` ถ้ายังไม่มี shop, `PATCH /me` ถ้ามีแล้ว — **ไม่แก้ backend endpoint เลยตามแผน**) แล้ว
+  upload เอกสารที่ pending ทีละไฟล์ แล้ว `resubmit()` ถ้าจำเป็น — **idempotent ไม่ใช่ atomic จริง** (ยัง 3
+  endpoint แยกกัน) แต่ retry ปลอดภัย: เช็ค `STATE.shop` ก่อนว่าสร้างไปหรือยังทุกครั้ง (POST ซ้ำจะ 409 —
+  ยืนยันด้วยการทดสอบจริงข้างล่าง) และไฟล์ที่ upload สำเร็จแล้วจะถูกลบออกจาก `STATE._pendingDocs` ทันที
+  (retry ครั้งถัดไปข้ามไฟล์นั้นอัตโนมัติ) — error message บอกด้วยว่า stage ไหนพัง + ยืนยันว่า retry ปลอดภัย
+  ถ้า shop ถูกสร้างไปแล้ว
+- **5/5**: `beforeunload` guard — `markDirty()`/`clearUnsavedGuard()`, delegated `input`/`change` listener
+  บน `.wrap` ครอบ field ทั่วไป + เรียกตรงจาก `setBusinessType()`/`toggleTerm()`/`handleDocSelect()` (เป็น
+  custom `onclick` div ไม่ใช่ native form control เลย delegation ไม่ครอบ) — เตือนตั้งแต่แตะฟอร์มจนกว่า submit
+  สำเร็จ
+
+**ทดสอบ**: build `public-seller/` ใหม่แล้ว (`node scripts/build-public.js seller`) รัน `server-seller.js`
+local ชี้ DB จริง (Supabase เดียวกับ production) **หมายเหตุสำคัญ — ข้อจำกัดการทดสอบรอบนี้**: environment
+นี้ไม่มี browser automation tool (ไม่มี Playwright/Puppeteer) เลยไม่สามารถ "คลิกจริง" ผ่าน popup/UI ในเบราว์
+เซอร์ได้ด้วยตัวเอง — สิ่งที่ทำแทน: (1) syntax-check inline script ทุก commit ผ่าน `node --check`-equivalent,
+(2) grep เช็คว่าไม่มี reference ค้างไปหาชื่อฟังก์ชันเดิมที่ลบไปแล้ว, (3) **ทดสอบ backend contract แบบ
+end-to-end จริงผ่าน API ตรงๆ** จำลอง exact payload ที่ `collectAllFields()`/`handleFinalSubmit()` จะส่งจริง
+ทุกจุด (ไม่ใช่ mock) — สร้าง seller ทดสอบ 2 บัญชีถาวร (**ไม่ลบ ตามที่ขอ**) ให้เจ้าของโปรเจกต์เข้าไปคลิกดูจริง
+เองได้:
+  - `hnunghofficial+bardsphase6indiv@gmail.com` / `testpass123` — path individual: `POST /apply` field
+    เต็มชุด (name/category_id/business_type/phone/full_name/id_number/birthdate/address) → 201 สำเร็จ →
+    ยืนยัน `POST /apply` ซ้ำ 409 จริง (พิสูจน์ premise ของ retry-logic ว่าทำไมต้องเช็ค `STATE.shop` ก่อนสลับ
+    ไป `PATCH`) → `PATCH /me` ซ้ำ (จำลอง retry) 200 ผ่าน → upload `id_card` (PNG) 201 → `GET /me` เห็น
+    เอกสารครบ → จำลอง branch resubmit: admin flip status เป็น `needs_info` ตรงๆ ผ่าน DB → `PATCH /me` +
+    `POST /me/resubmit` → กลับเป็น `pending` จริง — shop สุดท้ายอยู่ที่ status `pending`
+  - `hnunghofficial+bardsphase6biz@gmail.com` / `testpass123` — path business: `POST /apply` ไม่ส่ง
+    full_name/id_number/birthdate/address เลย (ตรงกับ `collectStep4Fields()` คืน `{}`) → ยืนยัน field
+    พวกนั้นเป็น `null` จริงใน response → upload `business_license` (PDF) 201 → `GET /me` เห็นเอกสารถูกต้อง —
+    shop อยู่ที่ status `pending`
+  - **ยังไม่ได้ทดสอบด้วยตาจริงเอง**: หน้าตา popup จริง (summary render ถูกต้องไหม, CSS overlay ไม่ชนกับหน้า
+    เดิม), การเลือกไฟล์+preview ท้องถิ่นในเบราว์เซอร์จริง, `beforeunload` prompt ขึ้นจริงไหม — แนะนำให้เจ้า
+    ของโปรเจกต์ล็อกอินด้วย 2 บัญชีข้างบน (ผ่าน `signin.html` ปกติ) แล้วเปิด `/apply` คลิกดูเองสักรอบ โดย
+    เฉพาะ popup กับ error message ตอน submit ซ้ำ (ลองปิดเน็ตแล้วกด submit ดูว่าข้อความชัดเจนไหม)
+
 ## ยังไม่เริ่ม
-- **Phase 6: Popup สรุปตรวจสอบก่อน submit + atomic submit — เริ่มสำรวจแล้ว (2026-08-15), ยังไม่เขียนโค้ด
-  จริง** แผนเต็มอยู่ในรายงานแยกต่างหาก (ดูบทสนทนา 2026-08-15) สรุปสั้น:
-  - **จุด save-as-you-go ปัจจุบันทั้งหมด**: Step1→2 `POST /apply` หรือ `PATCH /me {name}`, Step2→3
-    `PATCH /me {category_id}`, Step3→4 `PATCH /me {business_type}`, Step4→5 `PATCH /me
-    {full_name,id_number,birthdate,address}` (ข้ามถ้า business), Step5→6 `PATCH /me {phone}`,
-    Step6 submit `POST /me/resubmit` (เฉพาะ rejected/needs_info) — บวก `handleDocUpload()` ที่ upload
-    ทันทีตอนเลือกไฟล์ (`POST /me/documents`, ต้องมี `STATE.shop` อยู่ก่อนถึงจะยิงได้)
-  - **Backend ไม่ต้องแก้เลย**: เช็คแล้ว `shopApplySchema`/`shopUpdateSchema` (`routes/shops.js`) รับ field
-    เต็มชุดอยู่แล้วในคำขอเดียว (`name` บังคับอย่างเดียว ที่เหลือ optional ทั้งหมด) — ยืนยันแผน "เก็บ state
-    ฝั่ง client แล้วยิงทีเดียวตอน submit" ทำได้จริงโดยไม่แตะ backend
-  - **ความเสี่ยง/จุดที่ต้องเปลี่ยน flow**: (1) Step 1 เป็นจุดสร้าง shop row จริง (`POST /apply`) — เลื่อนไป
-    submit ตอนจบ แปลว่า `STATE.shop` เป็น null ตลอด step 1-5 ของผู้สมัครใหม่ ต้องตัด guard เดิมใน
-    `handleDocUpload` (`if(!STATE.shop)`) ออก เปลี่ยนเป็นเก็บ `File` object ไว้ใน memory
-    (`STATE._pendingDocs`) แทนการ upload ทันที พร้อม preview ท้องถิ่น (`URL.createObjectURL` สำหรับรูป,
-    badge "PDF" เหมือนเดิมสำหรับ PDF) และควรเพิ่ม client-side validate ชนิด/ขนาดไฟล์ทันที (mirror
-    `MIME_EXT`/10MB limit ฝั่ง backend) เพื่อไม่ให้ error โผล่ครั้งแรกตอนกด submit ท้ายสุด — (2) phone
-    verification (`ShopsAPI.startPhoneVerification`/`checkPhoneVerification`) **ต้องยิงทันทีเหมือนเดิม
-    ห้ามเลื่อน** เพราะเป็น real-time SMS OTP loop ผ่าน Twilio ต้องมีมือถือจริงตอนนั้น — เลื่อนได้แค่การ save
-    `phone` ลง shop row (`PATCH /me {phone}`) เท่านั้น ส่วน verified-status ก็ไม่เคย persist
-    server-side อยู่แล้ว (reset ทุก reload เหมือนเดิม ไม่กระทบ) — (3) `prefillFromShop()`/`ShopsAPI.me()`
-    ตอน `init()` ไม่กระทบเลย ยังโหลดครั้งเดียวตอนเปิดหน้าเหมือนเดิม (สำหรับ resuming application) — จุดที่
-    เปลี่ยนคือหลังจากนั้น ทุก step ไม่ยิง PATCH ต่อ step อีกต่อไป อ่านค่าจาก DOM ตรงๆ ตอน submit จริง
-    (ฟังก์ชัน `collectStepXFields()` ที่มีอยู่แล้วใช้ต่อได้เกือบทั้งหมด) — (4) **retry ไม่ atomic จริงในแง่
-    DB**: ทำ backend transaction เดียวคลุม apply+upload+resubmit ไม่ได้ (ไม่แก้ backend endpoint ตามที่ตกลง)
-    ถ้า `POST /apply` สำเร็จแต่ `POST /me/documents` fail (เช่น เน็ตหลุด) shop จะถูกสร้างไปแล้วแบบไม่มี
-    เอกสาร — ต้องออกแบบ retry ให้ idempotent (เช็คว่า `STATE.shop` ถูกสร้างไปแล้วหรือยัง ถ้าใช่ให้ข้ามไปยิง
-    `PATCH /me` แทน `POST /apply` ตอนกด submit ซ้ำ)
-  - **Popup**: เสนอโชว์ read-only: ชื่อร้าน, หมวดหมู่ (ชื่อจาก dropdown ไม่ใช่ id), ประเภทธุรกิจ, full_name/
-    id_number/birthdate/address (เฉพาะ individual) หรือชื่อไฟล์ business license (เฉพาะ business), เบอร์
-    โทร+badge "Verified", อีเมล (read-only จาก session) — ปุ่ม "Submit"/"Back" (ปิด popup กลับไปแก้ในฟอร์ม
-    ไม่ submit) — **มีทางเลือกออกแบบที่ยังไม่ฟันธง รอ confirm**: (A) เก็บ Step 6 "Review & Submit" เดิม
-    (3 checkbox agreement) ไว้เหมือนเดิมทั้งหมด แล้วเพิ่ม popup เป็นชั้นยืนยันซ้อนอีกชั้นตอนกด "Submit
-    Application" หรือ (B) ยุบ Step 6 เข้า popup ไปเลย (เหลือฟอร์ม 5 step ตรงกับ reference doc เป๊ะๆ, ย้าย 3
-    checkbox agreement เข้าไปอยู่ใน popup) — เอนเอียงไปทาง (B) เพราะตรงกับ spec ในเอกสารอ้างอิงมากกว่า
-    (5-step form + popup ท้ายสุด ไม่ใช่ 6 step) — **เจ้าของโปรเจกต์ confirm แล้ว (2026-08-15): เลือก (B)**
-    ยุบ Step 6 เข้า popup — ฟอร์มเหลือ 5 step (Store/Category/Business/Docs/Contact), กด Continue จาก
-    Step 5 เปิด popup ตรง, ย้าย 3 checkbox agreement เดิมเข้าไปอยู่ใน popup — implementation: overlay
-    `<div>` ใหม่ในไฟล์ `apply.html` เอง (ไม่แยก component/ไฟล์ใหม่ — ตรงกับ convention เดิมของโปรเจกต์ที่ไม่มี
-    component framework) reuse `.bc-card` style เดิม — พร้อมเริ่มเขียนโค้ดจริงรอบหน้า
-  - **beforeunload**: ความเสี่ยงเดิม (ปิด/รีเฟรชแล้วไฟล์ที่เลือกไว้หายหมด ต้องเลือกใหม่) **หนักขึ้นกว่าเดิม**
-    ในโมเดล deferred เพราะตอนนี้ไม่มีอะไร save ระหว่างทางเลย (เดิม auto-save ทุก step กันไว้ระดับหนึ่ง) —
-    เสนอ `window.addEventListener('beforeunload', ...)` ที่ trigger ทันทีที่มีการกรอกข้อมูล/เลือกไฟล์ใดๆ
-    (ไม่ใช่แค่ตอนมีไฟล์) จนกว่าจะ submit สำเร็จ — browser สมัยใหม่ไม่ให้ custom message แล้ว (แค่ prompt
-    native ทั่วไป) แต่ยังคุ้มกันอุบัติเหตุพื้นฐานได้
 - Phase 7: หน้า /settle/verification + /settle/verification-result
 - Phase 8: ปรับ UI ให้มีภาพประกอบ/สีสัน มืออาชีพแบบ TikTok
 
