@@ -86,9 +86,11 @@ Phase 4: Twilio Verify SMS OTP — โค้ด backend+frontend เสร็จ
     (3 checkbox agreement) ไว้เหมือนเดิมทั้งหมด แล้วเพิ่ม popup เป็นชั้นยืนยันซ้อนอีกชั้นตอนกด "Submit
     Application" หรือ (B) ยุบ Step 6 เข้า popup ไปเลย (เหลือฟอร์ม 5 step ตรงกับ reference doc เป๊ะๆ, ย้าย 3
     checkbox agreement เข้าไปอยู่ใน popup) — เอนเอียงไปทาง (B) เพราะตรงกับ spec ในเอกสารอ้างอิงมากกว่า
-    (5-step form + popup ท้ายสุด ไม่ใช่ 6 step) แต่เป็นการเปลี่ยนโครงสร้าง step ที่เห็นชัดเจน ควรถามก่อนเริ่ม
-    เขียนโค้ดจริง — implementation: overlay `<div>` ใหม่ในไฟล์ `apply.html` เอง (ไม่แยก component/ไฟล์ใหม่ —
-    ตรงกับ convention เดิมของโปรเจกต์ที่ไม่มี component framework) reuse `.bc-card` style เดิม
+    (5-step form + popup ท้ายสุด ไม่ใช่ 6 step) — **เจ้าของโปรเจกต์ confirm แล้ว (2026-08-15): เลือก (B)**
+    ยุบ Step 6 เข้า popup — ฟอร์มเหลือ 5 step (Store/Category/Business/Docs/Contact), กด Continue จาก
+    Step 5 เปิด popup ตรง, ย้าย 3 checkbox agreement เดิมเข้าไปอยู่ใน popup — implementation: overlay
+    `<div>` ใหม่ในไฟล์ `apply.html` เอง (ไม่แยก component/ไฟล์ใหม่ — ตรงกับ convention เดิมของโปรเจกต์ที่ไม่มี
+    component framework) reuse `.bc-card` style เดิม — พร้อมเริ่มเขียนโค้ดจริงรอบหน้า
   - **beforeunload**: ความเสี่ยงเดิม (ปิด/รีเฟรชแล้วไฟล์ที่เลือกไว้หายหมด ต้องเลือกใหม่) **หนักขึ้นกว่าเดิม**
     ในโมเดล deferred เพราะตอนนี้ไม่มีอะไร save ระหว่างทางเลย (เดิม auto-save ทุก step กันไว้ระดับหนึ่ง) —
     เสนอ `window.addEventListener('beforeunload', ...)` ที่ trigger ทันทีที่มีการกรอกข้อมูล/เลือกไฟล์ใดๆ
