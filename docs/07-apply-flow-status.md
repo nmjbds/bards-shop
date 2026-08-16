@@ -273,8 +273,38 @@ error UI ของเรา เพราะ browser บล็อกการโ�
 logic ทำงานถูกต้องจริงเวลามีแค่ API call เดียวที่ fail ไม่ต้องพึ่งการทดสอบ manual ที่เจ็บบ่อยจากการปิดเน็ต
 ทั้งเบราว์เซอร์อีกต่อไป
 
+**Phase 8: UI Polish — เริ่มสำรวจแล้ว (2026-08-16), ยังไม่เขียนโค้ดจริง**
+- **สำรวจทุกหน้า seller (11 หน้า) แล้ว**: ไม่มีไฟล์ภาพ (.png/.jpg/.svg/.webp) แม้แต่ไฟล์เดียวในทั้ง
+  `public-shared`/`public-seller-src` ไม่มี favicon ด้วยซ้ำ — icon ทั้งหมดตอนนี้เป็น inline SVG (สไตล์
+  Lucide/Feather, stroke="currentColor") + emoji ประปราย ไม่มี illustration ใหญ่ๆ เลยสักจุดในทั้ง
+  โปรเจกต์
+  - **ดิบที่สุด**: `signin.html`, `settle/form.html` (ทุก step title ไม่มี icon เลย ทั้งที่ `signup.html`
+    มี pattern `.icon-circle` ต่อ step อยู่แล้ว แค่ไม่ได้เอามาใช้), `settle/verification.html`/
+    `verification-result.html` (มีแค่ `.done-icon` วงกลมเปล่า ไม่มี illustration สื่ออารมณ์ moment สำคัญ),
+    `seller-analytics.html` (ไม่มี icon เลยสักจุดในทั้งหน้า มีแต่กราฟ)
+  - **ดิบน้อยสุด**: `seller-landing.html` (มี emoji-icon + orange accent 4 ครั้งอยู่แล้ว),
+    `seller-products.html` (มีรูปสินค้าจริง+placeholder+badge ครบแล้ว), `seller-coupons.html` (การ์ด
+    "ตั๋วฉีก" สไตล์ชัดสุดในโปรเจกต์ แต่ empty state/`confirm()` ยังหลุดธีม)
+  - **จุดร่วมที่คุ้มสุด**: empty state ทุกหน้า dashboard ตอนนี้เป็นแค่ emoji เดี่ยวๆ ทั้งหมด (`seller.html`,
+    `seller-orders.html`, `seller-products.html`, `seller-coupons.html`) — ทำ pattern เดียว reuse ได้ทุก
+    หน้าคุ้มกว่าทำแยก — เจอบั๊ก UX เล็กๆ ระหว่างสำรวจด้วย: `seller-orders.html`'s order-item image ถ้าโหลด
+    ไม่ได้จะ**หายไปเฉยๆ** ไม่มี placeholder เลย (ไม่ใช่ scope วันนี้ บันทึกไว้)
+- **Icon source**: ไม่มี asset library ไม่มี CDN ตาม convention เดิม — เสนอทำต่อแบบเดิม (inline SVG
+  hand-copy จาก Lucide/Feather, MIT license) ไม่มี icon font/CDN ตามที่สั่ง
+- **จุดตัดสินใจที่รอ confirm**: ส่วน "illustration" (ภาพใหญ่ขึ้นสำหรับหน้า verification/empty state) ไม่มี
+  precedent ในโปรเจกต์เลย เสนอ 2 ทาง — (A) วาดเองด้วย inline SVG เรขาคณิตง่ายๆ (ไม่มี dependency ภายนอก
+  เลย ตรง convention 100% แต่ใช้เวลาออกแบบมากกว่า) หรือ (B) โหลดไฟล์ illustration free-license (เช่น
+  unDraw) มาครั้งเดียวแล้ว inline เป็น static SVG (เร็วกว่า แต่เป็น asset file ไฟล์แรกในโปรเจกต์ + ต้องเช็ค
+  license เอง) — เอนเอียงไปทาง (A) แต่ยังไม่ได้ตัดสินใจขาด
+- **แผนแบ่งขั้นย่อย เรียงเสี่ยงน้อย→มาก**: 1) design tokens เพิ่มใน `tokens.css`/`components.css` (additive
+  ล้วน ไม่เสี่ยงเลย) 2) `seller-landing.html` (static, มีสี/emoji อยู่แล้วมากสุด) 3) `signin.html`+
+  `signup.html` (auth flow แยกขาด ทดสอบจบในตัวง่าย) 4) `settle/verification.html`+
+  `verification-result.html` (state น้อย เพิ่งทดสอบละเอียดจบไป) 5) `settle/form.html` (**เสี่ยงสุดในกลุ่ม
+  non-dashboard** เพราะเพิ่งผ่าน rework ใหญ่ Phase 6/7 — ต้องทำ CSS/markup เท่านั้น ห้ามแตะ JS logic) 6)
+  dashboard 5 หน้า (ปริมาณงานใหญ่สุด แต่โค้ดนิ่งมานาน ไม่เคยแตะรอบนี้เลย — แยกเป็น sub-phase ของตัวเอง เริ่ม
+  จาก `seller.html` ก่อน)
+
 ## ยังไม่เริ่ม
-- Phase 8: ปรับ UI ให้มีภาพประกอบ/สีสัน มืออาชีพแบบ TikTok
 - **Phase 11**: สร้างหน้า `/homepage` เป็น landing page ก่อนเข้า dashboard จริง (`/seller`) สำหรับ seller
   ที่ approved แล้ว — ตอนนี้ approved seller เข้า `/seller` ตรงๆ ต้องการมีหน้ากลางก่อน (รายละเอียด
   UI/เนื้อหายังไม่ได้คุยกัน รอวางแผนตอนถึงคิว)
