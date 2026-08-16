@@ -182,21 +182,37 @@ body{
 let _loading = false, _otpEmail = '';
 let _resendInterval = null, _resendCount = 0;
 
+/* Where to land after proving identity (either "already signed in" on page
+   load, or right after a successful signin submit) — routes by the shop's
+   actual status, mirroring settle/verification.html's and
+   settle/verification-result.html's own routing table exactly (Phase 7).
+   Previously this just checked whether a shop existed at all (`d?.shop ?
+   '/seller' : '/apply'`), so ANY shop -- approved, pending, rejected,
+   needs_info, suspended -- sent the seller straight into the dashboard,
+   bypassing the status-aware pages entirely. Found 2026-08-16 testing a
+   rejected test account signing in and landing on /seller instead of
+   /settle/verification-result. */
+async function routeByShopStatus() {
+  const d = await ShopsAPI.me().catch(() => null);
+  const shop = d?.shop;
+  if (!shop) { location.href = '/apply'; return; }
+  if (shop.status === 'approved') { location.href = '/seller'; return; }
+  if (shop.status === 'rejected') { location.href = '/settle/verification-result'; return; }
+  if (shop.status === 'needs_info' || shop.status === 'suspended') { location.href = '/apply'; return; }
+  location.href = '/settle/verification'; // pending
+}
+
 /* Already signed in? Skip straight past this page. Deliberately checks
    SellerAuth ONLY — never the admin-fallback branch of
    SellerAuth.ensureSession() — signin.html is where a seller proves their
    OWN identity; an admin arriving here (e.g. a stray bookmark) should still
    see the form, not get silently waved through. */
 (async function initRedirect() {
-  if (SellerAuth.getToken()) {
-    const shop = await ShopsAPI.me().catch(() => null);
-    location.href = (shop?.shop) ? '/seller' : '/apply';
-  }
+  if (SellerAuth.getToken()) await routeByShopStatus();
 })();
 
 function landAfterSignin() {
-  ShopsAPI.me().then(d => { location.href = d?.shop ? '/seller' : '/apply'; })
-    .catch(() => { location.href = '/apply'; });
+  routeByShopStatus();
 }
 
 const _spin = `<svg style="animation:spin .8s linear infinite;flex-shrink:0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>`;
