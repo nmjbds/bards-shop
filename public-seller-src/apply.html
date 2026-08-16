@@ -143,11 +143,25 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(10,10,10,.55);z-index:1000;overflow-y:auto;padding:32px 16px 60px;}
 .modal-overlay.show{display:flex;justify-content:center;}
 .modal-card{width:100%;max-width:560px;height:fit-content;}
-.review-list{margin-bottom:18px;}
-.review-row{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--gray-100);}
-.review-row:last-child{border-bottom:none;}
-.review-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-400);flex-shrink:0;padding-top:1px;}
-.review-value{font-size:12.5px;font-weight:600;text-align:right;word-break:break-word;}
+.review-list{margin-bottom:20px;}
+/* Vertical label-over-value layout (TikTok reference) — was a horizontal
+   label-left/value-right row; redesigned 2026-08-16 per direct comparison
+   against the reference. More breathing room between fields (18px top/
+   bottom vs. the old 10px) plus the same thin divider, just applied to a
+   taller row now. */
+.review-row{padding:18px 0;border-bottom:1px solid var(--gray-100);}
+.review-row:first-child{padding-top:0;}
+.review-row:last-child{padding-bottom:0;border-bottom:none;}
+.review-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-400);margin-bottom:6px;}
+.review-value{font-size:15px;font-weight:700;color:var(--black);word-break:break-word;display:flex;align-items:center;flex-wrap:wrap;gap:8px;}
+/* Small suffix tag on a review value — e.g. phone's "Verified"/"Dev bypass"
+   status — instead of that status being plain text appended to the value
+   string itself. Built on the shared .bc-badge shape (components.css) with
+   two page-local color modifiers -- .bc-badge's existing 9 modifiers are
+   all order-status colors (a different domain), so these live here rather
+   than joining that set. */
+.bc-badge--verified{background:#F0FDF4;color:#166534;}
+.bc-badge--dev-bypass{background:#FEF3C7;color:#92400E;}
 
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(4px);background:var(--black);color:#fff;padding:11px 16px;border-radius:10px;font-size:12.5px;font-weight:600;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;box-shadow:var(--shadow-modal);}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -833,8 +847,15 @@ function toggleTerm(row, key) {
 }
 
 /* ── Review popup (Phase 6) ── */
-function reviewRow(label, value) {
-  return `<div class="review-row"><div class="review-label">${escapeHtml(label)}</div><div class="review-value">${escapeHtml(value || '—')}</div></div>`;
+// badgeHtml (optional) is a pre-built .review-badge span (see reviewBadge()
+// below) appended after the value — e.g. phone's Verified/Dev-bypass status
+// — kept as a separate visual tag rather than folded into the value text
+// itself, so the value line always reads as just the actual data.
+function reviewRow(label, value, badgeHtml) {
+  return `<div class="review-row"><div class="review-label">${escapeHtml(label)}</div><div class="review-value"><span>${escapeHtml(value || '—')}</span>${badgeHtml || ''}</div></div>`;
+}
+function reviewBadge(text, tone) {
+  return `<span class="bc-badge bc-badge--${tone}">${escapeHtml(text)}</span>`;
 }
 
 function renderReviewSummary() {
@@ -864,13 +885,13 @@ function renderReviewSummary() {
 
   // TEMPORARY (Phase 6 testing bypass, 2026-08-16) — keep the review popup
   // honest about what's actually verified vs. skipped via the dev bypass,
-  // rather than claiming "✓ Verified" for a number that never really was.
-  // Remove the bypass branch (keep the ternary's else) once Phase 6 testing
-  // is done, see docs/07-apply-flow-status.md.
-  let phoneStatus = '';
-  if (STATE._phoneVerified) phoneStatus = ' ✓ Verified';
-  else if (STATE._phoneVerifyBypass) phoneStatus = ' (dev bypass — not verified)';
-  rows.push(reviewRow('Phone', fullPhoneE164() + phoneStatus));
+  // rather than claiming "Verified" for a number that never really was.
+  // Remove the bypass branch (keep the if's else-less true case) once
+  // Phase 6 testing is done, see docs/07-apply-flow-status.md.
+  let phoneBadge = '';
+  if (STATE._phoneVerified) phoneBadge = reviewBadge('Verified', 'verified');
+  else if (STATE._phoneVerifyBypass) phoneBadge = reviewBadge('Dev bypass', 'dev-bypass');
+  rows.push(reviewRow('Phone', fullPhoneE164(), phoneBadge));
   rows.push(reviewRow('Email', document.getElementById('fEmail').value));
 
   document.getElementById('reviewList').innerHTML = rows.join('');
