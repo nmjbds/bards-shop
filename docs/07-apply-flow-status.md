@@ -317,6 +317,22 @@ logic ทำงานถูกต้องจริงเวลามีแค�
   (ไม่มีทาง collision) — build+serve จริงยืนยัน `tokens.css`/`components.css` มีเนื้อหาใหม่ครบ และทั้ง 11
   หน้า seller ยัง 200 ปกติเหมือนเดิมทุกหน้า ไม่มี regression
 
+**Stage 2/6 — `seller-landing.html` icons (2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, ยังไม่ push
+(commit `5db2c9a`)**
+- แทน emoji 4 ตัว (👥🎛️🔒💸) ในการ์ด value-prop ด้วย inline SVG (Lucide-style เดิม, ไม่มี icon font/CDN)
+  ใส่ใน `.bc-icon-circle bc-icon-circle--accent` (โทนส้ม) — เลือก icon ตามความหมาย: users (audience),
+  sliders-horizontal (control), shield-check (payment security), wallet (payouts)
+- **เจอเรื่องที่ต้องแก้ก่อน**: ไฟล์นี้ไม่เคย link `tokens.css`/`components.css` เลยตั้งแต่แรก (มี `:root{}`
+  ของตัวเองที่ duplicate ค่าเดิมบางส่วนแยกต่างหาก — ตรงกับที่ comment หัวไฟล์ `tokens.css` อธิบายไว้ว่าทำไม
+  ไฟล์นั้นถึงมีอยู่) เพิ่ม `<link>` ทั้งสองเป็น prerequisite ก่อนใช้ `.bc-icon-circle` ได้ — **ไม่ได้ dedup**
+  `:root{}` เดิมของไฟล์ (นอก scope "แค่เปลี่ยน icon" เก็บไว้เป็นงานแยกในอนาคตถ้าต้องการ)
+- ลบ CSS rule `.value-icon` เดิมทิ้ง (ไม่มีจุดอื่นใช้แล้ว) เก็บ `margin-bottom:14px` เดิมไว้ผ่าน
+  `.value-card .bc-icon-circle` แทน — เนื้อหา/ข้อความ/grid layout ไม่เปลี่ยนเลยสักตัวอักษร
+- **ทดสอบ**: grep ยืนยันไม่มี `.value-icon` เหลือ, syntax script ผ่าน, build+serve จริงทั้ง `/` และ
+  `/seller-landing` ยัง 200, `tokens.css`/`components.css` โหลดได้จริง (200), นับ `.bc-icon-circle` ใน
+  HTML ที่ served ได้ครบ 4 ตัวตรงกับ 4 การ์ด — สร้าง before/after mockup จาก CSS จริงเป็น Artifact ให้ดู
+  เทียบเพราะไม่มี browser ในนี้เหมือนเดิม
+
 ## ยังไม่เริ่ม
 - **Phase 11**: สร้างหน้า `/homepage` เป็น landing page ก่อนเข้า dashboard จริง (`/seller`) สำหรับ seller
   ที่ approved แล้ว — ตอนนี้ approved seller เข้า `/seller` ตรงๆ ต้องการมีหน้ากลางก่อน (รายละเอียด
