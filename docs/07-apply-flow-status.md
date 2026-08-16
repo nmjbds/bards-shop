@@ -215,8 +215,57 @@ end-to-end จริงผ่าน API ตรงๆ** จำลอง exact pay
   โปรเจกต์เดินฟอร์มเองตอน Phase 6), `bardsphase6freshbiz` = **approved** (เปลี่ยนจาก ไม่มี shop เลย —
   fixture ดีสำหรับดู redirect ไป `/seller`) รหัสผ่านทั้งหมด `testpass123`
 
+**บั๊กที่เจอระหว่างทดสอบ Phase 7 ด้วยตาจริง (2026-08-16), แก้แล้วทั้งคู่ — commit `5ddf45b` +
+commit ของ apply.html rename ด้านล่าง:**
+1. **`signin.html` route ตาม "มี shop ไหม" เฉยๆ ไม่เช็ค status เลย** — login เป็น seller ที่มี shop
+   `rejected` แล้วโดนส่งเข้า `/seller` ตรงๆ แทนที่จะไป `/settle/verification-result` เช็ค DB แล้วยืนยันว่า
+   สถานะยังเป็น `rejected` จริง (ไม่ได้ถูก reset ระหว่างทดสอบรอบก่อน) สรุปว่าเป็นบั๊ก routing จริง ไม่ใช่ข้อมูล
+   เพี้ยน — root cause: `initRedirect()`/`landAfterSignin()` (2 จุดในไฟล์เดียวกัน) เช็คแค่
+   `d?.shop ? '/seller' : '/apply'` เป็นบั๊กเก่าที่มีอยู่ก่อน Phase 7 (ไม่ใช่งานใหม่ของ Phase 7 เอง แค่เพิ่งมี
+   หน้า `/settle/*` ให้เทียบจึงเห็นชัด) แก้โดยรวมเป็น `routeByShopStatus()` เดียว mirror routing table
+   เดียวกับหน้า verification ทั้งสองเป๊ะ ยืนยันด้วยการรัน logic จริงผ่าน `vm` ครบ 6 เคสสถานะ
+2. **ปุ่ม "Apply Again" ในหน้า rejected ยังลิงก์ไป `/apply`** — เป็นงานที่ตกหล่นจากตอนวางแผนก่อน Phase 6
+   (เคยคุยกันไว้ว่าจะย้าย apply.html ไปเป็น `/settle/form` ตาม namespace เดียวกับ verification/
+   verification-result แต่ไม่เคยสั่งทำจริง) — ดูรายละเอียดเต็มด้านล่าง
+
+**apply.html → settle/form.html (2026-08-16) — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, ยังไม่ push:**
+- **Rename ไฟล์จริง** (`git mv`, ไม่ใช่แค่เปลี่ยน route) — จำเป็นต้อง move ไฟล์จริงเพราะ clean URL
+  gen จาก path ของไฟล์ตรงๆ (`walkHtmlFiles()`) ไม่มีทาง alias `/apply` ให้ชี้ไปไฟล์อื่นโดยไม่ย้ายไฟล์จริง
+  — แก้ asset path ในไฟล์ที่ย้ายเป็น absolute (`/tokens.css` ฯลฯ) เหมือนที่ทำกับ verification.html/
+  verification-result.html ตอน Phase 7 เป๊ะ (เจอปัญหาเดิมซ้ำ — คาดไว้แล้ว)
+- **grep ทั้งโปรเจกต์หา `/apply`/`apply.html` แล้วแก้ทุกจุดที่เป็น frontend page link จริง** (ไม่ใช่ backend
+  API `POST /api/shops/apply` ซึ่งเป็นคนละอย่างกัน ไม่แตะ): `signup.html` (CTA "CONTINUE TO APPLICATION" +
+  already-signed-in skip), `signin.html` (`routeByShopStatus()`'s 2 branch), `settle/verification.html`/
+  `verification-result.html` (needs_info/suspended redirect target + comment), `seller.html`
+  (onboarding checklist `href` 2 จุด), `seller-landing.html` (CTA "Start Selling" 3 จุด),
+  `server-seller.js` (comment อธิบาย bare `/`) — เช็คซ้ำด้วย grep ว่าไม่มี `href="/apply"`/
+  `location.href = '/apply'`/`href: '/apply'` เหลือเลยสักจุดในโปรเจกต์
+- **ตัดสินใจ**: **ไม่ทำ compat redirect จาก `/apply` เดิม** — ปล่อย hard 404 ตาม convention เดิมของโปรเจกต์
+  (Clean URLs Phase 2: "ไม่มี SEO ต้อง preserve, ยังไม่มี seller จริงใช้งาน") ยืนยันจริงว่า `/apply` 404,
+  `/settle/form` 200 พร้อม asset โหลดถูกต้องหมด
+- **สังเกตเจอระหว่างทาง (นอกขอบเขต ไม่ได้แก้)**: `05-seller-onboarding-blueprint.md` เคยเขียนไว้ว่าปุ่ม
+  "Start Selling" ควรพาไป `/signup` ไม่ใช่ `/apply`/`/settle/form` ตรงๆ — แต่โค้ดจริงพาไปฟอร์มตรงๆ มาตลอด
+  (พฤติกรรมเดิมไม่เปลี่ยน แค่เปลี่ยน path ปลายทาง) ไม่ใช่ scope งานรอบนี้ บันทึกไว้เผื่ออนาคตอยากปรับ
+- **ทดสอบ**: routing จริงผ่าน curl (`/settle/form` 200 + asset path ถูกต้อง, `/apply` 404),
+  `routeByShopStatus()` (`signin.html`) รันจริงผ่าน `vm` ซ้ำอีกรอบหลังแก้ path ครบ 6 เคสตรงตามที่ออกแบบ
+  ทุกหน้าที่แตะ (signin/signup/seller/seller-landing/settle ทั้ง 3) syntax-check ผ่านหมด + serve จริง
+  200 ทุกหน้า
+
+**ทดสอบ error/retry state แบบ programmatic แทนการทดสอบ manual (2026-08-16)** — เจ้าของโปรเจกต์ทดสอบ
+manual ผิดวิธีรอบก่อน (เปิด "Offline" เต็มรูปแบบ + reload ทั้งหน้า เจอหน้า dinosaur ของ Chrome เอง ไม่ใช่
+error UI ของเรา เพราะ browser บล็อกการโหลดหน้าตั้งแต่ request แรกก่อน JS จะรันด้วยซ้ำ) — เขียน test จำลอง
+**เฉพาะ `ShopsAPI.me()` fail** (ไม่แตะทั้งหน้า/เบราว์เซอร์) รัน `loadStatus()` จริงของทั้ง 2 ไฟล์ผ่าน `vm`
+3 รอบต่อไฟล์: (1) เรียกครั้งแรก API fail → ต้องขึ้น error state (2) กด "Try Again" (เรียก `loadStatus()`
+ซ้ำ) คราวนี้ API กลับมาทำงาน → ต้องกลับมาโชว์ content จริง (3) กด "Try Again" อีกรอบแต่ API ยังพังอยู่ → ต้อง
+กลับไป error state อีกครั้ง ไม่ค้าง ไม่ throw จนพัง — **ผ่านหมดทั้ง 2 ไฟล์ × 3 รอบ = 6/6** ยืนยันว่า retry
+logic ทำงานถูกต้องจริงเวลามีแค่ API call เดียวที่ fail ไม่ต้องพึ่งการทดสอบ manual ที่เจ็บบ่อยจากการปิดเน็ต
+ทั้งเบราว์เซอร์อีกต่อไป
+
 ## ยังไม่เริ่ม
 - Phase 8: ปรับ UI ให้มีภาพประกอบ/สีสัน มืออาชีพแบบ TikTok
+- **Phase 11**: สร้างหน้า `/homepage` เป็น landing page ก่อนเข้า dashboard จริง (`/seller`) สำหรับ seller
+  ที่ approved แล้ว — ตอนนี้ approved seller เข้า `/seller` ตรงๆ ต้องการมีหน้ากลางก่อน (รายละเอียด
+  UI/เนื้อหายังไม่ได้คุยกัน รอวางแผนตอนถึงคิว)
 
 ## หมายเหตุ
 - R2 credential แก้แล้ว (ใช้ "R2 Account Token" scope ครบ 2 bucket)
