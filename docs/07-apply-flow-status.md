@@ -6,6 +6,12 @@
 > ย้ายเข้ามาอยู่ใน `bards-new/docs/` เมื่อ 2026-08-15 (จากเดิม `docs/` ที่ root โปรเจกต์) เพื่อให้ commit
 > เข้า git ได้จริง — ดูหัวข้อ "หมายเหตุ" ท้ายไฟล์สำหรับสถานะของเอกสารอ้างอิงอื่นๆ ที่ยังอยู่นอก repo
 
+> ⚠️ **มี temporary bypass ค้างอยู่ในโค้ดตอนนี้ (2026-08-16) — ดูหัวข้อ "เขียนโค้ดเสร็จ แต่ยังไม่ push"
+> ด้านล่างสำหรับรายละเอียดเต็ม**: `SKIP_PHONE_VERIFY=true` ใน local `backend/.env` + โค้ดใน
+> `server-seller.js`/`apply.html` ที่ข้าม step 5's "ต้อง verify เบอร์ก่อน" — ใช้ local dev เท่านั้น
+> (double-gate กับ `NODE_ENV`, ยืนยันแล้วว่าไม่มีทางหลุดไป production) **ต้องลบทิ้งทันทีที่ทดสอบ Phase 6
+> ครบทุกจุดแล้ว** อย่าลืมว่ามันยังอยู่
+
 ## เสร็จแล้ว + push แล้ว
 - Phase 1: DB schema (id_number, birthdate, auto-slug, bank fields optional)
 - Phase 2: Backend เต็มรูปแบบสำหรับ id_number/birthdate
@@ -100,6 +106,36 @@ end-to-end จริงผ่าน API ตรงๆ** จำลอง exact pay
     เดิม), การเลือกไฟล์+preview ท้องถิ่นในเบราว์เซอร์จริง, `beforeunload` prompt ขึ้นจริงไหม — แนะนำให้เจ้า
     ของโปรเจกต์ล็อกอินด้วย 2 บัญชีข้างบน (ผ่าน `signin.html` ปกติ) แล้วเปิด `/apply` คลิกดูเองสักรอบ โดย
     เฉพาะ popup กับ error message ตอน submit ซ้ำ (ลองปิดเน็ตแล้วกด submit ดูว่าข้อความชัดเจนไหม)
+
+**⚠️ Temporary phone-verify bypass (2026-08-16) — commit `b44f674`, ยังไม่ push — ค้างอยู่ในโค้ดตอนนี้
+จริง ต้องลบก่อน push/launch:**
+- **สาเหตุ**: Twilio trial account ยังบล็อกส่ง SMS จริงส่วนใหญ่ (รู้อยู่แล้วตั้งแต่ Phase 4) ทำให้ทดสอบ
+  ต่อจาก Step 5 ไป popup/submit ด้วยตาจริงไม่ได้เลยถ้าไม่มีเบอร์ที่ verify ผ่านได้จริง — ไม่ใช่บั๊ก เป็น
+  ข้อจำกัด infra ที่รู้อยู่แล้ว
+- **เปิดใช้งานยังไง**: `backend/.env` (local เท่านั้น ไม่อยู่ใน git — `.env` อยู่ใน `.gitignore`) มีบรรทัด
+  `SKIP_PHONE_VERIFY=true` เพิ่มไว้แล้ว (คอมเมนต์กำกับไว้ในไฟล์ว่าเป็น temporary + ห้ามใส่ใน Render)
+- **ปิดใช้งาน**: ลบบรรทัด `SKIP_PHONE_VERIFY=true` ออกจาก `backend/.env` แล้ว restart server-seller.js
+  (หรือแค่เปลี่ยนเป็น `false`/comment ออกก็พอ ไม่ต้องลบทั้งบรรทัดถ้าจะเปิดกลับมาใช้อีก)
+- **กลไกความปลอดภัย (double-gate) — ยืนยันด้วยการทดสอบจริงแล้ว ไม่ใช่แค่อ่านโค้ด**: `server-seller.js`'s
+  `GET /api/dev-flags` คืน `phoneVerifyBypass:true` ก็ต่อเมื่อ `NODE_ENV !== 'production'` **และ**
+  `SKIP_PHONE_VERIFY === 'true'` พร้อมกันทั้งคู่ — ทดสอบจริงด้วยการรัน server 2 instance env เดียวกันทุก
+  อย่างยกเว้น `NODE_ENV`: `NODE_ENV=development` → `{phoneVerifyBypass:true}`,
+  `NODE_ENV=production` → `{phoneVerifyBypass:false}` (แม้ `SKIP_PHONE_VERIFY=true` ยังอยู่ใน `.env`
+  เหมือนเดิม) — Render ตั้ง `NODE_ENV=production` เสมออยู่แล้ว (ยืนยันไว้ใน CLAUDE.md หัวข้อ 8 ตั้งแต่ก่อน
+  หน้านี้) เลยไม่มีทางที่ bypass จะทำงานจริงบน production ได้แม้จะมีคนเผลอ copy `.env` ทั้งไฟล์ขึ้นไปก็ตาม
+- **ไม่ได้แตะ Twilio integration/validation เดิมเลย**: `verify-phone/start`/`verify-phone/check` +
+  `phoneVerifySchema`/`phoneVerifyCheckSchema` + `normalizePhoneKH()` เหมือนเดิมทุกตัวอักษร ยังบังคับ
+  verify จริงสำหรับทุกคนที่ไม่ได้เปิด bypass — bypass แค่ข้าม `apply.html`'s client-side check
+  (`continueFromStep5()`) เท่านั้น ตัวเดียว
+- **UI**: โชว์ banner สีเหลือง (`#phoneBypassBanner`) เหนือช่องเบอร์เวลา bypass active ("⚠️ DEV: Phone
+  verification bypass is active...") popup summary ก็โชว์ "(dev bypass — not verified)" แทนที่จะขึ้น
+  "✓ Verified" ปลอมๆ
+- **จุดที่ต้องลบทั้งหมดตอนเลิกใช้ (มาร์กด้วยคอมเมนต์ "TEMPORARY" ในโค้ดครบทุกจุดแล้ว)**: 1)
+  `server-seller.js`'s `/api/dev-flags` block ทั้งก้อน 2) `apply.html`'s fetch เรียก `/dev-flags` +
+  `STATE._phoneVerifyBypass` + banner element/CSS + `continueFromStep5()`'s bypass branch + popup
+  summary's bypass branch 3) `backend/.env`'s `SKIP_PHONE_VERIFY=true` — **ตกลงกันไว้แล้วว่าจะลบทันทีที่
+  เจ้าของโปรเจกต์ทดสอบ Phase 6 ครบทุกจุด (popup/preview/beforeunload) ไม่รอ ไม่เก็บเป็น TODO ค้าง —
+  commit แยกต่างหากสำหรับการลบนี้โดยเฉพาะ**
 
 ## ยังไม่เริ่ม
 - Phase 7: หน้า /settle/verification + /settle/verification-result
