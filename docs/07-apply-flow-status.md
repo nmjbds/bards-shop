@@ -160,8 +160,62 @@ end-to-end จริงผ่าน API ตรงๆ** จำลอง exact pay
 - **ทดสอบด้วยตา**: ไม่มี browser automation ในนี้เหมือนเดิม เลยสร้าง before/after mockup จาก CSS จริง
   (ไม่ใช่ sketch คร่าวๆ) เป็น Artifact ให้เจ้าของโปรเจกต์ดูเทียบเอง — ดูแล้ว **approve ตรงตามที่ต้องการ**
 
+**Phase 7: หน้า /settle/verification + /settle/verification-result — เขียนโค้ดเสร็จ (2026-08-16),
+ทดสอบผ่านครบ, ยังไม่ push**
+- **ไฟล์ใหม่**: `public-seller-src/settle/verification.html` (หน้ารอตรวจสอบ, read-only) และ
+  `public-seller-src/settle/verification-result.html` (หน้าผลลัพธ์) — reuse `tokens.css`/`components.css`
+  + visual language เดียวกับ apply.html's เดิม `.done-state`/`.done-icon`/`.done-title`/`.done-sub`
+  (ยกมาจาก panel "Done" เดิมที่ถูกลบออกไปแล้ว — ดูข้างล่าง)
+- **routing**: ยืนยันแล้วว่า `walkHtmlFiles()` (`server-seller.js`) เดินแบบ recursive จริงตามที่เคยสำรวจไว้
+  — ไม่ต้องแก้โค้ด routing เลย แค่วางไฟล์ในโฟลเดอร์ `settle/` แล้ว build ก็ได้ clean URL `/settle/
+  verification`/`/settle/verification-result` อัตโนมัติ (ทดสอบจริงผ่าน curl: ทั้งคู่ตอบ 200, `.html` ต่อท้าย
+  ยัง 404 ตาม Clean URLs Phase 2 เดิม) — `backend/scripts/build-public.js`'s `copyTree()` ก็ recursive
+  อยู่แล้วเช่นกัน ไม่ต้องแก้
+  - **ข้อควรระวังที่เจอ**: หน้าที่อยู่ลึกกว่า top-level (เช่น `/settle/verification`) **ต้องใช้ absolute
+    path** (`/tokens.css` ไม่ใช่ `tokens.css`) สำหรับทุก asset/link เพราะ browser resolve relative path
+    ตาม "directory" ของ URL ปัจจุบัน — `/settle/verification` มี directory เป็น `/settle/` ไม่ใช่ `/` ต่างจาก
+    หน้าเดิมอย่าง `/apply` ที่ relative path ใช้ได้เพราะบังเอิญ resolve ไปที่ root พอดี (ยืนยัน pattern นี้ตรง
+    กับที่ `public/en/`,`public/kh/` ใน monolith เดิมใช้อยู่แล้วด้วย)
+- **Loading/error state**: ทั้ง 2 หน้ามี spinner skeleton ระหว่างโหลด (`.spinner-lg`, ไม่ใช่หน้าเปล่า) และ
+  error state ที่ไม่ fallback ไปหน้ากรอกฟอร์ม/ข้อความ "ยังไม่ได้สมัคร" เด็ดขาด — แค่ error message ชัดเจน
+  + ปุ่ม "Try Again" ที่เรียก `loadStatus()` ซ้ำ (function เดียวกับตอน mount ครั้งแรก, retry กี่ครั้งก็ไม่
+  throw จนหน้าขาว)
+- **State routing เต็มรูปแบบ (ตัดสินใจเพิ่มเติมนอกเหนือจาก spec ที่ระบุแค่ pending/approved/rejected)**:
+  ทั้ง 2 หน้าดึง `GET /api/shops/me` สดทุกครั้งที่โหลด/retry ไม่เชื่อ cache แล้ว routing ตาม status จริง —
+  `approved`→ redirect `/seller`, `rejected` (จากหน้า verification) → redirect ไปหน้า result,
+  `pending`/`needs_info`-ไม่มี (จากหน้า result) → redirect กลับไปหน้า verification (เพราะผลยังไม่ตัดสิน
+  ไม่ควรโชว์อะไรค้างที่หน้า result), `needs_info`/`suspended` → redirect ไป `/apply` (ใช้ UI ที่มีอยู่แล้ว
+  ของทั้งสองสถานะนี้ ไม่สร้างซ้ำ), `shop:null` → โชว์ "No Application Found" + ลิงก์ไป Seller Center (ไม่ใช่
+  ฟอร์ม) — spec ต้นฉบับพูดถึงแค่ 3 สถานะ (pending/approved/rejected) แต่ระบบจริงมี 5 สถานะ
+  (+needs_info+suspended) ตัดสินใจ route ทั้งหมดให้สมเหตุสมผลแทนปล่อยว่าง
+- **"ไปที่หน้าแรก" ตีความเป็น `/seller` ไม่ใช่ `seller-landing.html`** (จุดที่ต้อง confirm กับเจ้าของโปรเจกต์):
+  เช็ค `seller.html` แล้วพบว่าไม่ gate บน shop status เลย (แสดง dashboard เสมอสำหรับ seller ที่ login อยู่
+  ไม่ว่า shop จะ approved หรือยัง) ตีความว่านี่คือ "Seller Center home" จริงตามที่ reference พูดถึง ต่างจาก
+  `seller-landing.html` ที่เป็นหน้า marketing ก่อนสมัคร (ไม่เกี่ยวกับ seller ที่ signed-in อยู่แล้ว) — ปุ่ม
+  "สมัครใหม่" ในหน้า rejected ยังใช้ `seller-landing.html` (จริงๆ คือ `/` ซึ่ง `server-seller.js` serve
+  `seller-landing.html` ตรงๆ อยู่แล้วสำหรับ bare `/`) ตามที่สั่งไว้ตรงๆ ไม่เปลี่ยน
+- **แก้ apply.html**: `handleFinalSubmit()`'s success branch (path ที่ไม่ใช่ `alreadyApproved`) เปลี่ยนจาก
+  `showOnly('panelDone')` เป็น `location.href = '/settle/verification'` — **ลบ panel "Done" เดิมออกจาก
+  apply.html ทั้งหมด** (ตายแล้วจริง ไม่มีทางเข้าถึงได้อีกหลัง redirect) ยืนยันด้วย grep ไม่มี reference
+  เหลือ — path "already approved, editing profile" ไม่กระทบเลย (ยังโชว์ toast "Changes saved" เหมือนเดิม
+  ไม่ redirect)
+- **ทดสอบ**: (1) routing/asset-path ผ่าน curl จริงตามข้างบน (2) **execute โค้ด `loadStatus()` จริงของทั้ง
+  2 ไฟล์** ผ่าน Node `vm` context (mock `ShopsAPI`/`document`/`location`) ครบทั้ง 7 เคสสถานะต่อไฟล์ (no
+  shop/pending/needs_info/suspended/approved/rejected/network error) — **ผ่านหมดตรงตามที่ออกแบบไว้ทุก
+  เคส** (14/14) — นี่คือรันโค้ดจริงที่ extract จากไฟล์ ไม่ใช่แค่ประเมินจากการอ่านโค้ด (3) ทดสอบ state
+  transition จริงผ่าน DB+API กับ seller ทดสอบที่มีอยู่แล้ว: `bardsphase6freshbiz` เดินสมัครจริงผ่าน
+  `POST /apply` (ไม่มี shop มาก่อน) → ยืนยัน `GET /me` คืน `pending` ถูกต้อง แล้ว flip เป็น `approved` (จำลอง
+  admin) ยืนยันสถานะเปลี่ยนถูกต้อง, `bardsphase6biz` flip เป็น `rejected` พร้อม reason ยืนยันข้อมูลถูกต้อง
+  (4) **ไม่ได้ทดสอบ error state ด้วยตาจริงในเบราว์เซอร์เอง** (ปิด wifi/throttle DevTools) เพราะไม่มี browser
+  ในสภาพแวดล้อมนี้ — โค้ด error-handling ตรวจสอบแล้วว่าเป็น try/catch ธรรมดาไม่มี edge case ที่จะพังแบบไม่ดัก
+  แต่แนะนำให้เจ้าของโปรเจกต์ลองปิดเน็ตจริงดูเองตามที่เสนอไว้แต่แรก เพื่อความชัวร์ 100%
+- **บัญชีทดสอบหลังจบรอบนี้ (เผื่อเจ้าของโปรเจกต์อยากดูเองต่อ)**: `bardsphase6indiv` = pending (ไม่แตะ),
+  `bardsphase6biz` = **rejected** (เปลี่ยนจาก pending เพื่อทดสอบ — fixture ดีสำหรับดู
+  verification-result.html หน้า reject), `bardsphase6freshindiv` = pending (ไม่แตะ — บัญชีที่เจ้าของ
+  โปรเจกต์เดินฟอร์มเองตอน Phase 6), `bardsphase6freshbiz` = **approved** (เปลี่ยนจาก ไม่มี shop เลย —
+  fixture ดีสำหรับดู redirect ไป `/seller`) รหัสผ่านทั้งหมด `testpass123`
+
 ## ยังไม่เริ่ม
-- Phase 7: หน้า /settle/verification + /settle/verification-result
 - Phase 8: ปรับ UI ให้มีภาพประกอบ/สีสัน มืออาชีพแบบ TikTok
 
 ## หมายเหตุ
