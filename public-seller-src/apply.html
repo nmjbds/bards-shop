@@ -124,10 +124,6 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .phone-send-link:hover:not(:disabled){text-decoration:underline;}
 .phone-send-link:disabled{color:var(--gray-300);cursor:default;}
 
-/* TEMPORARY (Phase 6 testing bypass, 2026-08-16) — remove alongside the
-   rest of the bypass code, see docs/07-apply-flow-status.md. */
-.dev-bypass-banner{display:flex;align-items:center;gap:8px;background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:var(--radius-sm);padding:10px 13px;font-size:11.5px;font-weight:600;color:#92400E;margin-bottom:14px;line-height:1.5;}
-
 .err-banner{background:#FEF2F2;border:1.5px solid #FECACA;border-radius:var(--radius-sm);padding:11px 13px;font-size:12px;color:var(--red);margin-bottom:16px;display:none;align-items:center;gap:8px;}
 .err-banner.show{display:flex;}
 
@@ -154,14 +150,13 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .review-row:last-child{padding-bottom:0;border-bottom:none;}
 .review-label{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gray-400);margin-bottom:6px;}
 .review-value{font-size:15px;font-weight:700;color:var(--black);word-break:break-word;display:flex;align-items:center;flex-wrap:wrap;gap:8px;}
-/* Small suffix tag on a review value — e.g. phone's "Verified"/"Dev bypass"
-   status — instead of that status being plain text appended to the value
-   string itself. Built on the shared .bc-badge shape (components.css) with
-   two page-local color modifiers -- .bc-badge's existing 9 modifiers are
-   all order-status colors (a different domain), so these live here rather
+/* Small suffix tag on a review value — e.g. phone's "Verified" status —
+   instead of that status being plain text appended to the value string
+   itself. Built on the shared .bc-badge shape (components.css) with a
+   page-local color modifier -- .bc-badge's existing 9 modifiers are all
+   order-status colors (a different domain), so this lives here rather
    than joining that set. */
 .bc-badge--verified{background:#F0FDF4;color:#166534;}
-.bc-badge--dev-bypass{background:#FEF3C7;color:#92400E;}
 
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(4px);background:var(--black);color:#fff;padding:11px 16px;border-radius:10px;font-size:12.5px;font-weight:600;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;box-shadow:var(--shadow-modal);}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -340,15 +335,6 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
         <input class="f-input" id="fEmail" disabled>
         <div class="f-hint">The email you signed up with. Not editable here yet.</div>
       </div>
-      <!-- TEMPORARY (Phase 6 testing bypass, 2026-08-16) — only ever shown
-           when server-seller.js's /api/dev-flags reports the bypass active
-           (local dev + SKIP_PHONE_VERIFY=true only, see that file). REMOVE
-           this whole block along with the rest of the bypass code once
-           Phase 6 testing is done — see docs/07-apply-flow-status.md. -->
-      <div class="dev-bypass-banner" id="phoneBypassBanner" style="display:none">
-        ⚠️ DEV: Phone verification bypass is active — Continue will work without a real code. Remove before launch.
-      </div>
-
       <div class="form-group">
         <label class="f-label">Phone <span class="f-req">*</span></label>
         <div class="phone-box">
@@ -608,25 +594,11 @@ function fullPhoneE164() {
     return;
   }
   try {
-    const [meRes, cats, devFlags] = await Promise.all([
+    const [meRes, cats] = await Promise.all([
       ShopsAPI.me(),
       CategoriesAPI.fetch().catch(() => []),
-      // TEMPORARY (Phase 6 testing bypass, 2026-08-16) -- see
-      // server-seller.js's /api/dev-flags for the real gating logic (always
-      // false unless NODE_ENV!=='production' AND SKIP_PHONE_VERIFY=true are
-      // both set, which never happens on Render). Safe to always fetch;
-      // .catch() so a missing/erroring endpoint just means "bypass off",
-      // never blocks the page. REMOVE this fetch + STATE._phoneVerifyBypass
-      // + the banner below + continueFromStep5()'s bypass branch together
-      // once Phase 6 testing is done (see docs/07-apply-flow-status.md).
-      fetch(API_BASE + '/dev-flags').then(r => r.json()).catch(() => ({ phoneVerifyBypass: false })),
     ]);
     STATE.categories = cats;
-    STATE._phoneVerifyBypass = !!devFlags.phoneVerifyBypass;
-    if (STATE._phoneVerifyBypass) {
-      document.getElementById('phoneBypassBanner').style.display = 'flex';
-      console.warn('[DEV] Phone verification bypass is ACTIVE — remove before launch. See docs/07-apply-flow-status.md.');
-    }
     const catSel = document.getElementById('fCategory');
     cats.forEach(c => {
       const o = document.createElement('option');
@@ -883,14 +855,7 @@ function renderReviewSummary() {
     rows.push(reviewRow('ID Card / Passport', pending ? pending.name : (existing ? 'Uploaded' : 'Not uploaded')));
   }
 
-  // TEMPORARY (Phase 6 testing bypass, 2026-08-16) — keep the review popup
-  // honest about what's actually verified vs. skipped via the dev bypass,
-  // rather than claiming "Verified" for a number that never really was.
-  // Remove the bypass branch (keep the if's else-less true case) once
-  // Phase 6 testing is done, see docs/07-apply-flow-status.md.
-  let phoneBadge = '';
-  if (STATE._phoneVerified) phoneBadge = reviewBadge('Verified', 'verified');
-  else if (STATE._phoneVerifyBypass) phoneBadge = reviewBadge('Dev bypass', 'dev-bypass');
+  const phoneBadge = STATE._phoneVerified ? reviewBadge('Verified', 'verified') : '';
   rows.push(reviewRow('Phone', fullPhoneE164(), phoneBadge));
   rows.push(reviewRow('Email', document.getElementById('fEmail').value));
 
@@ -978,15 +943,7 @@ function continueFromStep4() {
 function continueFromStep5() {
   const phone = document.getElementById('fPhone').value.trim();
   if (!phone) { showErr('Phone number is required.'); return; }
-  // TEMPORARY (Phase 6 testing bypass, 2026-08-16) — STATE._phoneVerifyBypass
-  // is only ever true when server-seller.js's /api/dev-flags said so (local
-  // dev + SKIP_PHONE_VERIFY=true only). Remove this bypass branch (keep the
-  // underlying check) once Phase 6 testing is done, see
-  // docs/07-apply-flow-status.md.
-  if (!STATE._phoneVerified && !STATE._phoneVerifyBypass) {
-    showErr('Please verify your phone number before continuing.');
-    return;
-  }
+  if (!STATE._phoneVerified) { showErr('Please verify your phone number before continuing.'); return; }
   clearErr();
   if (STATE.shop && STATE.shop.status === 'approved') {
     handleFinalSubmit();
