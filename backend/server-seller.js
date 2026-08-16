@@ -141,6 +141,32 @@ app.use('/api/categories', categoriesRouter);
 
 app.get('/api/health', (req, res) => res.json({ ok: true, ts: new Date().toISOString(), service: 'seller' }));
 
+// ═══════════════════════════════════════════════════════════════
+// TEMPORARY — Phase 6 manual testing bypass (2026-08-16). See
+// docs/07-apply-flow-status.md. Twilio's trial account still blocks
+// sending real SMS to most numbers (known since Phase 4 -- no Cambodia
+// number to test with, trial-account country restrictions), which was
+// blocking testing the rest of apply.html's Step 5 -> popup -> submit flow
+// end-to-end. This lets apply.html's own client-side "must be verified"
+// gate be skipped locally WITHOUT touching Twilio integration, the
+// verify-phone/start|check routes, or their validation at all -- those are
+// completely untouched and still fully enforce verification exactly as
+// before for every other caller.
+//
+// Double-gated so there is no path for this to ever be live in production,
+// even by accident: NODE_ENV must not be 'production' (Render always sets
+// this), AND the SKIP_PHONE_VERIFY env var must be explicitly 'true' (only
+// ever set in a local backend/.env -- never added to Render's environment
+// variables, never committed as a real default anywhere).
+//
+// MUST BE REMOVED before launch -- delete this block, the matching
+// SKIP_PHONE_VERIFY line in backend/.env, and apply.html's corresponding
+// dev-bypass code once Phase 6 testing is done and Twilio is upgraded off
+// the trial plan (see docs/07-apply-flow-status.md for the removal note).
+const PHONE_VERIFY_BYPASS = process.env.NODE_ENV !== 'production' && process.env.SKIP_PHONE_VERIFY === 'true';
+app.get('/api/dev-flags', (req, res) => res.json({ phoneVerifyBypass: PHONE_VERIFY_BYPASS }));
+// ═══════════════════════════════════════════════════════════════
+
 // Clean URLs for every .html in public-seller/. No nested subfolders exist
 // here today, but this walks recursively anyway for the same reason as
 // server-customer.js (consistency + future-proofing, not a bug fix on this
