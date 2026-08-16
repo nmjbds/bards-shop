@@ -267,6 +267,11 @@ logic ทำงานถูกต้องจริงเวลามีแค�
   ที่ approved แล้ว — ตอนนี้ approved seller เข้า `/seller` ตรงๆ ต้องการมีหน้ากลางก่อน (รายละเอียด
   UI/เนื้อหายังไม่ได้คุยกัน รอวางแผนตอนถึงคิว)
 
+## TODO ที่พบระหว่างทาง (ยังไม่ตัดสินใจว่าจะทำเมื่อไหร่)
+- ปุ่ม "Start Selling" ใน `seller-landing.html` พาไปฟอร์มสมัคร (`/settle/form`) ตรงๆ แต่ตาม
+  `05-seller-onboarding-blueprint.md` ควรพาไป `/signup` ก่อน (สมัครบัญชีก่อนค่อยกรอกฟอร์ม) — เป็นความไม่
+  ตรงกันระหว่าง design เดิมกับโค้ดจริง ตัดสินใจเก็บไว้ก่อน ยังไม่แก้ตอนนี้
+
 ## หมายเหตุ
 - R2 credential แก้แล้ว (ใช้ "R2 Account Token" scope ครบ 2 bucket)
 - Twilio เป็น trial อยู่ ($15.50 credit ไม่ carry over ถ้า upgrade) — เพิ่ม friendly error message สำหรับ
