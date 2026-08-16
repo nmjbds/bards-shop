@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Application Result — Bards Seller</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/tokens.css">
+<link rel="stylesheet" href="/components.css">
+<style>
+/* NOTE: this page lives at /settle/verification-result (nested one level)
+   -- every asset/link reference below is an absolute (/-prefixed) path on
+   purpose, same reasoning as verification.html. */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var(--black);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px 60px;}
+.logo-wrap{text-align:center;margin-bottom:24px;}
+.brand{font-family:'Bebas Neue';font-size:32px;letter-spacing:5px;color:var(--black);text-decoration:none;display:block;}
+.brand-sub{font-size:11px;color:var(--gray-400);letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
+.wrap{width:100%;max-width:420px;}
+
+.loading-state{text-align:center;padding:34px 0;}
+.spinner-lg{width:32px;height:32px;margin:0 auto 16px;border:3px solid var(--gray-200);border-top-color:var(--black);border-radius:50%;animation:spin .8s linear infinite;}
+.loading-text{font-size:12.5px;color:var(--gray-400);}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+.done-state{text-align:center;padding:20px 0;}
+.done-icon{width:60px;height:60px;border-radius:50%;background:#F0FDF4;color:var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;}
+.done-icon--error{background:#FEF2F2;color:var(--red);}
+.done-title{font-family:'Bebas Neue';font-size:20px;letter-spacing:2px;margin-bottom:8px;}
+.done-sub{font-size:12.5px;color:var(--gray-400);line-height:1.6;max-width:340px;margin:0 auto;}
+.done-cta{margin-top:20px;text-decoration:none;}
+
+.fu{animation:fadeUp .32s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<div class="logo-wrap fu">
+  <a href="/" class="brand">BARDS</a>
+  <div class="brand-sub">Seller Center</div>
+</div>
+
+<div class="wrap fu">
+  <div class="bc-card">
+
+    <div class="loading-state" id="loadingState">
+      <div class="spinner-lg"></div>
+      <div class="loading-text">Loading your application result…</div>
+    </div>
+
+    <!-- Error — same contract as verification.html: never falls back to a
+         form, just an honest message + retry (item 4). -->
+    <div class="done-state" id="errorState" style="display:none">
+      <div class="done-icon done-icon--error">
+        <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div class="done-title">Couldn't Load Status</div>
+      <div class="done-sub">We couldn't reach the server just now — your application itself is safe, this is just a connection issue.</div>
+      <button class="bc-btn bc-btn--primary done-cta" id="retryBtn" onclick="loadStatus()">Try Again</button>
+    </div>
+
+    <div class="done-state" id="noShopState" style="display:none">
+      <div class="done-title">No Application Found</div>
+      <div class="done-sub">We couldn't find a seller application on your account.</div>
+      <a href="/" class="bc-btn bc-btn--primary done-cta">Go to Seller Center</a>
+    </div>
+
+    <!-- The only state this page actually shows content for -- everything
+         else (pending, approved, needs_info, suspended) redirects away
+         before ever rendering here (see loadStatus() below). -->
+    <div class="done-state" id="rejectedState" style="display:none">
+      <div class="done-icon done-icon--error">
+        <svg width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      </div>
+      <div class="done-title">Application Rejected</div>
+      <div class="done-sub" id="rejectReasonText"></div>
+      <a href="/" class="bc-btn bc-btn--primary done-cta">Apply Again</a>
+    </div>
+
+  </div>
+</div>
+
+<script src="/products.js"></script>
+<script src="/api.js"></script>
+<script>
+(async function init() {
+  const session = await SellerAuth.ensureSession();
+  if (!session) {
+    location.href = bardsSigninUrl(location.pathname);
+    return;
+  }
+  await loadStatus();
+})();
+
+function showOnly(id) {
+  ['loadingState', 'errorState', 'noShopState', 'rejectedState'].forEach(x => {
+    document.getElementById(x).style.display = x === id ? '' : 'none';
+  });
+}
+
+/* This page's only real job is the rejected message -- every other status
+   redirects elsewhere rather than rendering a confusing in-between state
+   here: approved -> dashboard, pending/needs_info -> back to the
+   "reviewing" page (outcome isn't decided yet, don't claim a result),
+   suspended -> /apply (dedicated screen already exists there). Fetches
+   fresh on every load/retry, same as verification.html, so this never
+   shows a stale result. */
+async function loadStatus() {
+  showOnly('loadingState');
+  try {
+    const { shop } = await ShopsAPI.me();
+    if (!shop) { showOnly('noShopState'); return; }
+    if (shop.status === 'approved') { location.href = '/seller'; return; }
+    if (shop.status === 'pending') { location.href = '/settle/verification'; return; }
+    if (shop.status === 'needs_info' || shop.status === 'suspended') { location.href = '/apply'; return; }
+    // rejected
+    document.getElementById('rejectReasonText').textContent =
+      shop.rejection_reason || 'Your application did not meet our requirements this time.';
+    showOnly('rejectedState');
+  } catch (e) {
+    showOnly('errorState');
+  }
+}
+</script>
+</body>
+</html>

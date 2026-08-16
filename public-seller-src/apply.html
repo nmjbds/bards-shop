@@ -366,17 +366,6 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       </div>
     </div>
 
-    <!-- ══════ Done state ══════ -->
-    <div class="step-panel" id="panelDone">
-      <div class="done-state">
-        <div class="done-icon">
-          <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-        </div>
-        <div class="done-title">Application Submitted</div>
-        <div class="done-sub">We're reviewing your application. You'll get an email once it's approved — you can also come back to this page any time to check your status.</div>
-      </div>
-    </div>
-
   </div>
 </div>
 
@@ -1146,10 +1135,11 @@ async function handleFinalSubmit() {
       return;
     }
 
-    closeReviewPopup();
-    document.getElementById('statusBanner').classList.remove('show');
-    document.getElementById('stepsNav').style.display = 'none';
-    showOnly('panelDone');
+    // Phase 7: a submitted/resubmitted application now lands on its own
+    // read-only status page (/settle/verification) instead of an in-form
+    // "Done" panel -- no unsaved-guard/popup/step-nav cleanup needed here
+    // since we're navigating away from this page entirely.
+    location.href = '/settle/verification';
   } catch(e) {
     btn.classList.remove('loading');
     // STATE.shop being set means at least the shop row itself is saved —
