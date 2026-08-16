@@ -301,7 +301,7 @@ logic ทำงานถูกต้องจริงเวลามีแค�
   dashboard 5 หน้า (ปริมาณงานใหญ่สุด แต่โค้ดนิ่งมานาน ไม่เคยแตะรอบนี้เลย — แยกเป็น sub-phase ของตัวเอง เริ่ม
   จาก `seller.html` ก่อน)
 
-**Stage 1/6 — Design tokens (2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, ยังไม่ push (commit `8b31628`)**
+**Stage 1/6 — Design tokens (2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, push แล้ว (commit `8b31628`)**
 - `tokens.css`: เพิ่ม icon size scale (`--icon-xs/sm/md/lg`, สำหรับ SVG glyph ใหม่ต่อจากนี้ — ของเดิมที่มี
   อยู่ 10-28px ไม่แตะ ไม่ได้บังคับ retrofit), `--icon-circle-sm/md/lg/xl` (ขนาดวงกลม container — `md`
   ตรงกับ `signup.html`'s `.icon-circle` เดิมเป๊ะ 48px, `lg` ตรงกับ `.done-icon` เดิม ~60px ปัดเข้า scale),
@@ -317,7 +317,7 @@ logic ทำงานถูกต้องจริงเวลามีแค�
   (ไม่มีทาง collision) — build+serve จริงยืนยัน `tokens.css`/`components.css` มีเนื้อหาใหม่ครบ และทั้ง 11
   หน้า seller ยัง 200 ปกติเหมือนเดิมทุกหน้า ไม่มี regression
 
-**Stage 2/6 — `seller-landing.html` icons (2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, ยังไม่ push
+**Stage 2/6 — `seller-landing.html` icons (2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, push แล้ว
 (commit `5db2c9a`)**
 - แทน emoji 4 ตัว (👥🎛️🔒💸) ในการ์ด value-prop ด้วย inline SVG (Lucide-style เดิม, ไม่มี icon font/CDN)
   ใส่ใน `.bc-icon-circle bc-icon-circle--accent` (โทนส้ม) — เลือก icon ตามความหมาย: users (audience),
