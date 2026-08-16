@@ -18,6 +18,14 @@
   ด้วยตาจริงผ่านครบทุกจุดแล้ว (5 step, file preview, popup สรุป, `beforeunload` prompt) **temporary phone-
   verify bypass (`SKIP_PHONE_VERIFY`) ที่ใช้ช่วยทดสอบถูกลบออกจากโค้ดหมดแล้ว** (commit `3044b10`) — ไม่มี
   bypass หลงเหลืออยู่ในโค้ดอีกต่อไป ดูรายละเอียดเต็มในหัวข้อ "รายละเอียด" ด้านล่าง
+- **Phase 7: หน้า `/settle/verification` + `/settle/verification-result` — เสร็จสมบูรณ์แล้ว (2026-08-16)**
+  รวมทุกอย่างในรอบนี้: หน้าใหม่ 2 หน้า (loading/error+retry/no-shop/content state ครบ), route ตาม status
+  ทั้ง 5 ค่า, `apply.html` เปลี่ยนเป็น redirect ไป `/settle/verification` แทน panel "Done" เดิม (ลบ panel
+  ทิ้ง), **rename `apply.html` → `settle/form.html`** พร้อมแก้ `/apply` ให้ครบทุกจุดในโปรเจกต์ (signup/
+  signin/seller/seller-landing/settle ทั้ง 3), แก้บั๊ก `signin.html` ที่ route ตาม "มี shop ไหม" เฉยๆ ไม่
+  เช็ค status (เจอระหว่างทดสอบ), แก้ปุ่ม "Apply Again" ให้พาไป `/settle/form` ตรงๆ แทน seller-landing —
+  เจ้าของโปรเจกต์ทดสอบด้วยตาจริงผ่านครบทุกจุดแล้ว: state routing ทั้ง 3 บัญชี (approved/pending/rejected),
+  error/retry handling, ปุ่ม Apply Again ดูรายละเอียดเต็มในหัวข้อ "รายละเอียด" ด้านล่าง
 
 ## รายละเอียด
 (ประวัติงานแบบละเอียด — Phase 4 ด้านล่างยัง block อยู่จริง ส่วนที่เหลือเสร็จ+push แล้วทั้งหมด เก็บ
@@ -160,8 +168,8 @@ end-to-end จริงผ่าน API ตรงๆ** จำลอง exact pay
 - **ทดสอบด้วยตา**: ไม่มี browser automation ในนี้เหมือนเดิม เลยสร้าง before/after mockup จาก CSS จริง
   (ไม่ใช่ sketch คร่าวๆ) เป็น Artifact ให้เจ้าของโปรเจกต์ดูเทียบเอง — ดูแล้ว **approve ตรงตามที่ต้องการ**
 
-**Phase 7: หน้า /settle/verification + /settle/verification-result — เขียนโค้ดเสร็จ (2026-08-16),
-ทดสอบผ่านครบ, ยังไม่ push**
+**Phase 7: หน้า /settle/verification + /settle/verification-result — เสร็จสมบูรณ์แล้ว (2026-08-16),
+ทดสอบผ่านครบ, push แล้ว**
 - **ไฟล์ใหม่**: `public-seller-src/settle/verification.html` (หน้ารอตรวจสอบ, read-only) และ
   `public-seller-src/settle/verification-result.html` (หน้าผลลัพธ์) — reuse `tokens.css`/`components.css`
   + visual language เดียวกับ apply.html's เดิม `.done-state`/`.done-icon`/`.done-title`/`.done-sub`
@@ -232,7 +240,7 @@ commit ของ apply.html rename ด้านล่าง:**
    (เคยคุยกันไว้ว่าจะย้าย apply.html ไปเป็น `/settle/form` ตาม namespace เดียวกับ verification/
    verification-result แต่ไม่เคยสั่งทำจริง) — ดูรายละเอียดเต็มด้านล่าง
 
-**apply.html → settle/form.html (2026-08-16) — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, ยังไม่ push:**
+**apply.html → settle/form.html (2026-08-16) — เสร็จสมบูรณ์แล้ว, ทดสอบผ่านครบ, push แล้ว:**
 - **Rename ไฟล์จริง** (`git mv`, ไม่ใช่แค่เปลี่ยน route) — จำเป็นต้อง move ไฟล์จริงเพราะ clean URL
   gen จาก path ของไฟล์ตรงๆ (`walkHtmlFiles()`) ไม่มีทาง alias `/apply` ให้ชี้ไปไฟล์อื่นโดยไม่ย้ายไฟล์จริง
   — แก้ asset path ในไฟล์ที่ย้ายเป็น absolute (`/tokens.css` ฯลฯ) เหมือนที่ทำกับ verification.html/
