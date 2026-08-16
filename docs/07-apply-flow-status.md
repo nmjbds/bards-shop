@@ -6,20 +6,22 @@
 > ย้ายเข้ามาอยู่ใน `bards-new/docs/` เมื่อ 2026-08-15 (จากเดิม `docs/` ที่ root โปรเจกต์) เพื่อให้ commit
 > เข้า git ได้จริง — ดูหัวข้อ "หมายเหตุ" ท้ายไฟล์สำหรับสถานะของเอกสารอ้างอิงอื่นๆ ที่ยังอยู่นอก repo
 
-> ⚠️ **มี temporary bypass ค้างอยู่ในโค้ดตอนนี้ (2026-08-16, push ขึ้น `origin/main` แล้ว) — ดูหัวข้อ
-> "เขียนโค้ดเสร็จ" ด้านล่างสำหรับรายละเอียดเต็ม**: `SKIP_PHONE_VERIFY=true` ใน local `backend/.env` + โค้ด
-> ใน `server-seller.js`/`apply.html` ที่ข้าม step 5's "ต้อง verify เบอร์ก่อน" — ใช้ local dev เท่านั้น
-> (double-gate กับ `NODE_ENV`, ยืนยันแล้วว่าไม่มีทางหลุดไป production) **ต้องลบทิ้งทันทีที่ทดสอบ Phase 6
-> ครบทุกจุดแล้ว** — push ไปแล้วไม่ได้แปลว่าลบได้ อย่าลืมว่ามันยังอยู่จนกว่าจะมี commit ลบแยกต่างหาก
-
 ## เสร็จแล้ว + push แล้ว
 - Phase 1: DB schema (id_number, birthdate, auto-slug, bank fields optional)
 - Phase 2: Backend เต็มรูปแบบสำหรับ id_number/birthdate
 - Phase 3: Restructure apply.html step order ตาม TikTok ref, ตัด field นอก scope
 - Phase 3B: Step 4 แยกตาม business type + preview ไฟล์
+- **Phase 5: signup.html → email-only + Resend** — ดูรายละเอียดเต็มในหัวข้อ "รายละเอียด" ด้านล่าง
+- **Phase 6: Popup สรุปตรวจสอบ + atomic submit — เสร็จสมบูรณ์แล้ว (2026-08-16)** รวมทุกอย่างในรอบนี้:
+  ฟอร์ม 5 step + deferred save, popup แทน Step 6 เดิม, phone field รื้อ UI ตาม TikTok reference (country
+  selector/text-link/OTP แสดงตลอด), popup redesign รอบสอง (vertical layout/badge) — เจ้าของโปรเจกต์ทดสอบ
+  ด้วยตาจริงผ่านครบทุกจุดแล้ว (5 step, file preview, popup สรุป, `beforeunload` prompt) **temporary phone-
+  verify bypass (`SKIP_PHONE_VERIFY`) ที่ใช้ช่วยทดสอบถูกลบออกจากโค้ดหมดแล้ว** (commit `3044b10`) — ไม่มี
+  bypass หลงเหลืออยู่ในโค้ดอีกต่อไป ดูรายละเอียดเต็มในหัวข้อ "รายละเอียด" ด้านล่าง
 
-## เขียนโค้ดเสร็จ
-(สถานะ push ของแต่ละอันดูที่หัวข้อย่อยของตัวเอง — ไม่ใช่ทุกอันอยู่ในสถานะเดียวกันอีกต่อไป)
+## รายละเอียด
+(ประวัติงานแบบละเอียด — Phase 4 ด้านล่างยัง block อยู่จริง ส่วนที่เหลือเสร็จ+push แล้วทั้งหมด เก็บ
+รายละเอียดไว้อ้างอิง)
 
 **Phase 4: Twilio Verify SMS OTP — ยังไม่ push, ยัง block อยู่ (ไม่เกี่ยวกับงานอื่นด้านล่าง)** — โค้ด backend+frontend เสร็จสมบูรณ์ทั้งหมดแล้ว แต่หยุดการทดสอบ end-to-end ไว้ก่อน สาเหตุ:
 - ไม่มีเบอร์กัมพูชาจริงให้ทดสอบ ลองใช้เบอร์ไทย (+66936406304) แทนแต่ Twilio trial account บล็อกการ verify caller ID ของเบอร์ไทยทั้ง SMS และ Call (ประเทศที่ถูกจำกัด)
@@ -59,7 +61,8 @@
   apply.html Step 5 เก็บ+verify ผ่าน Twilio ต่างหาก **ไม่ใช่**คอลัมน์ที่เพิ่งแก้เป็น nullable รอบนี้เลย —
   ไม่มีความเสี่ยงกระทบหน้าไหน
 
-**Phase 6: Popup สรุปตรวจสอบ + atomic submit — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, push แล้ว**
+**Phase 6: Popup สรุปตรวจสอบ + atomic submit — เสร็จสมบูรณ์แล้ว, ทดสอบผ่านครบทุกจุดด้วยตาจริง, push แล้ว,
+bypass ที่ใช้ช่วยทดสอบลบออกหมดแล้ว**
 `public-seller-src/apply.html` เปลี่ยนจาก save-as-you-go (6 step, PATCH ทุก step) เป็น deferred-save (5
 step + popup, ยิงครั้งเดียวตอนจบ) — commit แยก 5 อันตามลำดับที่วางแผนไว้:
 - **1/5**: `continueFromStep1()`-`continueFromStep4()` (เดิมชื่อ `saveStepXAndContinue`) เหลือแค่ client-side
@@ -108,8 +111,10 @@ end-to-end จริงผ่าน API ตรงๆ** จำลอง exact pay
     popup เพิ่ม (ดู "Popup redesign" ด้านล่าง, approve แล้ว) `beforeunload` prompt/file preview ยังไม่มี
     รายงานปัญหาเพิ่มเติมหลังจากนั้น
 
-**⚠️ Temporary phone-verify bypass (2026-08-16) — commit `b44f674`, push แล้ว — ค้างอยู่ในโค้ดจริงตอนนี้
-(push ไปแล้วไม่ได้แปลว่าเอาออกได้) ต้องลบด้วย commit แยกก่อน launch:**
+**✅ Temporary phone-verify bypass — เพิ่ม 2026-08-16 (commit `b44f674`), ลบออกหมดแล้ว 2026-08-16 เช่นกัน
+(commit `3044b10`, push แล้ว) — เจ้าของโปรเจกต์ทดสอบ Phase 6 ครบทุกจุดแล้วตามที่ตกลงไว้ (ดูหัวข้อ "เสร็จแล้ว
++ push แล้ว" ด้านบน) ไม่มี bypass หลงเหลืออยู่ในโค้ดอีกต่อไป — เก็บรายละเอียดข้างล่างไว้เป็นบันทึกว่าเคยมี
+อะไรและทำไม (ประโยชน์ถ้าต้องทำ bypass แบบเดียวกันอีกครั้งช่วง Phase 4/Twilio launch prep ในอนาคต):**
 - **สาเหตุ**: Twilio trial account ยังบล็อกส่ง SMS จริงส่วนใหญ่ (รู้อยู่แล้วตั้งแต่ Phase 4) ทำให้ทดสอบ
   ต่อจาก Step 5 ไป popup/submit ด้วยตาจริงไม่ได้เลยถ้าไม่มีเบอร์ที่ verify ผ่านได้จริง — ไม่ใช่บั๊ก เป็น
   ข้อจำกัด infra ที่รู้อยู่แล้ว
@@ -132,12 +137,14 @@ end-to-end จริงผ่าน API ตรงๆ** จำลอง exact pay
   verification bypass is active...") popup summary ก็โชว์ badge "Dev bypass" สีเหลือง (ดู popup redesign
   ด้านล่าง — ตอนแรกเป็นข้อความ "(dev bypass — not verified)" ปนอยู่ในค่า ภายหลังแยกเป็น badge ต่างหากแล้ว)
   แทนที่จะขึ้น "✓ Verified" ปลอมๆ
-- **จุดที่ต้องลบทั้งหมดตอนเลิกใช้ (มาร์กด้วยคอมเมนต์ "TEMPORARY" ในโค้ดครบทุกจุดแล้ว)**: 1)
-  `server-seller.js`'s `/api/dev-flags` block ทั้งก้อน 2) `apply.html`'s fetch เรียก `/dev-flags` +
-  `STATE._phoneVerifyBypass` + banner element/CSS + `continueFromStep5()`'s bypass branch + popup
-  summary's bypass branch 3) `backend/.env`'s `SKIP_PHONE_VERIFY=true` — **ตกลงกันไว้แล้วว่าจะลบทันทีที่
-  เจ้าของโปรเจกต์ทดสอบ Phase 6 ครบทุกจุด (popup/preview/beforeunload) ไม่รอ ไม่เก็บเป็น TODO ค้าง —
-  commit แยกต่างหากสำหรับการลบนี้โดยเฉพาะ**
+- **ลบครบทุกจุดแล้ว (2026-08-16, commit `3044b10`, "chore: remove temporary phone-verify bypass after
+  Phase 6 testing")**: 1) `server-seller.js`'s `/api/dev-flags` block ทั้งก้อน — ยืนยันแล้วว่า endpoint นี้
+  404 จริงหลังลบ 2) `apply.html`'s fetch เรียก `/dev-flags` + `STATE._phoneVerifyBypass` + banner
+  element/CSS + `continueFromStep5()`'s bypass branch + popup summary's bypass branch (`.bc-badge--dev-
+  bypass` CSS ลบด้วย, `.bc-badge--verified` เก็บไว้เพราะเป็น badge จริงของ "Twilio ยืนยันแล้ว" ไม่เกี่ยวกับ
+  bypass) 3) `backend/.env`'s `SKIP_PHONE_VERIFY=true` (ไฟล์นี้ไม่อยู่ใน git ต้องลบเองตรงๆ ไม่โผล่ใน diff)
+  — grep ทั้ง `backend`/`public-seller-src`/`public-shared` แล้วไม่มี reference เหลือเลยสักจุด ไม่แตะ
+  Twilio integration/validation จริงเลยตลอดทั้งช่วงที่มี bypass และตอนลบ
 
 **Popup redesign ให้ใกล้เคียง TikTok reference มากขึ้น (2026-08-16) — commit `827efb3`, เจ้าของโปรเจกต์
 ดูเทียบแล้ว approve, push แล้ว**
