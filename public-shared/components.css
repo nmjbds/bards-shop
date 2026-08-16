@@ -102,3 +102,70 @@
 .bc-badge--cancelled             { background: #FEE2E2; color: var(--red); }
 .bc-badge--expired               { background: var(--gray-100); color: var(--gray-400); }
 .bc-badge--failed                { background: #FEE2E2; color: var(--red); }
+
+/* .bc-icon-circle — circular icon container (Phase 8, 2026-08-17). Base
+   recipe matches signup.html's existing .icon-circle exactly (48px circle,
+   gray-100 fill, gray-200 border) -- unifies that with settle/
+   verification.html's/verification-result.html's/apply.html's separately
+   hand-rolled .done-icon (60px, tinted) into one shared component with
+   size + tone modifiers, instead of every page reinventing its own near-
+   identical version. Sizes come from tokens.css's --icon-circle-* scale.
+   Neither signup.html's .icon-circle nor the .done-icon pages have been
+   migrated to this yet (Phase 8 stage 1 is additive-only, on purpose --
+   see docs/07-apply-flow-status.md) -- this is what new/migrated icon
+   circles reuse going forward. */
+.bc-icon-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--icon-circle-md);
+  height: var(--icon-circle-md);
+  border-radius: 50%;
+  background: var(--gray-100);
+  border: 1.5px solid var(--gray-200);
+  color: var(--gray-400);
+}
+.bc-icon-circle--sm { width: var(--icon-circle-sm); height: var(--icon-circle-sm); }
+.bc-icon-circle--lg { width: var(--icon-circle-lg); height: var(--icon-circle-lg); }
+.bc-icon-circle--xl { width: var(--icon-circle-xl); height: var(--icon-circle-xl); }
+
+/* Tone modifiers — same light-fill/matching-border/saturated-icon recipe
+   already used project-wide (status-banner, done-icon, review-badge, the
+   dev-bypass banner, ...), just consolidated onto one component instead of
+   each page picking its own near-identical hex values. */
+.bc-icon-circle--success { background: #F0FDF4; border-color: #BBF7D0; color: var(--green); }
+.bc-icon-circle--error   { background: #FEF2F2; border-color: #FECACA; color: var(--red); }
+.bc-icon-circle--warn    { background: #FFFBEB; border-color: #FDE68A; color: #92400E; }
+.bc-icon-circle--accent  { background: #FFF1EB; border-color: #FFD3BE; color: var(--orange); }
+
+/* .bc-empty-state — icon circle + title + optional sub-text + optional CTA
+   (a .bc-btn), the shared shape for every "nothing here yet" moment (empty
+   order list, no products, no coupons, no sales data...). Every dashboard
+   page currently hand-rolls its own version of this (a lone emoji + plain
+   text, no two exactly alike -- found surveying all 5 during Phase 8's
+   exploration pass) -- one shared recipe for the dashboard-stage migration
+   to reuse instead. Sized for a panel/card context; pair with
+   .bc-icon-circle--xl instead of the default size if a page needs a more
+   prominent full-page empty state. */
+.bc-empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.bc-empty-state .bc-icon-circle { margin-bottom: 14px; }
+.bc-empty-state-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--black);
+  margin-bottom: 4px;
+}
+.bc-empty-state-sub {
+  font-size: 12px;
+  color: var(--gray-400);
+  line-height: 1.5;
+  max-width: 280px;
+  margin-bottom: 18px;
+}

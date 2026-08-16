@@ -50,4 +50,41 @@
   --font-display: 'Bebas Neue';
   --font-body:    'Space Grotesk', sans-serif;
   --font-mono:    'DM Mono', monospace;
+
+  /* Icon sizes (Phase 8, 2026-08-17) — the actual <svg width/height> a
+     glyph is drawn at. Existing inline SVGs across the project range from
+     10px (checkbox ticks) to 28px (status icons) with no consistent
+     scale -- this is a named scale for new icons going forward, not a
+     retrofit of what's already there (that migration happens page-by-page
+     in later Phase 8 stages, not here). */
+  --icon-xs: 14px; /* inline with text -- buttons, badges, form hints */
+  --icon-sm: 18px; /* form-field icons, nav icons */
+  --icon-md: 24px; /* step-header icons inside .bc-icon-circle */
+  --icon-lg: 32px; /* status/result icons inside .bc-icon-circle--lg */
+
+  /* .bc-icon-circle container sizes (components.css) — the circle itself,
+     not the glyph inside it. --md matches signup.html's existing
+     .icon-circle (48px) exactly; --lg matches apply.html's/settle/
+     verification*.html's existing .done-icon (~60px) rounded to the
+     scale -- both those page-local classes stay as they are for now
+     (Phase 8 is additive-only this stage), .bc-icon-circle is what future
+     pages/migrations reuse instead of hand-rolling a third near-identical
+     version. */
+  --icon-circle-sm: 40px;
+  --icon-circle-md: 48px;
+  --icon-circle-lg: 64px;
+  --icon-circle-xl: 96px; /* empty-state / illustration-scale hero icon */
+
+  /* Illustration style guide (Phase 8) — every hand-drawn inline SVG
+     illustration in this project (empty states, verification-page hero
+     icons) follows this same recipe: monochrome line art on a soft
+     circular ground (.bc-icon-circle), one optional accent-color detail,
+     never full-color or photographic. No external illustration assets --
+     see docs/07-apply-flow-status.md's Phase 8 notes for why (matches the
+     project's existing "no image files anywhere" convention). */
+  --illo-stroke-width: 1.5;
+  --illo-line-color: var(--gray-300);
+  --illo-detail-color: var(--gray-400);
+  --illo-accent-color: var(--orange);
+  --illo-ground-color: var(--gray-100);
 }
