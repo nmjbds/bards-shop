@@ -192,8 +192,12 @@ end-to-end จริงผ่าน API ตรงๆ** จำลอง exact pay
   เช็ค `seller.html` แล้วพบว่าไม่ gate บน shop status เลย (แสดง dashboard เสมอสำหรับ seller ที่ login อยู่
   ไม่ว่า shop จะ approved หรือยัง) ตีความว่านี่คือ "Seller Center home" จริงตามที่ reference พูดถึง ต่างจาก
   `seller-landing.html` ที่เป็นหน้า marketing ก่อนสมัคร (ไม่เกี่ยวกับ seller ที่ signed-in อยู่แล้ว) — ปุ่ม
-  "สมัครใหม่" ในหน้า rejected ยังใช้ `seller-landing.html` (จริงๆ คือ `/` ซึ่ง `server-seller.js` serve
-  `seller-landing.html` ตรงๆ อยู่แล้วสำหรับ bare `/`) ตามที่สั่งไว้ตรงๆ ไม่เปลี่ยน
+  "สมัครใหม่" ในหน้า rejected เดิมใช้ `seller-landing.html` (`/`) ตามที่สั่งไว้ตรงๆ ตอนแรก **ภายหลัง
+  เปลี่ยนเป็น `/settle/form` ตรงๆ แล้ว (2026-08-16, commit `55e52c9`)** — เจ้าของโปรเจกต์ทดสอบแล้วรู้สึกว่า
+  ปุ่มเหมือนไม่ทำงาน (จริงๆ navigate ถูกต้อง แค่ไปหน้า marketing ที่หน้าตาต่างไปมาก ดูเหมือนไม่มีอะไรเกิดขึ้น)
+  ตัดสินใจให้พาไปฟอร์มตรงๆ แทน เพราะ `settle/form.html` resume ข้อมูล shop ที่ rejected อยู่แล้ว
+  (prefill+banner จาก Phase 3) ผ่านหน้า landing ไปก็แค่คลิกเพิ่มโดยไม่ได้อะไรเพิ่ม — ยืนยันแล้วว่าข้อมูล
+  shop เดิม (`bardsphase6biz`) ยังอยู่ครบพร้อม resume จริง
 - **แก้ apply.html**: `handleFinalSubmit()`'s success branch (path ที่ไม่ใช่ `alreadyApproved`) เปลี่ยนจาก
   `showOnly('panelDone')` เป็น `location.href = '/settle/verification'` — **ลบ panel "Done" เดิมออกจาก
   apply.html ทั้งหมด** (ตายแล้วจริง ไม่มีทางเข้าถึงได้อีกหลัง redirect) ยืนยันด้วย grep ไม่มี reference
