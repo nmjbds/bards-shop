@@ -291,18 +291,31 @@ logic ทำงานถูกต้องจริงเวลามีแค�
     ไม่ได้จะ**หายไปเฉยๆ** ไม่มี placeholder เลย (ไม่ใช่ scope วันนี้ บันทึกไว้)
 - **Icon source**: ไม่มี asset library ไม่มี CDN ตาม convention เดิม — เสนอทำต่อแบบเดิม (inline SVG
   hand-copy จาก Lucide/Feather, MIT license) ไม่มี icon font/CDN ตามที่สั่ง
-- **จุดตัดสินใจที่รอ confirm**: ส่วน "illustration" (ภาพใหญ่ขึ้นสำหรับหน้า verification/empty state) ไม่มี
-  precedent ในโปรเจกต์เลย เสนอ 2 ทาง — (A) วาดเองด้วย inline SVG เรขาคณิตง่ายๆ (ไม่มี dependency ภายนอก
-  เลย ตรง convention 100% แต่ใช้เวลาออกแบบมากกว่า) หรือ (B) โหลดไฟล์ illustration free-license (เช่น
-  unDraw) มาครั้งเดียวแล้ว inline เป็น static SVG (เร็วกว่า แต่เป็น asset file ไฟล์แรกในโปรเจกต์ + ต้องเช็ค
-  license เอง) — เอนเอียงไปทาง (A) แต่ยังไม่ได้ตัดสินใจขาด
-- **แผนแบ่งขั้นย่อย เรียงเสี่ยงน้อย→มาก**: 1) design tokens เพิ่มใน `tokens.css`/`components.css` (additive
+- **จุดตัดสินใจ illustration — เจ้าของโปรเจกต์ confirm แล้ว (2026-08-16): เลือก (A)** วาดเองด้วย inline
+  SVG เรขาคณิตง่ายๆ ไม่เพิ่ม asset file ใดๆ ตรง convention เดิม 100%
+- **แผนแบ่งขั้นย่อย เรียงเสี่ยงน้อย→มาก — confirm แล้ว**: 1) design tokens เพิ่มใน `tokens.css`/`components.css` (additive
   ล้วน ไม่เสี่ยงเลย) 2) `seller-landing.html` (static, มีสี/emoji อยู่แล้วมากสุด) 3) `signin.html`+
   `signup.html` (auth flow แยกขาด ทดสอบจบในตัวง่าย) 4) `settle/verification.html`+
   `verification-result.html` (state น้อย เพิ่งทดสอบละเอียดจบไป) 5) `settle/form.html` (**เสี่ยงสุดในกลุ่ม
   non-dashboard** เพราะเพิ่งผ่าน rework ใหญ่ Phase 6/7 — ต้องทำ CSS/markup เท่านั้น ห้ามแตะ JS logic) 6)
   dashboard 5 หน้า (ปริมาณงานใหญ่สุด แต่โค้ดนิ่งมานาน ไม่เคยแตะรอบนี้เลย — แยกเป็น sub-phase ของตัวเอง เริ่ม
   จาก `seller.html` ก่อน)
+
+**Stage 1/6 — Design tokens (2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, ยังไม่ push (commit `8b31628`)**
+- `tokens.css`: เพิ่ม icon size scale (`--icon-xs/sm/md/lg`, สำหรับ SVG glyph ใหม่ต่อจากนี้ — ของเดิมที่มี
+  อยู่ 10-28px ไม่แตะ ไม่ได้บังคับ retrofit), `--icon-circle-sm/md/lg/xl` (ขนาดวงกลม container — `md`
+  ตรงกับ `signup.html`'s `.icon-circle` เดิมเป๊ะ 48px, `lg` ตรงกับ `.done-icon` เดิม ~60px ปัดเข้า scale),
+  illustration style guide (`--illo-*`: stroke width/line/detail/accent/ground color) บันทึก recipe
+  "เส้นสีเดียว + accent สีเดียว ไม่มี asset ภายนอก" ที่ confirm กันไว้
+- `components.css`: เพิ่ม `.bc-icon-circle` (+ modifier ขนาด `--sm/--lg/--xl` + tone
+  `--success/--error/--warn/--accent`) — รวม pattern จาก `signup.html`'s `.icon-circle` และ settle
+  pages' `.done-icon` เป็นตัวเดียว (ยังไม่ migrate 2 ไฟล์นั้นมาใช้จริง — stage นี้ additive ล้วนตามที่ตกลง)
+  และ `.bc-empty-state` (+ `-title`/`-sub`) — pattern icon-circle+ข้อความ+CTA สำหรับ empty state ที่ตอนนี้
+  แต่ละหน้า dashboard ทำเองไม่เหมือนกันสักหน้า (เจอตอนสำรวจ) พร้อมให้ dashboard stage ท้ายสุดมาใช้
+- **ทดสอบ**: เช็ค brace balance ทั้ง 2 ไฟล์ผ่าน, grep ทั้ง 3 audience (`public-seller-src`/
+  `public-customer-src`/`public-admin-src`) ยืนยันไม่มีหน้าไหนใช้ชื่อ class/variable ใหม่พวกนี้อยู่ก่อนแล้ว
+  (ไม่มีทาง collision) — build+serve จริงยืนยัน `tokens.css`/`components.css` มีเนื้อหาใหม่ครบ และทั้ง 11
+  หน้า seller ยัง 200 ปกติเหมือนเดิมทุกหน้า ไม่มี regression
 
 ## ยังไม่เริ่ม
 - **Phase 11**: สร้างหน้า `/homepage` เป็น landing page ก่อนเข้า dashboard จริง (`/seller`) สำหรับ seller
