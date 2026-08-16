@@ -333,6 +333,22 @@ logic ทำงานถูกต้องจริงเวลามีแค�
   HTML ที่ served ได้ครบ 4 ตัวตรงกับ 4 การ์ด — สร้าง before/after mockup จาก CSS จริงเป็น Artifact ให้ดู
   เทียบเพราะไม่มี browser ในนี้เหมือนเดิม
 
+**Stage 3/6 — `signin.html` + `signup.html` icons (2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, ยังไม่
+push (commit `8521e67`) — รอเจ้าของโปรเจกต์เช็คก่อน push**
+- `signin.html`: เพิ่ม leading icon ในช่อง input ทุกช่องที่เป็น text field (mail icon: Email/Phone +
+  OTP-mode Email Address, lock icon: Password) ผ่าน class ใหม่ `.f-input-icon-wrap` — ช่อง Password ใช้
+  ร่วมกับ `.pw-wrap` เดิม (eye-toggle) ได้โดยไม่ชนกันเพราะเป็นคนละฝั่ง (icon ซ้าย, ปุ่ม toggle ขวา) — ใช้
+  SVG path เดียวกับ mail/lock icon ที่มีอยู่แล้วใน `signup.html`/`settle/form.html` เพื่อความสม่ำเสมอ
+- `signup.html`: migrate `.icon-circle` (+ `.success-circle` ที่ hand-roll เอง) เดิมไปใช้
+  `.bc-icon-circle` ที่ใช้ร่วมกัน — Step 1-3 (กรอกอีเมล/OTP/รหัสผ่าน) ได้ `--accent` (ส้ม, "กำลังดำเนินการ"),
+  Step 4 (สำเร็จ) ได้ `--success` (เขียว, โทนเดิมที่มีอยู่แล้ว แค่เปลี่ยนมาใช้ modifier ร่วมแทนของ local)
+  เปลี่ยน `stroke` ของทุก SVG จาก hardcode สี เป็น `currentColor` เพื่อให้รับสีจาก tone modifier ถูกต้อง
+- **เนื้อหา/ข้อความ/step logic ไม่เปลี่ยนเลย** — เปลี่ยนแค่ CSS/markup ตามที่สั่ง
+- **ทดสอบ**: syntax + div-balance ผ่านทั้ง 2 ไฟล์, grep ยืนยันไม่มี class เดิม (`icon-circle`/
+  `success-circle` แบบ standalone) เหลือ, build+serve จริงทั้งสองหน้ายัง 200, นับ icon ใน HTML ที่ served
+  ตรงตามที่ออกแบบ (3 field icon บน signin, 3 accent + 1 success บน signup) — สร้าง before/after mockup
+  เป็น Artifact ให้ดูเทียบเหมือนเดิม
+
 ## ยังไม่เริ่ม
 - **Phase 11**: สร้างหน้า `/homepage` เป็น landing page ก่อนเข้า dashboard จริง (`/seller`) สำหรับ seller
   ที่ approved แล้ว — ตอนนี้ approved seller เข้า `/seller` ตรงๆ ต้องการมีหน้ากลางก่อน (รายละเอียด
