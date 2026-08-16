@@ -128,14 +128,29 @@ end-to-end จริงผ่าน API ตรงๆ** จำลอง exact pay
   verify จริงสำหรับทุกคนที่ไม่ได้เปิด bypass — bypass แค่ข้าม `apply.html`'s client-side check
   (`continueFromStep5()`) เท่านั้น ตัวเดียว
 - **UI**: โชว์ banner สีเหลือง (`#phoneBypassBanner`) เหนือช่องเบอร์เวลา bypass active ("⚠️ DEV: Phone
-  verification bypass is active...") popup summary ก็โชว์ "(dev bypass — not verified)" แทนที่จะขึ้น
-  "✓ Verified" ปลอมๆ
+  verification bypass is active...") popup summary ก็โชว์ badge "Dev bypass" สีเหลือง (ดู popup redesign
+  ด้านล่าง — ตอนแรกเป็นข้อความ "(dev bypass — not verified)" ปนอยู่ในค่า ภายหลังแยกเป็น badge ต่างหากแล้ว)
+  แทนที่จะขึ้น "✓ Verified" ปลอมๆ
 - **จุดที่ต้องลบทั้งหมดตอนเลิกใช้ (มาร์กด้วยคอมเมนต์ "TEMPORARY" ในโค้ดครบทุกจุดแล้ว)**: 1)
   `server-seller.js`'s `/api/dev-flags` block ทั้งก้อน 2) `apply.html`'s fetch เรียก `/dev-flags` +
   `STATE._phoneVerifyBypass` + banner element/CSS + `continueFromStep5()`'s bypass branch + popup
   summary's bypass branch 3) `backend/.env`'s `SKIP_PHONE_VERIFY=true` — **ตกลงกันไว้แล้วว่าจะลบทันทีที่
   เจ้าของโปรเจกต์ทดสอบ Phase 6 ครบทุกจุด (popup/preview/beforeunload) ไม่รอ ไม่เก็บเป็น TODO ค้าง —
   commit แยกต่างหากสำหรับการลบนี้โดยเฉพาะ**
+
+**Popup redesign ให้ใกล้เคียง TikTok reference มากขึ้น (2026-08-16) — commit `827efb3`, เจ้าของโปรเจกต์
+ดูเทียบแล้ว approve, push แล้ว**
+- `.review-row` เปลี่ยนจาก label-ซ้าย/value-ขวาแนวนอน เป็น label เล็กสีเทาบนบรรทัดบน + value ตัวใหญ่หนา
+  บรรทัดล่าง (แนวตั้ง) ตรงกับ reference
+- Padding ต่อ row เพิ่มจาก `9px` เป็น `16px` บน/ล่าง ยังมีเส้นคั่นบางๆ ระหว่าง field เหมือนเดิม
+- คำอธิบายใต้หัวข้อ popup มีอยู่แล้วตั้งแต่สร้าง popup ครั้งแรก ("Please confirm everything below is
+  correct — we'll use it to verify your identity.") ไม่ต้องเพิ่มใหม่
+- สถานะ verify ของเบอร์ (Verified/Dev bypass) แยกออกจากข้อความ value เป็น badge ต่างหากแล้ว — **reuse
+  `.bc-badge` ที่มีอยู่แล้วใน `components.css`** (เดิมทำไว้สำหรับ order-status pill) เพิ่มแค่ 2 color
+  modifier ใหม่เฉพาะหน้านี้ (`--verified` เขียว, `--dev-bypass` เหลือง) แทนที่จะสร้าง badge class แยกใหม่
+  ทั้งหมด — ไม่แตะ `tokens.css`/`components.css` เอง ตามที่สั่งให้ reuse ของเดิม
+- **ทดสอบด้วยตา**: ไม่มี browser automation ในนี้เหมือนเดิม เลยสร้าง before/after mockup จาก CSS จริง
+  (ไม่ใช่ sketch คร่าวๆ) เป็น Artifact ให้เจ้าของโปรเจกต์ดูเทียบเอง — ดูแล้ว **approve ตรงตามที่ต้องการ**
 
 ## ยังไม่เริ่ม
 - Phase 7: หน้า /settle/verification + /settle/verification-result
