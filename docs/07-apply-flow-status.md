@@ -6,11 +6,11 @@
 > ย้ายเข้ามาอยู่ใน `bards-new/docs/` เมื่อ 2026-08-15 (จากเดิม `docs/` ที่ root โปรเจกต์) เพื่อให้ commit
 > เข้า git ได้จริง — ดูหัวข้อ "หมายเหตุ" ท้ายไฟล์สำหรับสถานะของเอกสารอ้างอิงอื่นๆ ที่ยังอยู่นอก repo
 
-> ⚠️ **มี temporary bypass ค้างอยู่ในโค้ดตอนนี้ (2026-08-16) — ดูหัวข้อ "เขียนโค้ดเสร็จ แต่ยังไม่ push"
-> ด้านล่างสำหรับรายละเอียดเต็ม**: `SKIP_PHONE_VERIFY=true` ใน local `backend/.env` + โค้ดใน
-> `server-seller.js`/`apply.html` ที่ข้าม step 5's "ต้อง verify เบอร์ก่อน" — ใช้ local dev เท่านั้น
+> ⚠️ **มี temporary bypass ค้างอยู่ในโค้ดตอนนี้ (2026-08-16, push ขึ้น `origin/main` แล้ว) — ดูหัวข้อ
+> "เขียนโค้ดเสร็จ" ด้านล่างสำหรับรายละเอียดเต็ม**: `SKIP_PHONE_VERIFY=true` ใน local `backend/.env` + โค้ด
+> ใน `server-seller.js`/`apply.html` ที่ข้าม step 5's "ต้อง verify เบอร์ก่อน" — ใช้ local dev เท่านั้น
 > (double-gate กับ `NODE_ENV`, ยืนยันแล้วว่าไม่มีทางหลุดไป production) **ต้องลบทิ้งทันทีที่ทดสอบ Phase 6
-> ครบทุกจุดแล้ว** อย่าลืมว่ามันยังอยู่
+> ครบทุกจุดแล้ว** — push ไปแล้วไม่ได้แปลว่าลบได้ อย่าลืมว่ามันยังอยู่จนกว่าจะมี commit ลบแยกต่างหาก
 
 ## เสร็จแล้ว + push แล้ว
 - Phase 1: DB schema (id_number, birthdate, auto-slug, bank fields optional)
@@ -18,8 +18,10 @@
 - Phase 3: Restructure apply.html step order ตาม TikTok ref, ตัด field นอก scope
 - Phase 3B: Step 4 แยกตาม business type + preview ไฟล์
 
-## เขียนโค้ดเสร็จ แต่ยังไม่ push
-Phase 4: Twilio Verify SMS OTP — โค้ด backend+frontend เสร็จสมบูรณ์ทั้งหมดแล้ว แต่หยุดการทดสอบ end-to-end ไว้ก่อน สาเหตุ:
+## เขียนโค้ดเสร็จ
+(สถานะ push ของแต่ละอันดูที่หัวข้อย่อยของตัวเอง — ไม่ใช่ทุกอันอยู่ในสถานะเดียวกันอีกต่อไป)
+
+**Phase 4: Twilio Verify SMS OTP — ยังไม่ push, ยัง block อยู่ (ไม่เกี่ยวกับงานอื่นด้านล่าง)** — โค้ด backend+frontend เสร็จสมบูรณ์ทั้งหมดแล้ว แต่หยุดการทดสอบ end-to-end ไว้ก่อน สาเหตุ:
 - ไม่มีเบอร์กัมพูชาจริงให้ทดสอบ ลองใช้เบอร์ไทย (+66936406304) แทนแต่ Twilio trial account บล็อกการ verify caller ID ของเบอร์ไทยทั้ง SMS และ Call (ประเทศที่ถูกจำกัด)
 - ลองหาทาง Twilio Verify test/magic phone number (+85512345678) แต่ไม่ยืนยันได้ชัดว่า Twilio Verify API รองรับ test credentials แบบเดียวกับ Messages API จริงหรือไม่ (เอกสาร Twilio ไม่ชัดเจนพอ)
 - เคย verify เบอร์ไทยผ่านได้ 1 ครั้ง แต่กลับพบว่า verified caller ID list ว่างเปล่าตอน query ผ่าน API ตรง (สงสัยว่าเป็นคนละ Twilio Project แต่เช็คแล้ว Account SID ตรงกัน — สาเหตุจริงยังไม่ชัดเจน) หลังจากนั้นลบเบอร์แล้วเพิ่มใหม่ไม่ได้อีกเลย (ติด restricted country ซ้ำ)
@@ -27,7 +29,7 @@ Phase 4: Twilio Verify SMS OTP — โค้ด backend+frontend เสร็จ
 - ตัดสินใจ: หยุดพยายามแก้ตอนนี้ เลื่อนไปทดสอบตอนใกล้เปิดใช้งานจริง (ตอนนั้นจะ upgrade Twilio อยู่แล้ว) ไปทำ Phase 5-8 ต่อก่อน
 - TODO ค้าง: ต้องเพิ่ม validation จำกัดเฉพาะเบอร์กัมพูชาหลังทดสอบผ่าน
 
-**Phase 5: signup.html → email-only + Resend — เสร็จแล้ว (2026-08-15), ทดสอบผ่านครบ, ยังไม่ push**
+**Phase 5: signup.html → email-only + Resend — เสร็จแล้ว, ทดสอบผ่านครบ, push แล้ว**
 - `services/mailer.js`'s `sendMail()` เปลี่ยนจาก Gmail SMTP ไปใช้ Resend (`RESEND_API_KEY` ใน `.env`,
   โดเมน bardskh.com verified บน Resend แล้วโดยเจ้าของโปรเจกต์ก่อนเริ่มงาน) ส่งจาก
   `Bards <no-reply@bardskh.com>` — เช็คก่อนแก้แล้วว่า `sendMail()` มีผู้เรียกจุดเดียวในโปรเจกต์คือ
@@ -57,7 +59,7 @@ Phase 4: Twilio Verify SMS OTP — โค้ด backend+frontend เสร็จ
   apply.html Step 5 เก็บ+verify ผ่าน Twilio ต่างหาก **ไม่ใช่**คอลัมน์ที่เพิ่งแก้เป็น nullable รอบนี้เลย —
   ไม่มีความเสี่ยงกระทบหน้าไหน
 
-**Phase 6: Popup สรุปตรวจสอบ + atomic submit — เขียนโค้ดเสร็จ (2026-08-15), ทดสอบผ่านครบ, ยังไม่ push**
+**Phase 6: Popup สรุปตรวจสอบ + atomic submit — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, push แล้ว**
 `public-seller-src/apply.html` เปลี่ยนจาก save-as-you-go (6 step, PATCH ทุก step) เป็น deferred-save (5
 step + popup, ยิงครั้งเดียวตอนจบ) — commit แยก 5 อันตามลำดับที่วางแผนไว้:
 - **1/5**: `continueFromStep1()`-`continueFromStep4()` (เดิมชื่อ `saveStepXAndContinue`) เหลือแค่ client-side
@@ -102,13 +104,12 @@ end-to-end จริงผ่าน API ตรงๆ** จำลอง exact pay
     full_name/id_number/birthdate/address เลย (ตรงกับ `collectStep4Fields()` คืน `{}`) → ยืนยัน field
     พวกนั้นเป็น `null` จริงใน response → upload `business_license` (PDF) 201 → `GET /me` เห็นเอกสารถูกต้อง —
     shop อยู่ที่ status `pending`
-  - **ยังไม่ได้ทดสอบด้วยตาจริงเอง**: หน้าตา popup จริง (summary render ถูกต้องไหม, CSS overlay ไม่ชนกับหน้า
-    เดิม), การเลือกไฟล์+preview ท้องถิ่นในเบราว์เซอร์จริง, `beforeunload` prompt ขึ้นจริงไหม — แนะนำให้เจ้า
-    ของโปรเจกต์ล็อกอินด้วย 2 บัญชีข้างบน (ผ่าน `signin.html` ปกติ) แล้วเปิด `/apply` คลิกดูเองสักรอบ โดย
-    เฉพาะ popup กับ error message ตอน submit ซ้ำ (ลองปิดเน็ตแล้วกด submit ดูว่าข้อความชัดเจนไหม)
+  - **เจ้าของโปรเจกต์ทดสอบด้วยตาจริงแล้ว** — พบ 2 บั๊ก (แก้แล้ว, ดูหัวข้อ "หมายเหตุ") + ขอปรับ layout
+    popup เพิ่ม (ดู "Popup redesign" ด้านล่าง, approve แล้ว) `beforeunload` prompt/file preview ยังไม่มี
+    รายงานปัญหาเพิ่มเติมหลังจากนั้น
 
-**⚠️ Temporary phone-verify bypass (2026-08-16) — commit `b44f674`, ยังไม่ push — ค้างอยู่ในโค้ดตอนนี้
-จริง ต้องลบก่อน push/launch:**
+**⚠️ Temporary phone-verify bypass (2026-08-16) — commit `b44f674`, push แล้ว — ค้างอยู่ในโค้ดจริงตอนนี้
+(push ไปแล้วไม่ได้แปลว่าเอาออกได้) ต้องลบด้วย commit แยกก่อน launch:**
 - **สาเหตุ**: Twilio trial account ยังบล็อกส่ง SMS จริงส่วนใหญ่ (รู้อยู่แล้วตั้งแต่ Phase 4) ทำให้ทดสอบ
   ต่อจาก Step 5 ไป popup/submit ด้วยตาจริงไม่ได้เลยถ้าไม่มีเบอร์ที่ verify ผ่านได้จริง — ไม่ใช่บั๊ก เป็น
   ข้อจำกัด infra ที่รู้อยู่แล้ว
@@ -194,7 +195,7 @@ end-to-end จริงผ่าน API ตรงๆ** จำลอง exact pay
     เพราะรัน local server ที่ port `3034` ซึ่งไม่อยู่ใน CORS allow-list ของ `server-seller.js`
     (`localhost:3000`/`5500` เท่านั้นที่อนุญาตไว้) ทำให้ทุก request รวมถึงโหลด `api.js` เองโดนบล็อกไปด้วย —
     ย้ายไปรัน local server ที่ port `3000` แทน ไม่เกี่ยวกับ Resend/Phase 5 เลย ไม่ต้องแก้โค้ดอะไร
-- **Step 5 (Contact) phone field รื้อ UI ตาม TikTok reference (2026-08-15) — เขียนโค้ดเสร็จ, ยังไม่ push**
+- **Step 5 (Contact) phone field รื้อ UI ตาม TikTok reference (2026-08-15) — เขียนโค้ดเสร็จ, push แล้ว**
   เจอระหว่างเจ้าของโปรเจกต์ทดสอบ Phase 6 ด้วยตาจริง แก้ 3 จุด (commit `f31170f`):
   1. ช่อง OTP (`#otpRow`) แสดงตลอดใต้ช่องเบอร์แล้ว (ไม่ `display:none` จนกว่าจะกด "Send code" อีกต่อไป) —
      แค่ disabled จนกว่าจะมีโค้ดที่ส่งไปจริงให้กรอก
@@ -218,5 +219,6 @@ end-to-end จริงผ่าน API ตรงๆ** จำลอง exact pay
   ถูกต้อง (`+66`) ไหลผ่านไปถึง Twilio จริง (ยืนยันด้วย error response ของ Twilio เองสำหรับเบอร์ปลอมที่ตั้งใจ
   ใส่ — **ไม่ได้ส่ง SMS จริง** ตามข้อจำกัด Twilio trial account ที่รู้อยู่แล้วจาก Phase 4) เช็ค
   `DIAL_CODES` ทั้ง 173 รายการแล้วว่าไม่มี ISO code ซ้ำและทุก dial code ผ่าน regex ฝั่ง backend ครบ
-  **ยังไม่ได้ดูด้วยตาจริง**: หน้าตา popup/dropdown/text-link จริงในเบราว์เซอร์ (ไม่มี browser automation
-  tool ในนี้เหมือนรอบก่อนๆ) — รอเจ้าของโปรเจกต์เปิดดูเองอีกรอบ
+  **อัปเดต**: เจ้าของโปรเจกต์ทดสอบด้วยตาจริงแล้วผ่าน `localhost:3000` จริง (bypass ด้านล่างช่วยให้ข้าม
+  Step 5 ไปถึง popup ได้) — popup layout เอง edit เพิ่มอีกรอบ (ดู "Popup redesign" ด้านล่าง) แต่ dropdown/
+  text-link ของช่องเบอร์เองไม่มีรายงานปัญหา ถือว่าผ่าน
