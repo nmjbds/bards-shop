@@ -5,6 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sell on Bards — Partner With Us</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Phase 8 stage 2 (2026-08-17): this page previously had no link to the
+     shared tokens.css/components.css at all -- its own :root{} below
+     duplicates a subset of the same variable names instead (the exact
+     pattern tokens.css's own header comment describes as the reason it
+     exists). Added here as a prerequisite for reusing .bc-icon-circle
+     below; left the local :root{} untouched otherwise (Phase 8 stages are
+     one file's worth of change at a time, not a dedup pass -- that's a
+     separate, unrelated cleanup). Loaded before the local <style> so any
+     overlapping variable name still resolves to this page's own value. -->
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
 <style>
 :root{--black:#0A0A0A;--white:#FAFAFA;--gray-50:#F9F9F7;--gray-100:#F2F2F0;--gray-200:#E4E4E2;--gray-300:#C8C8C6;--gray-400:#8A8A88;--gray-600:#4A4A48;--orange:#FF4F00;--red:#C8001A;--green:#16A34A;--radius:14px;--radius-sm:10px;}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -42,7 +53,10 @@ a{color:inherit;}
 /* ── Value prop cards ── */
 .value-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:1080px;margin:0 auto;}
 .value-card{border:1.5px solid var(--gray-200);border-radius:var(--radius);padding:24px 20px;}
-.value-icon{width:38px;height:38px;border-radius:10px;background:var(--gray-100);display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:18px;}
+/* Icon now .bc-icon-circle (components.css, Phase 8 stage 2) instead of
+   the emoji-in-a-rounded-square .value-icon this used to be -- that rule
+   is gone, nothing else in this file used it. */
+.value-card .bc-icon-circle{margin-bottom:14px;}
 .value-title{font-size:14px;font-weight:700;margin-bottom:6px;}
 .value-body{font-size:12.5px;color:var(--gray-600);line-height:1.55;}
 
@@ -114,22 +128,30 @@ a{color:inherit;}
   </div>
   <div class="value-grid">
     <div class="value-card">
-      <div class="value-icon">👥</div>
+      <div class="bc-icon-circle bc-icon-circle--accent">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
       <div class="value-title">Built-in Audience</div>
       <div class="value-body">Your products show up to customers already shopping on bardskh.com. No separate marketing to get discovered.</div>
     </div>
     <div class="value-card">
-      <div class="value-icon">🎛️</div>
+      <div class="bc-icon-circle bc-icon-circle--accent">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><line x1="14" y1="2" x2="14" y2="6"/><line x1="8" y1="10" x2="8" y2="14"/><line x1="16" y1="18" x2="16" y2="22"/></svg>
+      </div>
       <div class="value-title">You're in Control</div>
       <div class="value-body">Manage your own products, pricing, and stock from your own seller dashboard.</div>
     </div>
     <div class="value-card">
-      <div class="value-icon">🔒</div>
+      <div class="bc-icon-circle bc-icon-circle--accent">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+      </div>
       <div class="value-title">We Handle Payments</div>
       <div class="value-body">Secure checkout via ABA PayWay. You never touch payment infrastructure.</div>
     </div>
     <div class="value-card">
-      <div class="value-icon">💸</div>
+      <div class="bc-icon-circle bc-icon-circle--accent">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+      </div>
       <div class="value-title">Fast Payouts</div>
       <div class="value-body">Get paid straight to your bank account — ABA, ACLEDA, Wing, or Chip Mong.</div>
     </div>
