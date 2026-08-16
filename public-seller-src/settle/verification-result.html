@@ -103,7 +103,7 @@ function showOnly(id) {
    redirects elsewhere rather than rendering a confusing in-between state
    here: approved -> dashboard, pending/needs_info -> back to the
    "reviewing" page (outcome isn't decided yet, don't claim a result),
-   suspended -> /apply (dedicated screen already exists there). Fetches
+   suspended -> /settle/form (dedicated screen already exists there). Fetches
    fresh on every load/retry, same as verification.html, so this never
    shows a stale result. */
 async function loadStatus() {
@@ -113,7 +113,7 @@ async function loadStatus() {
     if (!shop) { showOnly('noShopState'); return; }
     if (shop.status === 'approved') { location.href = '/seller'; return; }
     if (shop.status === 'pending') { location.href = '/settle/verification'; return; }
-    if (shop.status === 'needs_info' || shop.status === 'suspended') { location.href = '/apply'; return; }
+    if (shop.status === 'needs_info' || shop.status === 'suspended') { location.href = '/settle/form'; return; }
     // rejected
     document.getElementById('rejectReasonText').textContent =
       shop.rejection_reason || 'Your application did not meet our requirements this time.';

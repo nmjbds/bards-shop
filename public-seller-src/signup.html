@@ -227,7 +227,7 @@ body{
     </div>
     <div class="card-title">Account Created!</div>
     <div class="card-sub">Next, tell us about your business and store.</div>
-    <a href="/apply" class="bc-btn bc-btn--primary" style="text-decoration:none">
+    <a href="/settle/form" class="bc-btn bc-btn--primary" style="text-decoration:none">
       CONTINUE TO APPLICATION
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </a>
@@ -242,12 +242,16 @@ body{
 let _step = 1, _loading = false, _email = '', _otpToken = '';
 let _resendInterval = null, _resendCount = 0;
 
-/* Already signed in as a seller? Skip straight to /apply — mirrors
+/* Already signed in as a seller? Skip straight to /settle/form — mirrors
    signin.html's redirect-if-already-logged-in shortcut. Uses SellerAuth
    only (not the admin fallback in SellerAuth.ensureSession()) — signup is
-   never something an admin session should shortcut past. */
+   never something an admin session should shortcut past. Doesn't route by
+   shop status the way signin.html's routeByShopStatus() does (Phase 7 fix)
+   -- someone reaching signup.html already-signed-in essentially always has
+   no shop yet (they just created the account), so the extra status check
+   isn't worth duplicating here. */
 (async function initRedirect() {
-  if (SellerAuth.getToken()) location.href = '/apply';
+  if (SellerAuth.getToken()) location.href = '/settle/form';
 })();
 
 function goToStep(n) {

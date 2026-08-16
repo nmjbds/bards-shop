@@ -112,7 +112,7 @@ if (process.env.NODE_ENV !== 'production') {
 // redirects straight to the /seller dashboard. It's now a public
 // partner-facing landing page (seller-landing.html, built from
 // public-seller-src same as everything else here) explaining why to sell
-// on Bards, with its own "Start Selling" CTA to /apply. Someone landing
+// on Bards, with its own "Start Selling" CTA to /settle/form. Someone landing
 // here has no account yet — redirecting into the dashboard first would
 // just bounce them straight back out via its own auth guard. Served
 // directly (not a redirect) so the URL bar stays at the bare domain.

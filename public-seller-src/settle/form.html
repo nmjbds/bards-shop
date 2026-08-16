@@ -5,8 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Become a Seller — Bards</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="tokens.css">
-<link rel="stylesheet" href="components.css">
+<!-- Absolute paths -- this page now lives at /settle/form (nested one
+     level), same reasoning as settle/verification.html/verification-
+     result.html: a relative "tokens.css" here would resolve against
+     /settle/tokens.css and 404. -->
+<link rel="stylesheet" href="/tokens.css">
+<link rel="stylesheet" href="/components.css">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var(--black);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px 60px;}
@@ -408,8 +412,8 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 
 <div class="toast" id="toast"></div>
 
-<script src="products.js"></script>
-<script src="api.js"></script>
+<script src="/products.js"></script>
+<script src="/api.js"></script>
 <script>
 // Phase 6: Step 6 ("Review & Submit") folded into the review popup below —
 // the form itself is 5 steps now, matching docs/tiktok-seller-onboarding-

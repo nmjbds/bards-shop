@@ -11,8 +11,10 @@
 /* NOTE: this page lives at /settle/verification (nested one level), so
    every asset/link reference below is an absolute (/-prefixed) path on
    purpose -- a relative "tokens.css" here would resolve against
-   /settle/tokens.css and 404, unlike apply.html/signin.html etc. at the
-   top level where a relative reference happens to also resolve to root. */
+   /settle/tokens.css and 404, unlike signin.html/signup.html etc. at the
+   top level where a relative reference happens to also resolve to root
+   (settle/form.html -- formerly apply.html -- needed this same fix when
+   it moved into settle/ too). */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var(--black);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px 60px;}
 .logo-wrap{text-align:center;margin-bottom:24px;}
@@ -93,7 +95,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 <script src="/products.js"></script>
 <script src="/api.js"></script>
 <script>
-/* Guard matches apply.html's exact pattern — must be signed in through
+/* Guard matches settle/form.html's exact pattern — must be signed in through
    seller.bardskh.com's own session, never a bardskh.com customer one. */
 (async function init() {
   const session = await SellerAuth.ensureSession();
@@ -113,7 +115,7 @@ function showOnly(id) {
 /* Fetches the shop's real status on every load (and on retry) rather than
    trusting anything cached — a shop that's since been approved or rejected
    shouldn't keep showing "we're reviewing" forever, so this redirects on
-   both. needs_info/suspended send the seller to /apply, which already has
+   both. needs_info/suspended send the seller to /settle/form, which already has
    the real UI for those two (the info-requested note + editable form, and
    the dedicated suspended screen respectively) -- no reason to duplicate
    either here. Only a genuinely still-pending/needs_info-free application
@@ -125,7 +127,7 @@ async function loadStatus() {
     if (!shop) { showOnly('noShopState'); return; }
     if (shop.status === 'approved') { location.href = '/seller'; return; }
     if (shop.status === 'rejected') { location.href = '/settle/verification-result'; return; }
-    if (shop.status === 'needs_info' || shop.status === 'suspended') { location.href = '/apply'; return; }
+    if (shop.status === 'needs_info' || shop.status === 'suspended') { location.href = '/settle/form'; return; }
     showOnly('reviewingState'); // pending
   } catch (e) {
     showOnly('errorState');

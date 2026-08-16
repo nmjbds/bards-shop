@@ -195,10 +195,10 @@ let _resendInterval = null, _resendCount = 0;
 async function routeByShopStatus() {
   const d = await ShopsAPI.me().catch(() => null);
   const shop = d?.shop;
-  if (!shop) { location.href = '/apply'; return; }
+  if (!shop) { location.href = '/settle/form'; return; }
   if (shop.status === 'approved') { location.href = '/seller'; return; }
   if (shop.status === 'rejected') { location.href = '/settle/verification-result'; return; }
-  if (shop.status === 'needs_info' || shop.status === 'suspended') { location.href = '/apply'; return; }
+  if (shop.status === 'needs_info' || shop.status === 'suspended') { location.href = '/settle/form'; return; }
   location.href = '/settle/verification'; // pending
 }
 
