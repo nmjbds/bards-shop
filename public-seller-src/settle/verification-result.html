@@ -75,7 +75,13 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       </div>
       <div class="done-title">Application Rejected</div>
       <div class="done-sub" id="rejectReasonText"></div>
-      <a href="/" class="bc-btn bc-btn--primary done-cta">Apply Again</a>
+      <!-- Was href="/" (seller-landing.html) per the original spec reading
+           ("link back to the front page") -- changed 2026-08-16: apply.html
+           already resumes/prefills a rejected shop's existing data (Phase 3
+           built that in), so sending the seller through the marketing
+           landing page first was just an extra click to get back to the
+           same place. Straight to the form now. -->
+      <a href="/settle/form" class="bc-btn bc-btn--primary done-cta">Apply Again</a>
     </div>
 
   </div>
