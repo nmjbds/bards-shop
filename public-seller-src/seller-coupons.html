@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Coupons — Bards Seller</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Stage 6b: tokens.css only (not components.css) -- same reasoning as
+     Stage 6a's seller.html: this page's own .btn/.card classes would
+     collide with components.css's bare classes of the same names.
+     tokens.css is safe (:root variables only, no class selectors) and every
+     token it defines matches this page's own local :root values exactly. -->
+<link rel="stylesheet" href="tokens.css">
 <style>
 :root{--black:#0A0A0A;--white:#FAFAFA;--gray-50:#F9F9F7;--gray-100:#F2F2F0;--gray-200:#E4E4E2;--gray-300:#C8C8C6;--gray-400:#8A8A88;--gray-600:#4A4A48;--orange:#FF4F00;--red:#C8001A;--green:#16A34A;--blue:#2563EB;--sidebar:220px;--radius:14px;--radius-sm:10px;}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
@@ -98,9 +104,14 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .toast.on{opacity:1;transform:translateY(0);}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .fu{animation:fadeUp .32s ease both;}
-.empty{padding:60px 20px;text-align:center;color:var(--gray-400);}
-.empty-icon{font-size:36px;margin-bottom:12px;}
-.empty-title{font-size:14px;font-weight:600;color:var(--black);}
+/* Stage 6b -- copied verbatim from components.css (not linked wholesale,
+   see the tokens.css comment above). Replaces the old emoji-in-plain-text
+   .empty pattern below. */
+.bc-icon-circle{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:var(--icon-circle-md);height:var(--icon-circle-md);border-radius:50%;background:var(--gray-100);border:1.5px solid var(--gray-200);color:var(--gray-400);}
+.bc-empty-state{text-align:center;padding:60px 20px;display:flex;flex-direction:column;align-items:center;}
+.bc-empty-state .bc-icon-circle{margin-bottom:14px;}
+.bc-empty-state-title{font-size:14px;font-weight:700;color:var(--black);margin-bottom:4px;}
+.bc-empty-state-sub{font-size:12px;color:var(--gray-400);line-height:1.5;max-width:280px;}
 </style>
 </head>
 <body>
@@ -268,7 +279,7 @@ const TAPE_COLORS=['#0A0A0A','#FF4F00','#16A34A','#2563EB','#D97706','#7C3AED'];
 function renderGrid(){
   const el=document.getElementById('couponGrid');
   if(!_coupons.length){
-    el.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🏷️</div><div class="empty-title">No coupons yet</div><div style="font-size:12px;color:var(--gray-400);margin-top:6px">Create your first discount coupon.</div></div>`;
+    el.innerHTML=`<div class="bc-empty-state" style="grid-column:1/-1"><div class="bc-icon-circle"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div><div class="bc-empty-state-title">No coupons yet</div><div class="bc-empty-state-sub">Create your first discount coupon.</div></div>`;
     return;
   }
   const now=new Date();
