@@ -26,6 +26,26 @@
   เช็ค status (เจอระหว่างทดสอบ), แก้ปุ่ม "Apply Again" ให้พาไป `/settle/form` ตรงๆ แทน seller-landing —
   เจ้าของโปรเจกต์ทดสอบด้วยตาจริงผ่านครบทุกจุดแล้ว: state routing ทั้ง 3 บัญชี (approved/pending/rejected),
   error/retry handling, ปุ่ม Apply Again ดูรายละเอียดเต็มในหัวข้อ "รายละเอียด" ด้านล่าง
+- **Phase 8: UI Polish — เสร็จสมบูรณ์แล้วทั้ง 6 stage (2026-08-16 สำรวจ, เขียนโค้ด+ทดสอบ+push ครบ
+  2026-08-17)** เติม icon/illustration ให้หน้า seller ที่ดิบที่สุด (ไม่มี asset image เลยทั้งโปรเจกต์ ใช้
+  inline SVG hand-copy สไตล์ Lucide ตาม convention เดิม 100% ไม่เพิ่ม asset file/CDN) แบ่งเป็น 6 stage
+  เรียงตามความเสี่ยงจากสำรวจก่อนเริ่ม: **1) Design tokens** (`tokens.css`/`components.css` เพิ่ม icon
+  size scale + `.bc-icon-circle`/`.bc-empty-state` component ใหม่, additive ล้วน) **2) `seller-
+  landing.html`** (แทน emoji 4 ตัวด้วย icon-circle โทนส้ม) **3) `signin.html`+`signup.html`** (leading
+  field icon + migrate step icon ไปใช้ tone modifier ร่วม) **4) `settle/verification.html`+
+  `verification-result.html`** (illustration ใหม่สื่ออารมณ์ moment จริง — เอกสาร+นาฬิกาสำหรับหน้ารอ, halo+X
+  ใหญ่ขึ้นสำหรับหน้าปฏิเสธ) **5) `settle/form.html`** (icon-circle ต่อ step ทั้ง 5, เสี่ยงสุดในกลุ่ม
+  non-dashboard เพราะเพิ่งผ่าน rework Phase 6/7 — ยืนยันไม่แตะ JS logic เลยแม้แต่บรรทัดเดียว) **6)
+  dashboard 5 หน้า** (`seller.html`→`seller-products.html`+`seller-coupons.html`→`seller-orders.html`+
+  `seller-analytics.html`, แบ่งย่อยเป็น sub-stage 6a/6b/6c เรียงความเสี่ยง — migrate empty-state emoji
+  ทุกหน้าไปใช้ `.bc-empty-state`/`.bc-icon-circle`, แก้ order-timeline glyph marker ที่อยู่ใน JS
+  template-literal function ด้วยความระมัดระวังพิเศษ (`node --check`+รันจริงผ่าน `vm` ยืนยันไม่พัง logic),
+  เพิ่ม empty state ใหม่ให้ `seller-analytics.html` ที่ไม่เคยมีมาก่อน) — **พบและหลีกเลี่ยงความเสี่ยงสำคัญ
+  ระหว่างทาง**: หน้า dashboard ทั้ง 5 มี `.btn`/`.card`/`.badge` เป็นของตัวเองอยู่แล้วซึ่งชนกับ bare class
+  ชื่อเดียวกันใน `components.css` — แก้โดย link เฉพาะ `tokens.css` (ปลอดภัย 100%, มีแค่ `:root` variable)
+  แล้ว copy เฉพาะ 2 rule-block ที่ต้องใช้เข้า local `<style>` ของแต่ละไฟล์แทนการ link `components.css`
+  ทั้งไฟล์ — ทุก stage ทดสอบด้วยตา (before/after Artifact เทียบทุกจุด) ก่อน commit และรอเจ้าของโปรเจกต์เช็ค
+  ก่อน push ทุกครั้งตามที่ตกลงกันไว้ ดูรายละเอียดเต็มทั้ง 6 stage ในหัวข้อ "รายละเอียด" ด้านล่าง
 
 ## รายละเอียด
 (ประวัติงานแบบละเอียด — Phase 4 ด้านล่างยัง block อยู่จริง ส่วนที่เหลือเสร็จ+push แล้วทั้งหมด เก็บ
@@ -273,7 +293,8 @@ error UI ของเรา เพราะ browser บล็อกการโ�
 logic ทำงานถูกต้องจริงเวลามีแค่ API call เดียวที่ fail ไม่ต้องพึ่งการทดสอบ manual ที่เจ็บบ่อยจากการปิดเน็ต
 ทั้งเบราว์เซอร์อีกต่อไป
 
-**Phase 8: UI Polish — เริ่มสำรวจแล้ว (2026-08-16), ยังไม่เขียนโค้ดจริง**
+**Phase 8: UI Polish — เสร็จสมบูรณ์แล้วทั้ง 6 stage, push แล้วทั้งหมด (สำรวจ 2026-08-16, เขียนโค้ด+
+ทดสอบ+push ครบทุก stage 2026-08-17)**
 - **สำรวจทุกหน้า seller (11 หน้า) แล้ว**: ไม่มีไฟล์ภาพ (.png/.jpg/.svg/.webp) แม้แต่ไฟล์เดียวในทั้ง
   `public-shared`/`public-seller-src` ไม่มี favicon ด้วยซ้ำ — icon ทั้งหมดตอนนี้เป็น inline SVG (สไตล์
   Lucide/Feather, stroke="currentColor") + emoji ประปราย ไม่มี illustration ใหญ่ๆ เลยสักจุดในทั้ง
@@ -456,8 +477,8 @@ seller-coupons.html, seller-analytics.html) — งานใหญ่สุด �
   nav (12 `sb-item` ต่อไฟล์) ไม่กระทบ — สร้าง before/after เป็น Artifact ให้ดูเทียบ
 
 **Stage 6c — `seller-orders.html` + `seller-analytics.html` icons (2026-08-17) — sub-stage สุดท้ายของ
-Stage 6, เขียนโค้ดเสร็จ, ทดสอบละเอียดเป็นพิเศษครบ, ยังไม่ push (commit `28fb83e`) — รอเจ้าของโปรเจกต์เช็ค
-ก่อน push — **ปิด Stage 6 และ Phase 8 (UI Polish) ทั้งแผนแล้ว รอ push สุดท้าย****
+Stage 6, เขียนโค้ดเสร็จ, ทดสอบละเอียดเป็นพิเศษครบ, push แล้ว (commit `28fb83e`, `989aa45`) — **ปิด Stage 6
+และ Phase 8 (UI Polish) ทั้งแผนสมบูรณ์แล้ว****
 - `seller-orders.html`:
   - แทน empty state (📋 "No orders found") ด้วย `.bc-empty-state`/`.bc-icon-circle` แบบเดียวกับ 6a/6b —
     icon clipboard ยกจาก sidebar nav ลิงก์ "Orders" ของไฟล์นี้เอง
