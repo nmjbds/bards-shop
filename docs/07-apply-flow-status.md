@@ -350,8 +350,7 @@ logic ทำงานถูกต้องจริงเวลามีแค�
   เป็น Artifact ให้ดูเทียบเหมือนเดิม
 
 **Stage 4/6 — `settle/verification.html` + `settle/verification-result.html` illustrations
-(2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, ยังไม่ push (commit `ec48948`) — รอเจ้าของโปรเจกต์เช็คก่อน
-push**
+(2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, push แล้ว (commit `ec48948`, `4da93e0`)**
 - จุดที่ประเมินไว้ตอน exploration ว่าคุ้มค่าที่สุด — แทน `.done-icon` วงกลมเปล่าๆ เดิมด้วย illustration
   วาดเอง (inline SVG) ที่สื่ออารมณ์ของ moment จริงๆ ไม่ใช่แค่เปลี่ยน icon
 - `verification.html`'s `reviewingState` (สถานะรอตรวจ): เปลี่ยนจาก checkmark สีเขียว (ซึ่งความหมายจริงๆ
@@ -371,6 +370,29 @@ push**
   `/settle/verification-result` ยัง 200, grep ยืนยัน icon เก่า (checkmark polyline / X เส้นบาง) หายไปจาก
   state เป้าหมายแล้ว แต่ `errorState`'s icon (`done-icon done-icon--error`) ยังอยู่ครบทั้งสองไฟล์ (ยืนยันไม่
   กระทบ) — สร้าง before/after mockup จาก SVG จริงเป็น Artifact ให้ดูเทียบเหมือนเดิม
+
+**Stage 5/6 — `settle/form.html` step icons (2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบ regression ครบ, ยังไม่
+push (commit `16f1616`) — รอเจ้าของโปรเจกต์เช็คก่อน push**
+- ประเมินไว้ว่าเสี่ยงสุดในกลุ่ม non-dashboard เพราะเพิ่งผ่าน rework ใหญ่ (Phase 6 deferred-save +
+  review popup, Phase 7 phone verify + 173-country dial-code dropdown) — ทำตามข้อกำหนดที่เน้นย้ำ: **CSS/
+  markup เท่านั้น ไม่แตะ JS logic แม้แต่บรรทัดเดียว**
+- เพิ่ม `.bc-icon-circle bc-icon-circle--accent` (โทนส้มทั้ง 5, ยกจาก pattern `signup.html` Stage 3
+  ตรงๆ — component เดิม + local centering rule `.step-panel .bc-icon-circle{margin:0 auto 14px;}`
+  แบบเดียวกับที่ signup.html ใช้) นำหน้า `.card-title` ทั้ง 5 step: shopping-bag (Step 1 ชื่อร้าน), tag
+  (Step 2 หมวดหมู่), building แบบง่าย (Step 3 ประเภทธุรกิจ), id-card (Step 4 เอกสารยืนยันตัวตน), phone
+  (Step 5 ข้อมูลติดต่อ) — ทุก icon เป็น Lucide-style hand-copy inline SVG (`width=20 stroke-width=2`
+  ตรงกับ convention เดิม) ใช้โทน `--accent` เดียวกันทั้ง 5 (ไม่มี step ไหนเป็น "สำเร็จ" ในบรรดา 5 step ที่
+  นับเลข — popup review เป็นคนละส่วนแยกจาก Phase 6 ไม่ใช่ step ที่นับเลข)
+- **ยืนยันไม่แตะ JS**: `git diff --stat` = 21 insertions, 0 deletions ทั้งหมด — grep บรรทัดที่เพิ่มทุกบรรทัด
+  ยืนยันเป็น CSS comment/rule หรือ icon-circle/svg markup เท่านั้น ไม่มีบรรทัดไหนอยู่หลังจุดที่ JS เริ่ม
+  (~บรรทัด 400)
+- **ทดสอบ regression ครบทุก feature ตามที่สั่ง ไม่ใช่แค่ดู icon**: script เช็ค div/svg tag-balance ผ่าน,
+  เช็ค `getElementById()` ทุกจุดใน JS (33 จุด) ยังหา id เจอครบไม่มีอันไหนหาย, เช็คไม่มี duplicate id เกิดขึ้น
+  จาก markup ใหม่, build+serve จริงที่ localhost:3000 (`/settle/form` ยัง 200), grep ยืนยัน element ที่
+  ผูกกับ feature สำคัญยังอยู่ครบบน HTML ที่ served จริง: dial-code select (`#fDialCode`), review popup
+  (`#reviewModal`), step handler (`continueFromStep1()`), phone send/verify code button
+  (`handleSendCode()`/`handleVerifyCode()`), `beforeunload` listener (2 จุด ตรงกับ
+  add/removeEventListener เดิม) — สร้าง before/after + regression-checklist เป็น Artifact ให้ดูเทียบ
 
 ## ยังไม่เริ่ม
 - **Phase 11**: สร้างหน้า `/homepage` เป็น landing page ก่อนเข้า dashboard จริง (`/seller`) สำหรับ seller
