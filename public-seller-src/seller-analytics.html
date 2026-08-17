@@ -40,6 +40,12 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .period-btn:hover{border-color:var(--black);color:var(--black);}
 .period-btn.active{background:var(--black);border-color:var(--black);color:#fff;}
 .content{padding:22px 24px;flex:1;}
+/* Phase 9 -- sane width cap for very wide monitors, same reasoning as
+   seller.html's fuller comment (.topbar stays edge-to-edge, only .content
+   is capped). */
+@media (min-width: 1024px) {
+  .content{max-width:1440px;margin:0 auto;}
+}
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:20px;}
 .stat-card{background:var(--white);border:1.5px solid var(--gray-200);border-radius:var(--radius);padding:18px 20px;}
 .stat-label{font-size:9.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--gray-400);margin-bottom:10px;}

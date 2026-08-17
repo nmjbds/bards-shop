@@ -39,6 +39,12 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .tb-btn{height:32px;padding:0 13px;border:1.5px solid var(--gray-200);border-radius:20px;background:var(--white);color:var(--gray-600);font-size:11.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;font-family:'Space Grotesk',sans-serif;}
 .tb-btn:hover{border-color:var(--black);color:var(--black);}
 .content{padding:22px 24px;flex:1;}
+/* Phase 9 -- sane width cap for very wide monitors, same reasoning as
+   seller.html's fuller comment (.topbar stays edge-to-edge, only .content
+   is capped). */
+@media (min-width: 1024px) {
+  .content{max-width:1440px;margin:0 auto;}
+}
 
 /* Filter bar */
 .filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;}

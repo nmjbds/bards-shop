@@ -52,6 +52,19 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .tb-btn.primary{background:var(--black);border-color:var(--black);color:#fff;}
 .tb-btn.primary:hover{opacity:.85;}
 .content{padding:22px 24px;flex:1;}
+/* Phase 9 -- no pagination on dashboard pages (nothing to convert to
+   single-scroll, they already are), so the desktop treatment here is just
+   a sane width cap: .content has no max-width at all today, so on a very
+   wide monitor it stretches edge to edge and .stats-grid's fixed 3-column
+   layout would stretch each stat card absurdly wide. .topbar (the sticky
+   header above .content) is deliberately NOT capped here -- it should stay
+   edge-to-edge like a normal toolbar. 1440px matches common dashboard
+   container conventions (Tailwind's 2xl breakpoint, similar admin
+   templates). See tokens.css's --bp-desktop comment for why 1024px is
+   hardcoded here. */
+@media (min-width: 1024px) {
+  .content{max-width:1440px;margin:0 auto;}
+}
 
 /* ── Stat cards ── */
 /* Onboarding checklist */

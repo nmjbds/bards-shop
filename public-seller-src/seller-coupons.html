@@ -40,6 +40,12 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .tb-btn.primary{background:var(--black);border-color:var(--black);color:#fff;}
 .tb-btn.primary:hover{opacity:.85;}
 .content{padding:22px 24px;flex:1;}
+/* Phase 9 -- sane width cap for very wide monitors, same reasoning as
+   seller.html's fuller comment (.topbar stays edge-to-edge, only .content
+   is capped). */
+@media (min-width: 1024px) {
+  .content{max-width:1440px;margin:0 auto;}
+}
 
 /* Coupon cards */
 .coupon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:20px;}
