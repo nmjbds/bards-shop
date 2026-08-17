@@ -6,7 +6,7 @@ const { validate, MIME_EXT } = require('../middleware/validate');
 const { getSignedGetUrl } = require('../services/r2');
 const { sendEmail, sendTelegramToAdmin } = require('../services/notify');
 const { slugify } = require('../helpers/slugify');
-const { startVerification, checkVerification } = require('../services/twilioVerify');
+const { startVerification, checkVerification } = require('../services/phoneVerify');
 const router = express.Router();
 
 // ── Rate limiting (Phase 4, phone verification) ───────────────────────
@@ -222,8 +222,8 @@ const checklistSchema = z.object(
 const docTypeSchema = z.enum(['id_card', 'business_license', 'tax_document']);
 
 // Deliberately loose (min 4, no format regex) -- same reasoning as
-// authSeller.js's phoneSchema: normalizePhoneKH() (services/twilioVerify.js)
-// is what actually decides what's sent to Twilio, this is just a sanity
+// authSeller.js's phoneSchema: normalizePhoneKH() (services/phoneVerify.js)
+// is what actually decides what's sent to MoceanAPI, this is just a sanity
 // floor against an empty/obviously-too-short value before that. `phone` is
 // just the local number now -- `dial_code` (optional, defaults to +855
 // server-side) is whatever the seller picked in apply.html Step 5's country
@@ -521,11 +521,12 @@ router.post('/me/branding', requireAuth, requireSellerAccount, (req, res) => {
   });
 });
 
-// ── POST /api/shops/verify-phone/start ── Phase 4, apply.html Step 5 —
-// sends a 6-digit SMS code via Twilio Verify to the given number. No shop
-// row required (unlike documents/branding above) -- phone verification can
-// happen before Step 1 even creates one, since Step 5 comes after it in
-// the form but this doesn't touch `shops` at all itself. Self-serve only
+// ── POST /api/shops/verify-phone/start ── Phase 4, apply.html Step 5,
+// migrated Twilio Verify -> MoceanAPI in Phase 10 (2026-08-17) — sends a
+// 6-digit SMS code via MoceanAPI to the given number. No shop row required
+// (unlike documents/branding above) -- phone verification can happen
+// before Step 1 even creates one, since Step 5 comes after it in the form
+// but this doesn't touch `shops` at all itself. Self-serve only
 // (requireSellerAccount, no admin fallback), matching every other route in
 // this section.
 router.post('/verify-phone/start', requireAuth, requireSellerAccount, phoneVerifyStartRateLimit, validate(phoneVerifySchema), async (req, res) => {
@@ -533,41 +534,40 @@ router.post('/verify-phone/start', requireAuth, requireSellerAccount, phoneVerif
     await startVerification(req.body.phone, req.body.dial_code);
     res.json({ ok: true });
   } catch(e) {
-    console.error('[TWILIO VERIFY START]', e.code, e.message);
-    // Twilio-specific codes worth a friendlier message than the generic
-    // fallback -- 60200 is "invalid phone number" (e.g. too short/garbled
-    // after normalizePhoneKH()), 60203 is Twilio's own per-number send-rate
-    // cap (distinct from phoneVerifyStartRateLimit above, which is ours),
-    // 21608 is trial-account-only: a Twilio trial account can only send to
-    // numbers pre-added as a "Verified Caller ID" in the Console (or a
-    // Verify Service test number, which bypasses this entirely). Found
-    // this gap testing against a real number on the project's trial
-    // account -- it was previously falling through to the generic 502.
-    if (e.code === 60200) return res.status(400).json({ error: 'That doesn’t look like a valid phone number.' });
-    if (e.code === 60203) return res.status(429).json({ error: 'Too many codes sent to this number recently. Please try again later.' });
-    if (e.code === 21608) return res.status(400).json({ error: 'This number needs to be verified in the Twilio trial account first (or use a Verify test number).' });
+    console.error('[PHONE VERIFY START]', e.moceanStatus, e.message);
+    // MoceanAPI status codes worth a friendlier message than the generic
+    // fallback (see https://moceanapi.com/docs for the full table) -- 28 is
+    // "invalid destination number" (e.g. too short/garbled after
+    // normalizePhoneKH()), 32/43 are Mocean's own send-rate/flood caps
+    // (distinct from phoneVerifyStartRateLimit above, which is ours).
+    if (e.moceanStatus === 28) return res.status(400).json({ error: 'That doesn’t look like a valid phone number.' });
+    if (e.moceanStatus === 32 || e.moceanStatus === 43) return res.status(429).json({ error: 'Too many codes sent to this number recently. Please try again later.' });
     res.status(502).json({ error: 'Could not send verification code. Please try again.' });
   }
 });
 
-// ── POST /api/shops/verify-phone/check ── Phase 4 — checks the code the
-// seller typed back against Twilio. Returns verified:true only when Twilio
-// itself reports the code as approved (checkVerification() below already
-// enforces that, not just "the request didn't error") -- this is a
-// stateless check, nothing is written to `shops` here; apply.html still
-// saves `phone` the normal way via PATCH /me once Step 5's Continue is
-// clicked, same as before Phase 4.
+// ── POST /api/shops/verify-phone/check ── Phase 4, migrated Twilio Verify
+// -> MoceanAPI in Phase 10 — checks the code the seller typed back against
+// our own phone_otp_codes row (db.js) -- MoceanAPI has no hosted verify
+// service, so this state now lives in our own DB (services/phoneVerify.js)
+// instead of being asked of Twilio like before. Returns verified:true only
+// when checkVerification() reports approved:true (already enforces
+// used/expiry, not just "the row exists") -- this is a stateless check,
+// nothing is written to `shops` here; apply.html still saves `phone` the
+// normal way via PATCH /me once Step 5's Continue is clicked, same as
+// before Phase 4/10.
 router.post('/verify-phone/check', requireAuth, requireSellerAccount, phoneVerifyCheckRateLimit, validate(phoneVerifyCheckSchema), async (req, res) => {
   try {
-    const approved = await checkVerification(req.body.phone, req.body.code, req.body.dial_code);
-    if (!approved) return res.status(400).json({ error: 'Invalid or expired code.' });
+    const result = await checkVerification(req.body.phone, req.body.code, req.body.dial_code);
+    if (!result.approved) {
+      const message = result.reason === 'expired'
+        ? 'This code has expired. Please request a new one.'
+        : 'Invalid or expired code.';
+      return res.status(400).json({ error: message });
+    }
     res.json({ ok: true, verified: true });
   } catch(e) {
-    console.error('[TWILIO VERIFY CHECK]', e.code, e.message);
-    // 20404 = no pending verification found for this number (expired --
-    // Twilio Verify codes expire after 10 minutes by default -- or check
-    // called without ever calling /start for this number).
-    if (e.code === 20404) return res.status(400).json({ error: 'This code has expired. Please request a new one.' });
+    console.error('[PHONE VERIFY CHECK]', e.message);
     res.status(502).json({ error: 'Could not verify code. Please try again.' });
   }
 });

@@ -504,6 +504,23 @@ async function initDb() {
       );
       CREATE UNIQUE INDEX IF NOT EXISTS idx_seller_otp_codes_email_purpose ON seller_otp_codes(email, purpose);
 
+      -- Phase 10 (2026-08-17) — seller phone verification OTP state, kept
+      -- in our own DB now that MoceanAPI replaced Twilio Verify (a hosted
+      -- OTP service that tracked this on Twilio's side; MoceanAPI is a bare
+      -- SMS-send API with no equivalent). Mirrors seller_otp_codes' shape
+      -- exactly, just keyed by phone instead of (email, purpose) -- there's
+      -- only one purpose here (seller phone verification), so no purpose
+      -- column is needed. See services/phoneVerify.js.
+      CREATE TABLE IF NOT EXISTS phone_otp_codes (
+        id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+        phone      TEXT        NOT NULL,
+        code       TEXT        NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        used       BOOLEAN     NOT NULL DEFAULT false,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_phone_otp_codes_phone ON phone_otp_codes(phone);
+
       -- Shops (multi-vendor, Phase 4) — one shop per seller for now
       -- (seller_account_id UNIQUE). status: pending | approved | rejected | suspended
       -- Ownership used to be owner_user_id -> users.id (sellers shared the
@@ -794,6 +811,9 @@ async function initDb() {
     await query(
       `DELETE FROM seller_otp_codes WHERE expires_at < NOW() - INTERVAL '1 day'`
     ).catch(e => console.warn('[DB] seller_otp_codes cleanup skipped:', e.message));
+    await query(
+      `DELETE FROM phone_otp_codes WHERE expires_at < NOW() - INTERVAL '1 day'`
+    ).catch(e => console.warn('[DB] phone_otp_codes cleanup skipped:', e.message));
   } catch(e) {
     console.error('❌ DB init error:', e.message);
     throw e;
