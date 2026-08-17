@@ -51,7 +51,12 @@
 (ประวัติงานแบบละเอียด — Phase 4 ด้านล่างยัง block อยู่จริง ส่วนที่เหลือเสร็จ+push แล้วทั้งหมด เก็บ
 รายละเอียดไว้อ้างอิง)
 
-**Phase 4: Twilio Verify SMS OTP — ยังไม่ push, ยัง block อยู่ (ไม่เกี่ยวกับงานอื่นด้านล่าง)** — โค้ด backend+frontend เสร็จสมบูรณ์ทั้งหมดแล้ว แต่หยุดการทดสอบ end-to-end ไว้ก่อน สาเหตุ:
+**Phase 4: Twilio Verify SMS OTP — ⚠️ ถูกแทนที่แล้วด้วย Phase 10 (MoceanAPI migration, ดูด้านล่าง)
+2026-08-17 — ล้าสมัย เก็บไว้เป็นบริบทประวัติศาสตร์เท่านั้น** — **แก้ไขความเข้าใจผิด**: หัวข้อนี้เคยเขียนว่า
+"ยังไม่ push" แต่เช็คจาก `git log` จริงพบว่าโค้ดชุดนี้ (`services/twilioVerify.js`,
+`routes/shops.js`'s `/verify-phone/*`) **push แล้วจริงตั้งแต่ตอนนั้น** (commit `315bac2`, `81e90f6`,
+`f31170f`) สิ่งที่ยัง block จริงๆ คือแค่การทดสอบ end-to-end กับเบอร์กัมพูชาจริงเท่านั้น ไม่ใช่ตัวโค้ดเอง —
+บริบทเดิมเก็บไว้ด้านล่างเพื่ออธิบายว่าทำไมถึงเปลี่ยนไปใช้ MoceanAPI แทน สาเหตุที่ block ไว้ตอนนั้น:
 - ไม่มีเบอร์กัมพูชาจริงให้ทดสอบ ลองใช้เบอร์ไทย (+66936406304) แทนแต่ Twilio trial account บล็อกการ verify caller ID ของเบอร์ไทยทั้ง SMS และ Call (ประเทศที่ถูกจำกัด)
 - ลองหาทาง Twilio Verify test/magic phone number (+85512345678) แต่ไม่ยืนยันได้ชัดว่า Twilio Verify API รองรับ test credentials แบบเดียวกับ Messages API จริงหรือไม่ (เอกสาร Twilio ไม่ชัดเจนพอ)
 - เคย verify เบอร์ไทยผ่านได้ 1 ครั้ง แต่กลับพบว่า verified caller ID list ว่างเปล่าตอน query ผ่าน API ตรง (สงสัยว่าเป็นคนละ Twilio Project แต่เช็คแล้ว Account SID ตรงกัน — สาเหตุจริงยังไม่ชัดเจน) หลังจากนั้นลบเบอร์แล้วเพิ่มใหม่ไม่ได้อีกเลย (ติด restricted country ซ้ำ)
@@ -563,6 +568,70 @@ step, push แล้ว (commit `5e3f97e`, `11c72fe`, `9bb5e8e`, `31bc3dc`)**
 - **สรุป breaking-change check**: ไม่มีผลกระทบต่อ Phase 1-8 เลย — เป็น pure CSS addition ทั้งหมด (token +
   `@media` block ใหม่), ไม่แตะ JS logic แม้แต่บรรทัดเดียวในทุกไฟล์ (ยืนยันด้วย `git diff`/`node --check`/
   tag-balance script ทุกไฟล์ทุก step)
+
+**Phase 10: Migrate SMS OTP จาก Twilio ไป MoceanAPI — สำรวจ+วางแผน 2026-08-17, **โค้ดเสร็จ รอ verify การส่ง
+จริง** (commit ในเครื่องแล้ว ยังไม่ push) — ⚠️ block อยู่ที่ผลตอบจาก MoceanAPI support (ดูรายละเอียดท้าย
+หัวข้อ) ไม่ใช่ปัญหาโค้ด**
+- **สำรวจก่อนเริ่ม**: Twilio ที่ใช้อยู่ไม่ใช่ SMS API ธรรมดา แต่เป็น **Twilio Verify** — hosted OTP service ที่
+  generate/เก็บ/เช็ค expiry+attempt ของโค้ดเองฝั่ง Twilio ทั้งหมด ไม่มี state ใดๆ ในฝั่งเราเลย — ต่างจาก
+  MoceanAPI ที่เป็นแค่ bare SMS-send API (`POST /rest/2/sms`) ไม่มี hosted verify service เทียบเท่า —
+  แปลว่า migration รอบนี้ไม่ใช่แค่ "สลับ API call" แต่ต้อง**สร้างระบบ OTP ของตัวเองใหม่ทั้งหมด** (generate
+  code, เก็บ+expiry+verify เอง) mirror pattern เดียวกับที่มีอยู่แล้วสำหรับ email OTP
+  (`seller_otp_codes`/`routes/authSeller.js`)
+- **ยืนยัน endpoint/contract เดิมไม่เปลี่ยน**: `POST /api/shops/verify-phone/start` +
+  `POST /api/shops/verify-phone/check` — request/response shape เดิมทุกประการ frontend
+  (`settle/form.html`'s `handleSendCode()`/`handleVerifyCode()`, `public-shared/api.js`'s
+  `ShopsAPI.startPhoneVerification()`/`checkPhoneVerification()`) **ไม่ต้องแก้เลยสักบรรทัด** เพราะไม่เคยรู้จัก
+  Twilio โดยตรงอยู่แล้ว เรียกแค่ endpoint ของเราเอง
+- **Abstraction**: ตัดสินใจไม่สร้าง multi-provider abstraction layer ใหม่ — rewrite
+  `services/twilioVerify.js` ในที่เดิมแล้ว **rename เป็น `services/phoneVerify.js`** (ชื่อเดิมจะทำให้เข้าใจผิด
+  ว่ายังพึ่ง Twilio อยู่) เก็บชื่อ function เดิม (`startVerification`/`checkVerification`/
+  `normalizePhoneKH`) ให้ `routes/shops.js` แก้แค่ `require()` path — ตรงกับ precedent Phase 5
+  (Gmail→Resend swap ของ `sendMail()`) ที่เจ้าของโปรเจกต์ยืนยันแล้วว่าเป็นแนวทางที่ถูกต้องสำหรับ
+  provider-swap แบบนี้
+- **HTTP client**: ใช้ native `fetch`+`URLSearchParams` ตรงๆ (ไม่ใช้ `mocean-sdk` npm package) — เจอว่า
+  SDK's Promise-mode response shape ไม่มี documentation ชัดเจนพอ (เช็คทั้ง README/docs แล้ว) ในขณะที่ raw
+  REST response shape (`{"messages":[{"status":...}]}`) มี doc ชัดเจนและ**ยืนยันตรงกับที่เจอจริงจากการยิง
+  request จริง** — เลือกแบบเดียวกับ pattern ที่มีอยู่แล้วของ `services/abaPayway.js` (fetch +
+  URLSearchParams + parse JSON เอง) แทนการเพิ่ม dependency ใหม่ที่ behavior ไม่ชัดเจน
+- **DB schema ใหม่**: `phone_otp_codes` table (`phone, code, expires_at, used, created_at` + unique index
+  บน `phone`) — mirror shape เดียวกับ `seller_otp_codes` เป๊ะ แค่ key ด้วย `phone` เดี่ยวๆ แทน
+  `(email, purpose)` เพราะมี purpose เดียว — เก็บ code เป็น plaintext ตรงกับ convention เดิมของ
+  `seller_otp_codes` (ไม่ hash ต่างจาก `refresh_tokens`) — **expiry 15 นาที** (ตามที่เจ้าของโปรเจกต์ยืนยัน
+  ตรงกับ convention เดิมของ email OTP ไม่ใช่ 10 นาทีแบบ Twilio Verify เดิม) — เพิ่ม cleanup query คู่กับ
+  `seller_otp_codes` ใน `initDb()`
+- **Phone normalize เปลี่ยน format**: MoceanAPI ต้องการเบอร์แบบไม่มี `+` นำหน้า (เช่น `85512345678`) ต่างจาก
+  Twilio Verify ที่ต้องการ E.164 (`+855...`) — แก้ `normalizePhoneKH()` ให้ output ไม่มี `+` แล้ว
+- **Error code mapping**: Twilio เดิมมี custom message สำหรับ 60200 (invalid number)/60203 (rate cap)/21608
+  (trial restriction)/20404 (expired) — MoceanAPI แมปเป็น status 28 (invalid destination)/32+43
+  (throttled/flooding) ผ่าน `e.moceanStatus` — ส่วน "expired vs invalid code" (เดิมมาจาก Twilio โยน
+  exception 20404 แยกจาก "ผิด") ตอนนี้ `checkVerification()` คืน `{approved, reason:'expired'|'invalid'}`
+  แทน ให้ route แสดงข้อความแยกกันได้เหมือนเดิมทุกประการ ไม่ต้อง throw/catch
+- **Dependency**: ลบ `twilio` npm package ออกจาก `package.json`/`package-lock.json` แล้ว (ไม่มีอะไร import
+  เหลืออีกต่อไป) — `TWILIO_*` env vars (`.env`) เก็บไว้เฉยๆ ไม่ลบ (ไม่มีความเสี่ยง ไม่มีอะไรอ่านแล้ว) ส่วนบน
+  Render production ยังไม่ได้ลบ (เป็น manual action แยก ทำได้ทีหลัง)
+- **ทดสอบก่อนบล็อก**:
+  - `normalizePhoneKH()`: unit test 6 เคส (local/มี 0 นำหน้า/E.164 เต็ม/มี dial code แต่ไม่มี +, ทั้ง KH/TH)
+    ผ่านหมด
+  - `checkVerification()`: seed row ตรงเข้า DB ทดสอบ 4 เคส (โค้ดถูก+ยังไม่หมดอายุ → approved, โค้ดเดิมซ้ำ
+    (used แล้ว) → invalid, โค้ดผิด → invalid, โค้ดหมดอายุ → expired) ผ่านหมด
+  - `initDb()`: รันจริง ยืนยัน schema ของ `phone_otp_codes` ตรงตามที่ออกแบบ
+  - **ทดสอบส่งจริงกับเบอร์ไทยที่ whitelist ไว้แล้ว (66936406304, ตามคำแนะนำเจ้าของโปรเจกต์ เพราะยังไม่มีเบอร์
+    กัมพูชาจริง)**: `startVerification()` เรียกจริงผ่าน MoceanAPI สำเร็จ (`status:0`), โค้ดถูกเก็บใน DB ถูกต้อง
+    (6 หลัก, expiry 15 นาทีตรงตามที่ตั้ง), `checkVerification()` ทดสอบ round-trip ครบ 3 เคสกับโค้ดจริงที่ส่ง
+    ออกไป (โค้ดผิด → invalid, โค้ดถูก → approved, ส่งโค้ดเดิมซ้ำ → invalid/replay-rejected) — logic ฝั่งเรา
+    ถูกต้อง 100%
+- **⚠️ พบปัญหาจริงระหว่างทดสอบ — SMS ไม่เข้าเครื่องจริงทั้งที่ API ตอบ success**: MoceanAPI ตอบ `status:0`
+  (accepted for delivery) และเจ้าของโปรเจกต์เช็ค Message Transaction Report บน Mocean dashboard เจอ
+  **Status: Success, error code 000, ส่งผ่าน AIS (เครือข่ายไทย) จริง** — แต่ SMS ไม่เข้าเครื่องจริง — สงสัยว่า
+  sender ID `BARDS` อาจต้อง pre-register กับ carrier ไทยก่อนถึงจะส่งผ่านจริงได้ (ปัญหาคลาสสิกของ
+  alphanumeric sender ID ในหลายประเทศที่มีกฎ regulator เข้มงวด — aggregator ตอบ success ได้เพราะรับ
+  request เข้าคิวสำเร็จ ไม่ได้แปลว่า carrier ปลายทางส่งถึงจริง) — **เจ้าของโปรเจกต์ส่งอีเมลถาม MoceanAPI
+  support แล้ว รอคำตอบอยู่** ก่อนไป diagnose ต่อ (ตัวเลือกอื่นที่คุยกันไว้ถ้า support ไม่ตอบ/คำตอบไม่ช่วย:
+  ลองสลับ sender ID เป็นแบบเลข/default แทน)
+- **สถานะ**: โค้ดทั้งหมด (schema, service, route) เขียนเสร็จและ commit ไว้ในเครื่องแล้ว แต่**ยังไม่ push**
+  จนกว่าจะยืนยันได้ว่า sender ID ใช้งานได้จริงกับเครื่องจริง — ไม่ใช่ปัญหาที่แก้ด้วยโค้ดได้ (ต้องรอ
+  MoceanAPI support หรือปรับ sender ID ทดสอบใหม่) เก็บ Phase 10 ไว้ที่สถานะ "โค้ดเสร็จ รอ verify การส่งจริง"
 
 ## ยังไม่เริ่ม
 - **Phase 11**: สร้างหน้า `/homepage` เป็น landing page ก่อนเข้า dashboard จริง (`/seller`) สำหรับ seller
