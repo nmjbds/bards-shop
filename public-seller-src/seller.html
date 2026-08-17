@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard — Bards Seller</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Stage 6a: tokens.css only (not components.css) -- this page already has
+     its own .btn/.card/.badge classes in heavy use, and components.css
+     defines bare classes with those same names that would collide. tokens.css
+     is safe: nothing but :root custom properties, no class selectors, and
+     every token name it defines matches this page's own local :root values
+     exactly (verified before starting). -->
+<link rel="stylesheet" href="tokens.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root{
@@ -133,10 +140,14 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .legend-label{flex:1;color:var(--gray-600);}
 .legend-val{font-family:'DM Mono',monospace;font-weight:600;font-size:11px;}
 
-.empty{padding:40px 20px;text-align:center;color:var(--gray-400);}
-.empty-icon{font-size:28px;margin-bottom:8px;}
-.empty-title{font-size:13px;font-weight:600;color:var(--black);}
-.empty-sub{font-size:11px;margin-top:4px;}
+/* Stage 6a -- copied verbatim from components.css (not linked wholesale, see
+   the tokens.css comment above) since these are the only two rule-blocks
+   this page actually uses. Replaces the old emoji-in-plain-text .empty
+   pattern below. */
+.bc-icon-circle{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:var(--icon-circle-md);height:var(--icon-circle-md);border-radius:50%;background:var(--gray-100);border:1.5px solid var(--gray-200);color:var(--gray-400);}
+.bc-empty-state{text-align:center;padding:40px 20px;display:flex;flex-direction:column;align-items:center;}
+.bc-empty-state .bc-icon-circle{margin-bottom:14px;}
+.bc-empty-state-title{font-size:13px;font-weight:700;color:var(--black);margin-bottom:4px;}
 
 .toast{position:fixed;bottom:20px;right:20px;background:var(--black);color:#fff;padding:11px 16px;border-radius:10px;font-size:12.5px;font-weight:500;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;transform:translateY(4px);pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25);}
 .toast.on{opacity:1;transform:translateY(0);}
@@ -280,14 +291,14 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
           <div class="panel-title">Recent Orders</div>
           <a href="/seller-orders" class="panel-link">View all →</a>
         </div>
-        <div id="recentOrders"><div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Loading…</div></div></div>
+        <div id="recentOrders"><div class="bc-empty-state"><div class="bc-icon-circle"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div><div class="bc-empty-state-title">Loading…</div></div></div>
       </div>
       <div class="panel">
         <div class="panel-head">
           <div class="panel-title">Top Products</div>
           <a href="/seller-analytics" class="panel-link">Details →</a>
         </div>
-        <div id="topProducts"><div class="empty"><div class="empty-icon">📦</div><div class="empty-title">Loading…</div></div></div>
+        <div id="topProducts"><div class="bc-empty-state"><div class="bc-icon-circle"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div><div class="bc-empty-state-title">Loading…</div></div></div>
       </div>
     </div>
 
@@ -479,7 +490,7 @@ function buildTopProducts(data) {
         </div>
         <span class="prod-amt">$${p.revenue.toFixed(0)}</span>
       </div>`).join('')
-    : '<div class="empty"><div class="empty-icon">📊</div><div class="empty-title">No data yet</div></div>';
+    : '<div class="bc-empty-state"><div class="bc-icon-circle"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div><div class="bc-empty-state-title">No data yet</div></div>';
 }
 
 // ── Recent Orders ──
@@ -488,7 +499,7 @@ async function loadRecentOrders() {
     const d = await apiFetch('/seller/orders?limit=6', { auth: true });
     const orders = d.orders || [];
     const el = document.getElementById('recentOrders');
-    if (!orders.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">No orders yet</div></div>'; return; }
+    if (!orders.length) { el.innerHTML = '<div class="bc-empty-state"><div class="bc-icon-circle"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div><div class="bc-empty-state-title">No orders yet</div></div>'; return; }
     el.innerHTML = orders.map(o => `
       <div class="order-row">
         <span class="ord-id">${o.id.slice(0,12)}…</span>
@@ -496,7 +507,7 @@ async function loadRecentOrders() {
         <span class="ord-amt">$${Number(o.total).toFixed(2)}</span>
         <span class="badge b-${o.status}">${fmtStatus(o.status)}</span>
       </div>`).join('');
-  } catch(e) { document.getElementById('recentOrders').innerHTML = '<div class="empty"><div class="empty-title">Error loading</div></div>'; }
+  } catch(e) { document.getElementById('recentOrders').innerHTML = '<div class="bc-empty-state"><div class="bc-empty-state-title">Error loading</div></div>'; }
 }
 
 function fmtStatus(s) {
