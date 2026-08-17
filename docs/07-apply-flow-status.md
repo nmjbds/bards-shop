@@ -333,8 +333,8 @@ logic ทำงานถูกต้องจริงเวลามีแค�
   HTML ที่ served ได้ครบ 4 ตัวตรงกับ 4 การ์ด — สร้าง before/after mockup จาก CSS จริงเป็น Artifact ให้ดู
   เทียบเพราะไม่มี browser ในนี้เหมือนเดิม
 
-**Stage 3/6 — `signin.html` + `signup.html` icons (2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, ยังไม่
-push (commit `8521e67`) — รอเจ้าของโปรเจกต์เช็คก่อน push**
+**Stage 3/6 — `signin.html` + `signup.html` icons (2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, push แล้ว
+(commit `8521e67`, `276cddb`)**
 - `signin.html`: เพิ่ม leading icon ในช่อง input ทุกช่องที่เป็น text field (mail icon: Email/Phone +
   OTP-mode Email Address, lock icon: Password) ผ่าน class ใหม่ `.f-input-icon-wrap` — ช่อง Password ใช้
   ร่วมกับ `.pw-wrap` เดิม (eye-toggle) ได้โดยไม่ชนกันเพราะเป็นคนละฝั่ง (icon ซ้าย, ปุ่ม toggle ขวา) — ใช้
@@ -348,6 +348,29 @@ push (commit `8521e67`) — รอเจ้าของโปรเจกต์�
   `success-circle` แบบ standalone) เหลือ, build+serve จริงทั้งสองหน้ายัง 200, นับ icon ใน HTML ที่ served
   ตรงตามที่ออกแบบ (3 field icon บน signin, 3 accent + 1 success บน signup) — สร้าง before/after mockup
   เป็น Artifact ให้ดูเทียบเหมือนเดิม
+
+**Stage 4/6 — `settle/verification.html` + `settle/verification-result.html` illustrations
+(2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, ยังไม่ push (commit `ec48948`) — รอเจ้าของโปรเจกต์เช็คก่อน
+push**
+- จุดที่ประเมินไว้ตอน exploration ว่าคุ้มค่าที่สุด — แทน `.done-icon` วงกลมเปล่าๆ เดิมด้วย illustration
+  วาดเอง (inline SVG) ที่สื่ออารมณ์ของ moment จริงๆ ไม่ใช่แค่เปลี่ยน icon
+- `verification.html`'s `reviewingState` (สถานะรอตรวจ): เปลี่ยนจาก checkmark สีเขียว (ซึ่งความหมายจริงๆ
+  ขัดกับสถานะ "ยังรอ" เพราะดูเหมือน "เสร็จแล้ว") เป็น illustration 2 องค์ประกอบ — การ์ดเอกสาร (เส้น/รายละเอียด
+  จาก `--illo-line-color`/`--illo-detail-color`) + badge นาฬิกาเล็กทับมุมล่างขวา สีส้ม `--illo-accent-color`
+  (โทนเดียวกับ Stage 3's "กำลังดำเนินการ") — สื่อว่า "เอกสารยังอยู่ในมือใครสักคนที่กำลังตรวจอยู่"
+- `verification-result.html`'s `rejectedState`: ขยายจาก icon วงกลม 60px/เส้นบาง 26px เดิม เป็น illustration
+  84px วงแหวน halo (`#FECACA`) + วงกลมทึบสีแดง (`var(--red)`) + X หนาสีขาวตรงกลาง — ยังเป็น motif เดียว
+  (วงกลม+X) ตามที่สั่งไว้ ไม่ได้ขยายเป็น scene ใหม่เหมือนหน้ารอ (ตามความเสี่ยง/scope ที่ตกลงกันไว้) แค่
+  ใหญ่ขึ้น+ชัดเจนขึ้นจริง
+- ทั้งสอง illustration ใช้ canvas ขนาดเดียวกัน (84×84) ให้สองหน้ารู้สึกเป็นชุดเดียวกัน แต่ composition ต่างกัน
+  ตามน้ำหนักอารมณ์ที่ต่างกัน (รอ vs. ปฏิเสธแล้ว)
+- **ไม่แตะ** icon ของ `errorState`/`noShopState` ทั้งสองหน้า (นอก scope ของ Stage 4 นี้) — เนื้อหา/ข้อความ/
+  routing logic ไม่เปลี่ยนเลย แก้แค่ CSS/markup
+- **ทดสอบ**: script เช็ค div/svg tag-balance ผ่านทั้ง 2 ไฟล์ (18/18 div, 2/2 svg ต่อไฟล์), build
+  `public-seller` ใหม่, serve จริงที่ localhost:3000 ทั้ง `/settle/verification` และ
+  `/settle/verification-result` ยัง 200, grep ยืนยัน icon เก่า (checkmark polyline / X เส้นบาง) หายไปจาก
+  state เป้าหมายแล้ว แต่ `errorState`'s icon (`done-icon done-icon--error`) ยังอยู่ครบทั้งสองไฟล์ (ยืนยันไม่
+  กระทบ) — สร้าง before/after mockup จาก SVG จริงเป็น Artifact ให้ดูเทียบเหมือนเดิม
 
 ## ยังไม่เริ่ม
 - **Phase 11**: สร้างหน้า `/homepage` เป็น landing page ก่อนเข้า dashboard จริง (`/seller`) สำหรับ seller
