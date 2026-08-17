@@ -434,7 +434,7 @@ seller-coupons.html, seller-analytics.html) — งานใหญ่สุด �
   nav (12 `sb-item`) ยังอยู่ครบไม่กระทบ — สร้าง before/after เป็น Artifact ให้ดูเทียบ
 
 **Stage 6b — `seller-products.html` + `seller-coupons.html` empty-state icons (2026-08-17) — เขียนโค้ด
-เสร็จ, ทดสอบผ่านครบ, ยังไม่ push (commit `d9622ab`) — รอเจ้าของโปรเจกต์เช็คก่อน push**
+เสร็จ, ทดสอบผ่านครบ, push แล้ว (commit `d9622ab`, `1d2e6fc`)**
 - แทน emoji 1 จุดต่อไฟล์ (📦 บน products grid "No products yet", 🏷️ บน coupons grid "No coupons yet")
   ด้วย `.bc-empty-state`/`.bc-icon-circle` แบบเดียวกับ 6a — icon ยกมาจาก sidebar nav ของแต่ละไฟล์เองตรงๆ
   (shopping-bag จากลิงก์ "Products", tag จากลิงก์ "Coupons")
@@ -454,6 +454,37 @@ seller-coupons.html, seller-analytics.html) — งานใหญ่สุด �
   (`/seller-products`, `/seller-coupons` ยัง 200), grep บน HTML ที่ served ยืนยัน emoji หายหมด, ยืนยัน
   `toast('❌...')` ทั้งสองไฟล์ (4 จุด products, 3 จุด coupons) ยังอยู่ครบไม่ถูกแตะ (นอก scope ตามแผน), sidebar
   nav (12 `sb-item` ต่อไฟล์) ไม่กระทบ — สร้าง before/after เป็น Artifact ให้ดูเทียบ
+
+**Stage 6c — `seller-orders.html` + `seller-analytics.html` icons (2026-08-17) — sub-stage สุดท้ายของ
+Stage 6, เขียนโค้ดเสร็จ, ทดสอบละเอียดเป็นพิเศษครบ, ยังไม่ push (commit `28fb83e`) — รอเจ้าของโปรเจกต์เช็ค
+ก่อน push — **ปิด Stage 6 และ Phase 8 (UI Polish) ทั้งแผนแล้ว รอ push สุดท้าย****
+- `seller-orders.html`:
+  - แทน empty state (📋 "No orders found") ด้วย `.bc-empty-state`/`.bc-icon-circle` แบบเดียวกับ 6a/6b —
+    icon clipboard ยกจาก sidebar nav ลิงก์ "Orders" ของไฟล์นี้เอง
+  - แทน 4 unicode glyph marker (✕ cancelled/failed, ✓ delivered, ⏱ expired) ใน
+    `renderStatusFlow()`'s JS template literal ด้วย inline SVG เล็ก (X/checkmark/clock-hands, ใช้ shape
+    เดียวกับที่ตั้งไว้แล้วใน Stage 4's verification pages) — **ตั้งใจไม่ migrate ไปใช้ `.bc-icon-circle`**
+    เพราะ marker พวกนี้เป็น circle ขนาดเฉพาะ 22px พร้อมสีเฉพาะแต่ละสถานะที่ไม่ตรงกับ 4 tone modifier ที่
+    fix ไว้ — คง background/color/ขนาดเดิมทั้งหมด แก้แค่ glyph ข้างในเท่านั้น — ส่วน in-progress rail
+    (pending/paid/processing/shipped, ใช้จุดสีไม่ใช่ glyph) ไม่ถูกแตะเลย
+  - **ทดสอบละเอียดเป็นพิเศษตามที่สั่ง** เพราะแก้อยู่ใน `<script>` block: `node --check` บน inline script
+    ที่ extract ออกมา (syntax valid), รัน `renderStatusFlow()` จริงผ่าน `vm` ครบทั้ง 8 สถานะ (ไม่ crash, 4
+    สถานะเป้าหมายมี `<svg>` ออกมาจริง ไม่มี glyph เก่าเหลือเลย, in-progress rail ไม่กระทบ), `git diff`
+    ยืนยันมีแค่ 9 บรรทัดที่เปลี่ยนจริงตรงกับที่ตั้งใจเป๊ะ, `toast('✓...')`/`toast('❌...')` ยืนยันไม่ถูกแตะ
+    (นอก scope ตามแผน), div/svg tag-balance ผ่าน, build+serve จริงที่ localhost:3000 (`/seller-orders` ยัง
+    200)
+- `seller-analytics.html`:
+  - เพิ่ม empty state "No sales data yet" **ใหม่ทั้งหมด** (ไม่ใช่ migration — เดิมไม่มี icon/emoji อะไร
+    เลยที่จุดนี้) ให้สอดคล้องกับอีก 4 หน้า — icon shopping-bag (identity เดียวกับ panel "Top Products" ของ
+    seller.html และ sidebar nav ลิงก์ "Products" ของไฟล์นี้เอง) — title ใช้สไตล์ bold-black ตรงกับอีก 4
+    หน้า แทนที่จะคงสไตล์ gray เบาๆ เดิม เพราะเป้าหมายคือความสอดคล้องกับหน้าอื่นตามที่สั่ง
+  - **ทดสอบ**: `node --check` ผ่าน, รัน `buildTopProds()` จริงผ่าน `vm` ทั้ง 2 กรณี (ว่าง/มีข้อมูล) — กรณีว่าง
+    ได้ markup ใหม่ถูกต้อง, กรณีมีข้อมูลไม่กระทบเลย, div/svg tag-balance ผ่าน, build+serve จริง
+    (`/seller-analytics` ยัง 200)
+- Prerequisite เดียวกับ 6a/6b ทั้งสองไฟล์: link `tokens.css` อย่างเดียว (ยืนยัน token ตรงกับ global ทั้งสอง
+  ไฟล์) + copy `.bc-icon-circle`/`.bc-empty-state` เข้า local `<style>` — ยืนยัน `components.css` ยังชนกับ
+  `.btn`/`.card`/`.badge` เดิมทั้งสองไฟล์เหมือนที่ประเมินไว้ตอน survey — sidebar nav ยืนยันไม่กระทบทั้งสอง
+  ไฟล์
 
 ## ยังไม่เริ่ม
 - **Phase 11**: สร้างหน้า `/homepage` เป็น landing page ก่อนเข้า dashboard จริง (`/seller`) สำหรับ seller
