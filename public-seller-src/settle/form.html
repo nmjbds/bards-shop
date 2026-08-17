@@ -39,6 +39,12 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .step-dot .lbl{font-size:8.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--gray-400);}
 .step-dot.active .lbl{color:var(--black);font-weight:700;}
 
+/* Stage 5 -- one icon-circle per numbered step, lifted from signup.html's
+   exact pattern (Stage 3): shared .bc-icon-circle (components.css) + the
+   same page-local centering rule signup.html uses, so this form reads as
+   part of the same step-flow family. CSS/markup only -- no JS below this
+   line touches step logic. */
+.step-panel .bc-icon-circle{margin:0 auto 14px;}
 .card-title{font-family:'Bebas Neue';font-size:22px;letter-spacing:2.5px;margin-bottom:4px;}
 .card-sub{font-size:12px;color:var(--gray-400);margin-bottom:22px;}
 
@@ -207,6 +213,9 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
          null until a Shop Settings page exists to edit them (see Phase 0's
          investigation notes and seller.html's checklist, commit 5). -->
     <div class="step-panel active" id="panel1">
+      <div class="bc-icon-circle bc-icon-circle--accent">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      </div>
       <div class="card-title">Name Your Store</div>
       <div class="card-sub">This is what customers will see. You can change it later.</div>
 
@@ -229,6 +238,9 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 
     <!-- ══════ Step 2 — Category ══════ -->
     <div class="step-panel" id="panel2">
+      <div class="bc-icon-circle bc-icon-circle--accent">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>
+      </div>
       <div class="card-title">Product Category</div>
       <div class="card-sub">What kind of products will you mainly sell?</div>
 
@@ -245,6 +257,9 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 
     <!-- ══════ Step 3 — Business type ══════ -->
     <div class="step-panel" id="panel3">
+      <div class="bc-icon-circle bc-icon-circle--accent">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><rect x="8" y="6" width="3" height="3"/><rect x="13" y="6" width="3" height="3"/><rect x="8" y="12" width="3" height="3"/><rect x="13" y="12" width="3" height="3"/></svg>
+      </div>
       <div class="card-title">Business Type</div>
       <div class="card-sub">This determines which documents we'll ask for next.</div>
 
@@ -282,6 +297,9 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
          undefined)` pattern leaves them untouched rather than blanking
          them out. -->
     <div class="step-panel" id="panel4">
+      <div class="bc-icon-circle bc-icon-circle--accent">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6.17 15a3 3 0 0 1 5.66 0"/><path d="M16 10h2"/><path d="M16 14h2"/></svg>
+      </div>
       <div class="card-title">Identity Documents</div>
       <div class="card-sub">Required for verification.</div>
 
@@ -331,6 +349,9 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 
     <!-- ══════ Step 5 — Contact ══════ -->
     <div class="step-panel" id="panel5">
+      <div class="bc-icon-circle bc-icon-circle--accent">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></svg>
+      </div>
       <div class="card-title">Contact Info</div>
       <div class="card-sub">How customers and Bards can reach you.</div>
 
