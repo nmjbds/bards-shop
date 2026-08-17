@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Orders — Bards Seller</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Stage 6c: tokens.css only (not components.css) -- same reasoning as
+     Stage 6a/6b: this page's own .btn/.btn-ghost/.badge classes would
+     collide with components.css's bare classes of the same names.
+     tokens.css is safe (:root variables only, no class selectors) and every
+     token it defines matches this page's own local :root values exactly. -->
+<link rel="stylesheet" href="tokens.css">
 <style>
 :root{--black:#0A0A0A;--white:#FAFAFA;--gray-50:#F9F9F7;--gray-100:#F2F2F0;--gray-200:#E4E4E2;--gray-300:#C8C8C6;--gray-400:#8A8A88;--gray-600:#4A4A48;--orange:#FF4F00;--red:#C8001A;--green:#16A34A;--blue:#2563EB;--yellow:#D97706;--sidebar:220px;--radius:14px;--radius-sm:10px;}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
@@ -142,10 +148,14 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .pay-badge.review{background:#DBEAFE;color:#1D4ED8;}
 .pay-badge.paid{background:#DCFCE7;color:#15803D;}
 
-.empty{padding:56px 20px;text-align:center;color:var(--gray-400);}
-.empty-icon{font-size:32px;margin-bottom:10px;}
-.empty-title{font-size:14px;font-weight:600;color:var(--black);}
-.empty-sub{font-size:11.5px;margin-top:5px;line-height:1.6;}
+/* Stage 6c -- copied verbatim from components.css (not linked wholesale,
+   see the tokens.css comment above). Replaces the old emoji-in-plain-text
+   .empty pattern below. */
+.bc-icon-circle{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:var(--icon-circle-md);height:var(--icon-circle-md);border-radius:50%;background:var(--gray-100);border:1.5px solid var(--gray-200);color:var(--gray-400);}
+.bc-empty-state{text-align:center;padding:56px 20px;display:flex;flex-direction:column;align-items:center;}
+.bc-empty-state .bc-icon-circle{margin-bottom:14px;}
+.bc-empty-state-title{font-size:14px;font-weight:700;color:var(--black);margin-bottom:4px;}
+.bc-empty-state-sub{font-size:11.5px;color:var(--gray-400);line-height:1.6;max-width:280px;}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--black);color:#fff;padding:11px 16px;border-radius:10px;font-size:12.5px;font-weight:500;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;transform:translateY(4px);pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25);}
 .toast.on{opacity:1;transform:translateY(0);}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
@@ -352,7 +362,7 @@ function renderTable() {
 
   const el = document.getElementById('ordersList');
   if(!slice.length) {
-    el.innerHTML=`<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">No orders found</div><div class="empty-sub">Try adjusting the filter or search.</div></div>`;
+    el.innerHTML=`<div class="bc-empty-state"><div class="bc-icon-circle"><svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div><div class="bc-empty-state-title">No orders found</div><div class="bc-empty-state-sub">Try adjusting the filter or search.</div></div>`;
   } else {
     el.innerHTML = slice.map(o=>`
       <div class="order-row" onclick="openOrder('${o.id}')">
@@ -420,28 +430,28 @@ function renderStatusFlow(status) {
   if (status === 'cancelled') return `
     <div class="seller-progress-wrap">
       <div style="display:flex;align-items:center;gap:8px;padding:6px 0;">
-        <span style="width:22px;height:22px;border-radius:50%;background:#FEE2E2;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#B91C1C;">✕</span>
+        <span style="width:22px;height:22px;border-radius:50%;background:#FEE2E2;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#B91C1C;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
         <span style="font-size:12px;font-weight:700;color:#B91C1C;">Order Cancelled</span>
       </div>
     </div>`;
   if (status === 'delivered') return `
     <div class="seller-progress-wrap">
       <div style="display:flex;align-items:center;gap:8px;padding:6px 0;">
-        <span style="width:22px;height:22px;border-radius:50%;background:#DCFCE7;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#15803D;">✓</span>
+        <span style="width:22px;height:22px;border-radius:50%;background:#DCFCE7;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#15803D;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
         <span style="font-size:12px;font-weight:700;color:#15803D;">Delivered Successfully</span>
       </div>
     </div>`;
   if (status === 'expired') return `
     <div class="seller-progress-wrap">
       <div style="display:flex;align-items:center;gap:8px;padding:6px 0;">
-        <span style="width:22px;height:22px;border-radius:50%;background:var(--gray-100);display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:var(--gray-400);">⏱</span>
+        <span style="width:22px;height:22px;border-radius:50%;background:var(--gray-100);display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:var(--gray-400);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
         <span style="font-size:12px;font-weight:700;color:var(--gray-400);">Payment Expired</span>
       </div>
     </div>`;
   if (status === 'failed') return `
     <div class="seller-progress-wrap">
       <div style="display:flex;align-items:center;gap:8px;padding:6px 0;">
-        <span style="width:22px;height:22px;border-radius:50%;background:#FEE2E2;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#B91C1C;">✕</span>
+        <span style="width:22px;height:22px;border-radius:50%;background:#FEE2E2;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:#B91C1C;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
         <span style="font-size:12px;font-weight:700;color:#B91C1C;">Payment Failed</span>
       </div>
     </div>`;
