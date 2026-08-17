@@ -174,6 +174,26 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .fu{animation:fadeUp .32s ease both;}
 .step-panel{animation:fadeUp .3s ease both;}
+
+/* Phase 9 -- desktop single-scroll. Only #panel1-#panel5 carry the new
+   .wizard-step marker (added deliberately alongside .step-panel rather
+   than reusing that class directly) -- #panelSuspended does NOT get it.
+   showOnly()/goStep() (unchanged below) still drive #panelSuspended
+   through the exact same .step-panel.active mechanism as the 5 real
+   steps, and a suspended shop must never see the form fields at the same
+   time as the suspended message -- scoping to .wizard-step instead of the
+   bare .step-panel class is what keeps that guarantee true even with this
+   override in place. goStep()/continueFromStepN()/validation/deferred-save/
+   review popup/phone-verify/dial-code logic is completely unchanged; the
+   per-step Continue/Back buttons still work exactly as before (still call
+   the same validation), they just don't need to be clicked to reveal the
+   next section anymore since everything is already visible. See
+   tokens.css's --bp-desktop comment for why 1024px is hardcoded here. */
+@media (min-width: 1024px) {
+  .wizard-step{display:block !important;}
+  #stepsNav{display:none;}
+  .wizard-step:not(:last-of-type){margin-bottom:28px;padding-bottom:28px;border-bottom:1.5px solid var(--gray-200);}
+}
 </style>
 </head>
 <body>
@@ -212,7 +232,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
          aren't collected anywhere in this form anymore either; they stay
          null until a Shop Settings page exists to edit them (see Phase 0's
          investigation notes and seller.html's checklist, commit 5). -->
-    <div class="step-panel active" id="panel1">
+    <div class="step-panel active wizard-step" id="panel1">
       <div class="bc-icon-circle bc-icon-circle--accent">
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
       </div>
@@ -237,7 +257,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
     </div>
 
     <!-- ══════ Step 2 — Category ══════ -->
-    <div class="step-panel" id="panel2">
+    <div class="step-panel wizard-step" id="panel2">
       <div class="bc-icon-circle bc-icon-circle--accent">
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>
       </div>
@@ -256,7 +276,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
     </div>
 
     <!-- ══════ Step 3 — Business type ══════ -->
-    <div class="step-panel" id="panel3">
+    <div class="step-panel wizard-step" id="panel3">
       <div class="bc-icon-circle bc-icon-circle--accent">
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><rect x="8" y="6" width="3" height="3"/><rect x="13" y="6" width="3" height="3"/><rect x="8" y="12" width="3" height="3"/><rect x="13" y="12" width="3" height="3"/></svg>
       </div>
@@ -296,7 +316,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
          the business path, so the existing PATCH /me `if (b.field !==
          undefined)` pattern leaves them untouched rather than blanking
          them out. -->
-    <div class="step-panel" id="panel4">
+    <div class="step-panel wizard-step" id="panel4">
       <div class="bc-icon-circle bc-icon-circle--accent">
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6.17 15a3 3 0 0 1 5.66 0"/><path d="M16 10h2"/><path d="M16 14h2"/></svg>
       </div>
@@ -348,7 +368,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
     </div>
 
     <!-- ══════ Step 5 — Contact ══════ -->
-    <div class="step-panel" id="panel5">
+    <div class="step-panel wizard-step" id="panel5">
       <div class="bc-icon-circle bc-icon-circle--accent">
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/></svg>
       </div>
