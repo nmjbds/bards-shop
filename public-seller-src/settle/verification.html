@@ -42,6 +42,20 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 
 .fu{animation:fadeUp .32s ease both;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+/* Phase 9 -- this page has no pagination to remove (single status card,
+   already "single-scroll"), so the desktop treatment is a light pass: the
+   card sits pinned near the top on mobile (thumb-reachable, works with
+   on-screen keyboards elsewhere in the flow), but on a tall desktop
+   viewport that just leaves a large dead zone below it -- center it in the
+   viewport instead, with a little more breathing room. See tokens.css's
+   --bp-desktop comment for why 1024px is hardcoded here instead of using
+   the token directly. */
+@media (min-width: 1024px) {
+  body{justify-content:center;padding-top:40px;padding-bottom:40px;}
+  .wrap{max-width:480px;}
+  .done-title{font-size:22px;}
+}
 </style>
 </head>
 <body>

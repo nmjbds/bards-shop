@@ -75,6 +75,16 @@
   --icon-circle-lg: 64px;
   --icon-circle-xl: 96px; /* empty-state / illustration-scale hero icon */
 
+  /* Breakpoints (Phase 9, 2026-08-17) — reference values only. CSS custom
+     properties cannot be substituted into an @media condition (no native
+     "custom media queries" in vanilla CSS), so every @media rule that uses
+     this value has to hardcode the literal "1024px" — this token exists so
+     there's one documented, single source of truth for what that literal
+     number means, and every page's @media block stays in sync with it by
+     convention. If this value ever changes, grep for "1024px" across
+     public-seller-src/ and update every occurrence together. */
+  --bp-desktop: 1024px; /* switch point: mobile/step-wizard pattern -> single-scroll desktop pattern */
+
   /* Illustration style guide (Phase 8) — every hand-drawn inline SVG
      illustration in this project (empty states, verification-page hero
      icons) follows this same recipe: monochrome line art on a soft
