@@ -507,6 +507,63 @@ Stage 6, เขียนโค้ดเสร็จ, ทดสอบละเอ
   `.btn`/`.card`/`.badge` เดิมทั้งสองไฟล์เหมือนที่ประเมินไว้ตอน survey — sidebar nav ยืนยันไม่กระทบทั้งสอง
   ไฟล์
 
+**Phase 9: Responsive Desktop Single-Scroll Layout — สำรวจ+วางแผน 2026-08-17, เขียนโค้ด+ทดสอบครบทั้ง 4
+step, ยังไม่ push (commit `5e3f97e`, `11c72fe`, `9bb5e8e`) — รอเจ้าของโปรเจกต์เช็คก่อน push**
+- **สำรวจก่อนเริ่ม**: ทุกหน้า seller flow (auth, onboarding wizard, verification, dashboard 5 หน้า) มี
+  `@media` query แค่ไฟล์เดียวคือ `seller-landing.html` (860px/520px, ทิศทางตรงข้าม — desktop-first แล้ว
+  narrow ลง) ที่เหลือ**ไม่มี breakpoint เลยสักจุด** — `tokens.css`/`components.css` ก็ไม่มี desktop token
+  ใดๆ อยู่แล้วเช่นกัน (ยืนยันด้วย grep ว่างเปล่า)
+- **พบข้อเท็จจริงสำคัญที่กำหนดขอบเขตทั้งหมด**: เช็ควิธี toggle step/panel ของแต่ละไฟล์ก่อนตัดสินใจ —
+  `settle/form.html` toggle ด้วย class (`.step-panel.active`) ล้วนๆ ไม่มี server round-trip กั้นระหว่าง step
+  (`continueFromStepN()` เป็น sync ทั้งหมด) → เหมาะ convert เป็น single-scroll จริง ส่วน `signup.html`
+  toggle ด้วย inline `style="display:none"` โดยตรงและ step ถูก**กั้นด้วย OTP ที่ verify กับ server จริง**
+  (ข้ามไปหน้า "ตั้งรหัสผ่าน" ก่อน verify OTP ไม่ได้จริงๆ ไม่ใช่แค่ validation ฝั่ง client), `signin.html` ไม่ใช่
+  step เรียงลำดับเลยด้วยซ้ำ — เป็น mode-switch (password ⇄ OTP คนละวิธี login ทางเลือก ไม่ใช่ step ต่อเนื่อง)
+  — **เจ้าของโปรเจกต์ตัดสินใจ (2026-08-17): ไม่แตะ `signin.html`/`signup.html` เลยทั้ง 2 ไฟล์** ไม่ใช่แค่
+  ความระมัดระวัง แต่เป็นเหตุผลด้าน UX ที่ถูกต้อง (unhide ทุก step พร้อมกันจะโชว์ field ที่ยัง"ใช้งานจริงไม่ได้"
+  หรือโชว์วิธี login 2 แบบซ้อนกันพร้อมกัน)
+- **Breakpoint token**: เพิ่ม `--bp-desktop: 1024px` ใน `tokens.css` (Phase 9) — เป็นค่าอ้างอิงเพื่อ
+  documentation เท่านั้น เพราะ CSS custom property ใช้แทนค่าใน `@media` condition ไม่ได้ (ไม่มี custom media
+  query ใน vanilla CSS) ทุก `@media` rule จริงต้อง hardcode ตัวเลข `1024px` เอง — คอมเมนต์กำกับไว้ชัดว่าถ้าจะ
+  เปลี่ยนค่าต้อง grep หา `1024px` ทั่ว `public-seller-src/` แล้วแก้พร้อมกันทุกจุด
+- **Step 1 — `settle/verification.html` + `verification-result.html`** (commit `5e3f97e`): ไม่มี
+  pagination ให้ตัดออก (เป็น status card เดี่ยวๆ, single-scroll อยู่แล้วโดยธรรมชาติ) เลยทำแค่ light pass:
+  desktop จัดกึ่งกลาง viewport แนวตั้ง (`justify-content:center`) แทนที่จะติดขอบบนทิ้งพื้นที่ว่างด้านล่างเยอะ,
+  card กว้างขึ้นเล็กน้อย (420→480px), title ใหญ่ขึ้นนิด (20→22px) — ทั้งสองไฟล์ได้ treatment เดียวกันเป๊ะ
+  (CSS เดิมเหมือนกันไบต์ต่อไบต์อยู่แล้ว) — ทดสอบด้วย iframe จริง (ไม่ใช่ mockup) 3 ขนาด viewport ยืนยัน
+  media query fire ถูกจุดจริง
+- **Step 2 — `settle/form.html`** (commit `11c72fe`, งานหลักของ phase นี้): เหนือ 1024px ทั้ง 5 step
+  render ซ้อนกันในหน้าเดียวแบบ scroll ต่อเนื่อง (ไม่ใช่ pagination ทีละ step) พร้อม divider คั่นระหว่าง
+  section และซ่อน step-dot nav (`#stepsNav`) เพราะ icon-circle+title ต่อ step ที่มีอยู่แล้ว (Stage 5)
+  ทำหน้าที่แบ่ง section แทนอยู่แล้ว — **จุดที่ต้องระวังที่สุด**: `showOnly()`/`goStep()` ควบคุม
+  `#panelSuspended` ผ่าน mechanism เดียวกับ 5 step จริง (`.step-panel.active`) ถ้า force
+  `display:block` ที่ class `.step-panel` เฉยๆ จะทำให้ suspended message กับฟอร์มเปล่าโชว์พร้อมกัน — แก้โดย
+  เพิ่ม class ใหม่ `.wizard-step` ให้เฉพาะ `#panel1`-`#panel5` เท่านั้น ไม่ให้ `#panelSuspended` เลย แล้ว
+  scope `@media` override ไปที่ `.wizard-step` แทน `.step-panel` ตรงๆ — ยืนยันด้วย iframe จำลอง state
+  suspended จริง (`.active` ย้ายไป `#panelSuspended`, ไม่แตะ `#panel1`) ที่ desktop width ว่าฟอร์มไม่โผล่มา
+  ปนเลย — `goStep()`/`continueFromStepN()`/validation/deferred-save/review popup/phone-verify/dial-code
+  ไม่ถูกแตะเลยสักบรรทัด (ยืนยันด้วย `git diff` ว่า hunk ทั้งหมดอยู่ก่อน `</style>` + `node --check` บน
+  script ที่ extract ออกมา) — **ผลข้างเคียงเล็กน้อยที่รู้แล้วและตั้งใจปล่อยไว้**: ปุ่ม Continue ยังเรียก
+  `goStep()`'s เดิมที่มี `window.scrollTo({top:0})` อยู่ ทำให้ desktop กด Continue แล้วเลื่อนกลับขึ้นบนสุด
+  แทนที่จะเลื่อนไปหา section ถัดไป — ไม่ error/ไม่พังอะไร แค่ UX ไม่ smooth เท่าที่ควร ถ้าจะแก้ต้องแตะ
+  `goStep()` เอง ซึ่งอยู่นอก scope "ไม่แตะ JS" ของรอบนี้ — บันทึกไว้เป็น candidate ปรับปรุงรอบหน้า
+- **Step 3 — `seller-landing.html`** (ไม่มี commit, ไม่มีการแก้โค้ด): survey-only ตามแผน — ไม่มี
+  pagination/toggle pattern ใดๆ ในหน้านี้เลย (grep ยืนยัน `display:none`/`.active`/`classList` มีแค่จุดเดียว
+  คือ mobile nav-signin hide ที่ ≤520px) breakpoint เดิม (860px/520px) ทำให้หน้านี้เข้าสู่ desktop layout
+  เต็มรูปแบบ (4-col value-grid, 3-col steps) ต่ำกว่า 1024px อยู่แล้ว — **สรุป: ไม่มีอะไรต้องแก้ ไม่ inconsistent
+  กับ `--bp-desktop` token ใหม่**
+- **Step 4 — dashboard 5 หน้า** (commit `9bb5e8e`, ปิด phase): ไม่มี pagination ให้แปลง (เป็น single-scroll
+  อยู่แล้วโดยธรรมชาติ) scope เลยเป็นแค่ `max-width` cap ให้ `.content` (เดิมไม่มี cap เลย ยืดเต็มความกว้างจอ)
+  — **พบปัญหาจริงบน `seller.html`**: `.stats-grid` เป็น fixed 3-column grid (ไม่ใช่ `auto-fit`/`minmax`
+  แบบที่ `seller-products.html`/`seller-coupons.html` ใช้) ยืนยันด้วย iframe จำลองจอ 2560px จริงว่าการ์ด
+  สถิติแต่ละใบจะกว้างถึง ~770px โดยไม่มี cap — เหนือ 1024px, `.content` cap ที่ 1440px + `margin:0 auto`
+  (ตัวเลขตาม convention ทั่วไปของ dashboard container) — **`.topbar` ตั้งใจไม่แตะ** ยังกว้างเต็มจอเหมือนเดิม
+  (เป็น sticky toolbar ควรชิดขอบจอ) cap แค่ `.content` เท่านั้น — ใช้ CSS เดียวกันทุกไฟล์ (rule เดิมเหมือนกัน
+  ไบต์ต่อไบต์ทั้ง 5 ไฟล์อยู่แล้ว) — ทดสอบด้วย iframe จำลองจอกว้างจริง เทียบก่อน/หลังเห็นผลชัดเจน
+- **สรุป breaking-change check**: ไม่มีผลกระทบต่อ Phase 1-8 เลย — เป็น pure CSS addition ทั้งหมด (token +
+  `@media` block ใหม่), ไม่แตะ JS logic แม้แต่บรรทัดเดียวในทุกไฟล์ (ยืนยันด้วย `git diff`/`node --check`/
+  tag-balance script ทุกไฟล์ทุก step)
+
 ## ยังไม่เริ่ม
 - **Phase 11**: สร้างหน้า `/homepage` เป็น landing page ก่อนเข้า dashboard จริง (`/seller`) สำหรับ seller
   ที่ approved แล้ว — ตอนนี้ approved seller เข้า `/seller` ตรงๆ ต้องการมีหน้ากลางก่อน (รายละเอียด
