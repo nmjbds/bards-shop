@@ -371,8 +371,8 @@ logic ทำงานถูกต้องจริงเวลามีแค�
   state เป้าหมายแล้ว แต่ `errorState`'s icon (`done-icon done-icon--error`) ยังอยู่ครบทั้งสองไฟล์ (ยืนยันไม่
   กระทบ) — สร้าง before/after mockup จาก SVG จริงเป็น Artifact ให้ดูเทียบเหมือนเดิม
 
-**Stage 5/6 — `settle/form.html` step icons (2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบ regression ครบ, ยังไม่
-push (commit `16f1616`) — รอเจ้าของโปรเจกต์เช็คก่อน push**
+**Stage 5/6 — `settle/form.html` step icons (2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบ regression ครบ, push
+แล้ว (commit `16f1616`, `fb2484b`)**
 - ประเมินไว้ว่าเสี่ยงสุดในกลุ่ม non-dashboard เพราะเพิ่งผ่าน rework ใหญ่ (Phase 6 deferred-save +
   review popup, Phase 7 phone verify + 173-country dial-code dropdown) — ทำตามข้อกำหนดที่เน้นย้ำ: **CSS/
   markup เท่านั้น ไม่แตะ JS logic แม้แต่บรรทัดเดียว**
@@ -393,6 +393,45 @@ push (commit `16f1616`) — รอเจ้าของโปรเจกต์�
   (`#reviewModal`), step handler (`continueFromStep1()`), phone send/verify code button
   (`handleSendCode()`/`handleVerifyCode()`), `beforeunload` listener (2 จุด ตรงกับ
   add/removeEventListener เดิม) — สร้าง before/after + regression-checklist เป็น Artifact ให้ดูเทียบ
+
+**Stage 6/6 — dashboard 5 หน้า (seller.html, seller-orders.html, seller-products.html,
+seller-coupons.html, seller-analytics.html) — งานใหญ่สุด แบ่งเป็น sub-stage ก่อนเริ่ม (สำรวจ 2026-08-17)**
+- สำรวจแล้วพบว่าทั้ง 5 ไฟล์ **ไม่ link tokens.css/components.css เลยสักไฟล์** (ต่างจากทุกไฟล์ที่ทำใน
+  Stage 1-5) — แต่ละไฟล์มี local `:root{}` ของตัวเอง (ยืนยันค่าตรงกับ tokens.css ทุกตัวแปร, safe to link)
+- **พบความเสี่ยงใหม่ที่ต้องเลี่ยง**: `components.css` มี bare class เช่น `.btn`/`.card`/`.badge` (ไม่ใช่แค่
+  `.bc-*`) ที่ชนกับ class เดิมของทั้ง 5 หน้า (ใช้งานหนักทุกไฟล์) — **ตัดสินใจ: link เฉพาะ `tokens.css`
+  (ปลอดภัย 100%, มีแค่ `:root` variable ไม่มี class selector เลย) แล้ว copy เฉพาะ `.bc-icon-circle`/
+  `.bc-empty-state` เข้า local `<style>` ของแต่ละไฟล์แทนการ link `components.css` ทั้งไฟล์** — ต่างจากวิธีที่
+  Stage 2 ใช้กับ `seller-landing.html` โดยตั้งใจ เพราะหน้านั้นไม่มี class ชนกัน
+- **Scope ที่ตัดออกโดยตั้งใจ**: emoji ❌/⚠️ ใน `toast()` (seller-orders/-products/-coupons) — เป็น string
+  content ข้อความแจ้งเตือนชั่วคราวใน JS ไม่ใช่ decorative markup, แก้แล้วต้องแตะ JS string literal หลายจุด
+  — ไม่คุ้มความเสี่ยงเทียบกับผลตอบแทนภาพ, sidebar nav icons (ทั้ง 5 ไฟล์อยู่แล้วเป็น hand-drawn SVG ไม่มี
+  emoji, ไม่ต้องแตะ), stat-card ของ seller.html (ใช้ accent-bar แทน icon อยู่แล้ว เป็น design ที่ตั้งใจ)
+- **แผน sub-stage เรียงตามความเสี่ยง**: 6a `seller.html` (หน้าเห็นบ่อยสุด, 4 emoji ล้วน static/template
+  string ธรรมดา) → 6b `seller-products.html`+`seller-coupons.html` (1 emoji/ไฟล์ pattern เดียวกับ 6a) →
+  6c `seller-orders.html`+`seller-analytics.html` (ซับซ้อนสุด — seller-orders มี order-timeline status
+  marker ชุดหนึ่ง (✓/⏱/✕ ฯลฯ) generate ผ่าน JS template-literal function ต้องระวังเป็นพิเศษ,
+  seller-analytics ไม่มี emoji เลยแต่มี "No sales data yet" ไม่มี icon เลย เป็นเคส "เพิ่มใหม่" ไม่ใช่
+  "ย้ายของเดิม")
+
+**Stage 6a — `seller.html` empty-state icons (2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, ยังไม่ push
+(commit `02a13c5`) — รอเจ้าของโปรเจกต์เช็คก่อน push**
+- แทน 4 emoji (📋 loading + 📋 empty บน Recent Orders panel, 📦 loading + 📊 empty บน Top Products panel)
+  ด้วย `.bc-empty-state`/`.bc-icon-circle` — Recent Orders ทั้ง 2 state (loading/empty) ใช้ icon clipboard
+  เดียวกัน (ยกมาจาก sidebar nav ของไฟล์นี้เอง ลิงก์ "Orders"), Top Products ทั้ง 2 state ใช้ icon
+  shopping-bag เดียวกัน (ยกจาก sidebar nav ลิงก์ "Products") — ตั้งใจให้แต่ละ panel มี icon เดียวกันทั้ง 2
+  state แทนที่จะสุ่ม 4 icon ไม่เกี่ยวกัน
+- **เจอจุดที่ 5 ระหว่างทาง**: catch-block "Error loading" state ไม่มี emoji แต่พึ่ง class `.empty`/
+  `.empty-title` เดิมที่ stage นี้ลบทิ้ง — ย้ายไป `.bc-empty-state`/`.bc-empty-state-title` ด้วย (ไม่เพิ่ม
+  icon เพราะของเดิมก็ไม่มี) กันไม่ให้ render ไม่มีสไตล์
+- Prerequisite: link `tokens.css` อย่างเดียว (ไม่ link `components.css` ตามที่ตกลงกันไว้) + copy
+  `.bc-icon-circle`/`.bc-empty-state` (เท่าที่ใช้จริง ไม่ copy tone modifier/`.bc-empty-state-sub` ที่ไม่ได้
+  ใช้) เข้า local `<style>`
+- **ทดสอบ**: grep ยืนยันไม่มี class เดิม (`empty`/`empty-icon`/`empty-title`/`empty-sub`) เหลือเลย, script
+  เช็ค div/svg tag-balance ผ่าน (79/79 div, 13/13 svg), `git diff --stat` = 20 insertions/9 deletions
+  ทั้งหมดอยู่ในขอบเขตที่ตั้งใจ (head link/CSS/5 จุด markup), build+serve จริงที่ localhost:3000 (`/seller`
+  และ `/tokens.css` ยัง 200), grep บน HTML ที่ served ยืนยัน emoji หายหมด, stat card (3 การ์ด) และ sidebar
+  nav (12 `sb-item`) ยังอยู่ครบไม่กระทบ — สร้าง before/after เป็น Artifact ให้ดูเทียบ
 
 ## ยังไม่เริ่ม
 - **Phase 11**: สร้างหน้า `/homepage` เป็น landing page ก่อนเข้า dashboard จริง (`/seller`) สำหรับ seller
