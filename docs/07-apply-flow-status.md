@@ -508,7 +508,7 @@ Stage 6, เขียนโค้ดเสร็จ, ทดสอบละเอ
   ไฟล์
 
 **Phase 9: Responsive Desktop Single-Scroll Layout — สำรวจ+วางแผน 2026-08-17, เขียนโค้ด+ทดสอบครบทั้ง 4
-step, ยังไม่ push (commit `5e3f97e`, `11c72fe`, `9bb5e8e`) — รอเจ้าของโปรเจกต์เช็คก่อน push**
+step, push แล้ว (commit `5e3f97e`, `11c72fe`, `9bb5e8e`, `31bc3dc`)**
 - **สำรวจก่อนเริ่ม**: ทุกหน้า seller flow (auth, onboarding wizard, verification, dashboard 5 หน้า) มี
   `@media` query แค่ไฟล์เดียวคือ `seller-landing.html` (860px/520px, ทิศทางตรงข้าม — desktop-first แล้ว
   narrow ลง) ที่เหลือ**ไม่มี breakpoint เลยสักจุด** — `tokens.css`/`components.css` ก็ไม่มี desktop token
@@ -573,6 +573,10 @@ step, ยังไม่ push (commit `5e3f97e`, `11c72fe`, `9bb5e8e`) — ร�
 - ปุ่ม "Start Selling" ใน `seller-landing.html` พาไปฟอร์มสมัคร (`/settle/form`) ตรงๆ แต่ตาม
   `05-seller-onboarding-blueprint.md` ควรพาไป `/signup` ก่อน (สมัครบัญชีก่อนค่อยกรอกฟอร์ม) — เป็นความไม่
   ตรงกันระหว่าง design เดิมกับโค้ดจริง ตัดสินใจเก็บไว้ก่อน ยังไม่แก้ตอนนี้
+- **`settle/form.html`'s desktop single-scroll (Phase 9 step 2, 2026-08-17)**: กดปุ่ม Continue บน desktop
+  แล้วเลื่อนกลับขึ้นบนสุดของหน้าแทนที่จะเลื่อนไปหา section ถัดไป — เกิดจาก `goStep()`'s เดิม
+  (`window.scrollTo({top:0})`) ที่ตั้งใจไม่แตะตอนทำ Phase 9 (ต้องแก้ JS logic ถึงจะแก้ได้จริง ไม่ใช่แค่
+  CSS/markup) — **เจ้าของโปรเจกต์ยืนยันแล้ว (2026-08-17): จะแก้เป็นงานเล็กแยกต่างหากทีหลัง ไม่รีบตอนนี้**
 
 ## หมายเหตุ
 - R2 credential แก้แล้ว (ใช้ "R2 Account Token" scope ครบ 2 bucket)
