@@ -414,8 +414,8 @@ seller-coupons.html, seller-analytics.html) — งานใหญ่สุด �
   seller-analytics ไม่มี emoji เลยแต่มี "No sales data yet" ไม่มี icon เลย เป็นเคส "เพิ่มใหม่" ไม่ใช่
   "ย้ายของเดิม")
 
-**Stage 6a — `seller.html` empty-state icons (2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, ยังไม่ push
-(commit `02a13c5`) — รอเจ้าของโปรเจกต์เช็คก่อน push**
+**Stage 6a — `seller.html` empty-state icons (2026-08-17) — เขียนโค้ดเสร็จ, ทดสอบผ่านครบ, push แล้ว
+(commit `02a13c5`, `784a855`)**
 - แทน 4 emoji (📋 loading + 📋 empty บน Recent Orders panel, 📦 loading + 📊 empty บน Top Products panel)
   ด้วย `.bc-empty-state`/`.bc-icon-circle` — Recent Orders ทั้ง 2 state (loading/empty) ใช้ icon clipboard
   เดียวกัน (ยกมาจาก sidebar nav ของไฟล์นี้เอง ลิงก์ "Orders"), Top Products ทั้ง 2 state ใช้ icon
@@ -432,6 +432,28 @@ seller-coupons.html, seller-analytics.html) — งานใหญ่สุด �
   ทั้งหมดอยู่ในขอบเขตที่ตั้งใจ (head link/CSS/5 จุด markup), build+serve จริงที่ localhost:3000 (`/seller`
   และ `/tokens.css` ยัง 200), grep บน HTML ที่ served ยืนยัน emoji หายหมด, stat card (3 การ์ด) และ sidebar
   nav (12 `sb-item`) ยังอยู่ครบไม่กระทบ — สร้าง before/after เป็น Artifact ให้ดูเทียบ
+
+**Stage 6b — `seller-products.html` + `seller-coupons.html` empty-state icons (2026-08-17) — เขียนโค้ด
+เสร็จ, ทดสอบผ่านครบ, ยังไม่ push (commit `d9622ab`) — รอเจ้าของโปรเจกต์เช็คก่อน push**
+- แทน emoji 1 จุดต่อไฟล์ (📦 บน products grid "No products yet", 🏷️ บน coupons grid "No coupons yet")
+  ด้วย `.bc-empty-state`/`.bc-icon-circle` แบบเดียวกับ 6a — icon ยกมาจาก sidebar nav ของแต่ละไฟล์เองตรงๆ
+  (shopping-bag จากลิงก์ "Products", tag จากลิงก์ "Coupons")
+- **ต่างจาก 6a เล็กน้อย**: ทั้งสอง empty state มี sub-text line (ข้อความ "Click..."/"Create...") ที่เดิมเป็น
+  `<div style="...">` inline-style ตรงๆ ไม่มี class — ย้ายไปใช้ `.bc-empty-state-sub` (slot ที่ 3 ของ
+  component ที่ออกแบบไว้ให้พอดี) แทนที่จะปล่อยเป็น inline style แปลกแยกอยู่ข้าง class ใหม่ — คง padding เดิม
+  ของแต่ละไฟล์ไว้ (56px/60px ต่างจาก seller.html's 40px) ไม่ได้ใช้ค่า default จาก components.css เพราะ
+  component มีไว้ให้ recipe icon/title/sub ไม่ได้บังคับ spacing เดียวกันทุกหน้า
+- Prerequisite เดียวกับ 6a: link `tokens.css` อย่างเดียว (ยืนยัน token ตรงกับ global อีกครั้งทั้งสองไฟล์) +
+  copy เฉพาะ `.bc-icon-circle`/`.bc-empty-state`(+`.bc-empty-state-sub`เพิ่มจาก 6a เพราะไฟล์นี้ใช้จริง) เข้า
+  local `<style>` — ยืนยัน `components.css` ยังชนกับ `.btn`/`.card`/`.badge` เดิมของทั้งสองไฟล์เหมือนที่
+  ประเมินไว้ตอน survey จริง
+- **ทดสอบ**: grep ยืนยันไม่มี class เดิมเหลือทั้งสองไฟล์, script เช็ค div/svg tag-balance ผ่าน (svg
+  mismatch 1 จุดใน seller-products.html เป็นของเดิมอยู่แล้วก่อนแก้ — เช็คกับ commit ก่อนหน้ายืนยันว่าเป็น
+  self-closing placeholder-image svg ที่ไม่เกี่ยวกับจุดที่แก้เลย ไม่ใช่บั๊กใหม่), `git diff --stat` = 19
+  insertions/4 deletions ต่อไฟล์ ทั้งหมดอยู่ในขอบเขตที่ตั้งใจ, build+serve จริงที่ localhost:3000
+  (`/seller-products`, `/seller-coupons` ยัง 200), grep บน HTML ที่ served ยืนยัน emoji หายหมด, ยืนยัน
+  `toast('❌...')` ทั้งสองไฟล์ (4 จุด products, 3 จุด coupons) ยังอยู่ครบไม่ถูกแตะ (นอก scope ตามแผน), sidebar
+  nav (12 `sb-item` ต่อไฟล์) ไม่กระทบ — สร้าง before/after เป็น Artifact ให้ดูเทียบ
 
 ## ยังไม่เริ่ม
 - **Phase 11**: สร้างหน้า `/homepage` เป็น landing page ก่อนเข้า dashboard จริง (`/seller`) สำหรับ seller
