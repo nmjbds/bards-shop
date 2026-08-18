@@ -570,9 +570,24 @@ step, push แล้ว (commit `5e3f97e`, `11c72fe`, `9bb5e8e`, `31bc3dc`)**
   UI/เนื้อหายังไม่ได้คุยกัน รอวางแผนตอนถึงคิว)
 
 ## TODO ที่พบระหว่างทาง (ยังไม่ตัดสินใจว่าจะทำเมื่อไหร่)
-- ปุ่ม "Start Selling" ใน `seller-landing.html` พาไปฟอร์มสมัคร (`/settle/form`) ตรงๆ แต่ตาม
+- ~~ปุ่ม "Start Selling" ใน `seller-landing.html` พาไปฟอร์มสมัคร (`/settle/form`) ตรงๆ แต่ตาม
   `05-seller-onboarding-blueprint.md` ควรพาไป `/signup` ก่อน (สมัครบัญชีก่อนค่อยกรอกฟอร์ม) — เป็นความไม่
-  ตรงกันระหว่าง design เดิมกับโค้ดจริง ตัดสินใจเก็บไว้ก่อน ยังไม่แก้ตอนนี้
+  ตรงกันระหว่าง design เดิมกับโค้ดจริง ตัดสินใจเก็บไว้ก่อน ยังไม่แก้ตอนนี้~~ **แก้แล้ว (2026-08-18)** — ไม่ได้
+  แก้ปุ่ม "Start Selling" เอง (ยังพาไป `/settle/form` ตรงๆ เหมือนเดิม) แต่แก้ที่ปลายทางแทน: auth guard ของ
+  `settle/form.html`, `settle/verification.html`, `settle/verification-result.html` เดิม redirect ผู้ที่
+  ยังไม่ signed-in ไป `bardsSigninUrl()` (หน้า signin) — เปลี่ยนเป็น `/signup` ตรงๆ ทั้ง 3 จุด ผลลัพธ์เดียวกับที่
+  blueprint ต้องการ (ผู้เยี่ยมชมที่ไม่มีบัญชีต้องสมัครก่อนถึงจะกรอกฟอร์มได้) แค่ implement ที่ guard ของหน้า
+  ปลายทางแทนที่จะแก้ CTA ต้นทาง — เหตุผล: `/settle/form`/`verification*` เข้าถึงได้จากหลายทาง ไม่ใช่แค่ปุ่ม
+  "Start Selling" (เช่น bookmark, deep link) ดักที่ guard เลยครอบคลุมกว่า ไม่ต้องแก้ทุกจุดที่ลิงก์ไปหน้าพวกนี้
+  ทีละที่ — พบระหว่างแก้: comment เดิมใน `settle/form.html` (auth guard) ที่บอกว่า "sends a signed-out visitor
+  there [signup.html]" อยู่แล้วตั้งแต่ก่อนหน้านี้ (ตั้งใจไว้แล้วแต่โค้ดไม่ตรงกับที่ comment บอก — เป็น bug ไม่ใช่
+  แค่ TODO) และ comment stale ใน `settle/verification-result.html` ที่ยังอ้างถึง `apply.html` (ไฟล์ที่ถูก
+  rename ไปเป็น `settle/form.html` แล้วตั้งแต่ Phase 7) แก้ทั้งคู่ไปพร้อมกัน — `seller-landing.html`'s
+  signin-link comment ก็แก้ตามไปด้วย (เคยอธิบายว่า "this server has no signin page of its own" ซึ่งไม่จริง
+  แล้วตั้งแต่ Seller Identity Split มี `signin.html` ของตัวเองอยู่แล้ว — ตัวโค้ดไม่มีบั๊ก แค่ comment ล้าสมัย)
+  — **ยังไม่ทดสอบด้วยตาจริงในเบราว์เซอร์** (environment นี้ไม่มี browser automation) แนะนำให้เจ้าของโปรเจกต์
+  ลองเข้า `/settle/form`/`/settle/verification`/`/settle/verification-result` แบบไม่ได้ login ดูเองว่า
+  redirect ไป `/signup` ถูกต้อง
 - **`settle/form.html`'s desktop single-scroll (Phase 9 step 2, 2026-08-17)**: กดปุ่ม Continue บน desktop
   แล้วเลื่อนกลับขึ้นบนสุดของหน้าแทนที่จะเลื่อนไปหา section ถัดไป — เกิดจาก `goStep()`'s เดิม
   (`window.scrollTo({top:0})`) ที่ตั้งใจไม่แตะตอนทำ Phase 9 (ต้องแก้ JS logic ถึงจะแก้ได้จริง ไม่ใช่แค่

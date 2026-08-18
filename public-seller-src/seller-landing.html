@@ -244,9 +244,9 @@ a{color:inherit;}
 <script>
 document.getElementById('year').textContent = new Date().getFullYear();
 
-// bardsSigninUrl() (public-shared/products.js) — this server has no signin
-// page of its own (see backend/server-seller.js's header comment), so the
-// link has to point cross-domain at the customer server's real signin page.
+// bardsSigninUrl() (public-shared/products.js) resolves to this server's own
+// local /signin (signin.html, part of the Seller Identity Split) since the
+// current hub is 'seller' — not a cross-domain link to the customer server.
 document.getElementById('signinLink').href = bardsSigninUrl('/seller');
 
 // Live categories — same GET /api/categories every other catalog page uses.

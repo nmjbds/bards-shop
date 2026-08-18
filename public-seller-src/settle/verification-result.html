@@ -95,7 +95,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
       <div class="done-title">Application Rejected</div>
       <div class="done-sub" id="rejectReasonText"></div>
       <!-- Was href="/" (seller-landing.html) per the original spec reading
-           ("link back to the front page") -- changed 2026-08-16: apply.html
+           ("link back to the front page") -- changed 2026-08-16: settle/form.html
            already resumes/prefills a rejected shop's existing data (Phase 3
            built that in), so sending the seller through the marketing
            landing page first was just an extra click to get back to the
@@ -112,7 +112,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 (async function init() {
   const session = await SellerAuth.ensureSession();
   if (!session) {
-    location.href = bardsSigninUrl(location.pathname);
+    location.href = '/signup';
     return;
   }
   await loadStatus();

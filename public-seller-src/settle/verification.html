@@ -129,7 +129,7 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 (async function init() {
   const session = await SellerAuth.ensureSession();
   if (!session) {
-    location.href = bardsSigninUrl(location.pathname);
+    location.href = '/signup';
     return;
   }
   await loadStatus();

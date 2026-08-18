@@ -624,7 +624,7 @@ function fullPhoneE164() {
 (async function init() {
   const session = await SellerAuth.ensureSession();
   if (!session) {
-    location.href = bardsSigninUrl(location.pathname + location.search);
+    location.href = '/signup';
     return;
   }
   try {
