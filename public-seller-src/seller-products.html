@@ -146,8 +146,9 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--gray-100);color:var
 .color-add-btn{height:32px;padding:0 12px;background:var(--black);color:#fff;border:none;border-radius:7px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'Space Grotesk',sans-serif;transition:opacity .15s;}
 .color-add-btn:hover{opacity:.8;}
 
-.toast{position:fixed;bottom:20px;right:20px;background:var(--black);color:#fff;padding:11px 16px;border-radius:10px;font-size:12.5px;font-weight:500;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;transform:translateY(4px);pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25);}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--black);color:#fff;padding:11px 16px;border-radius:10px;font-size:12.5px;font-weight:500;z-index:9999;opacity:0;transition:opacity .25s,transform .25s;transform:translateY(4px);pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;align-items:center;gap:6px;}
 .toast.on{opacity:1;transform:translateY(0);}
+.toast-icon{display:flex;flex-shrink:0;}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .fu{animation:fadeUp .32s ease both;}
 /* Stage 6b -- copied verbatim from components.css (not linked wholesale,
@@ -358,7 +359,7 @@ async function loadProducts() {
     _products = d.products || [];
     renderGrid();
   } catch(e) {
-    toast('❌ Cannot load products: ' + e.message);
+    toast('Cannot load products: ' + e.message, 'error');
     _products = [];
     renderGrid();
   }
@@ -534,7 +535,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function handleFiles(fileList) {
   const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
   const remaining = MAX_IMAGES - _images.length;
-  if (!remaining) { toast('⚠️ ครบ 17 รูปแล้ว'); return; }
+  if (!remaining) { toast('ครบ 17 รูปแล้ว', 'warn'); return; }
   const toUpload = files.slice(0, remaining);
   if (!toUpload.length) return;
   if (files.length > remaining) toast(`⚠️ เพิ่มได้อีก ${remaining} รูป — ตัดเหลือ ${toUpload.length} ไฟล์`);
@@ -682,7 +683,34 @@ async function doDelete() {
   } catch(e) { toast('❌ ' + e.message); }
 }
 
-let _tt; function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('on'),2500);}
+/* Toast icon swap (TODO #2) -- replaces the emoji that used to be typed
+   directly into toast() call sites (✓/❌/⚠️) with inline SVG, matching the
+   Phase 8 hand-copied-SVG convention (no icon registry/CDN in this project).
+   toast()'s message argument stays a plain text node exactly as before
+   (never innerHTML) -- several call sites append server error text
+   (e.message) into it, and this file has fixed real stored-XSS bugs from
+   trusting concatenated strings before, so only the icon markup (a fixed
+   constant the caller never controls) goes through innerHTML. */
+const TOAST_ICONS = {
+  check: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  error: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  warn: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+};
+let _tt;
+function toast(m, type){
+  const t = document.getElementById('toast');
+  t.innerHTML = '';
+  if (type && TOAST_ICONS[type]) {
+    const i = document.createElement('span');
+    i.className = 'toast-icon';
+    i.innerHTML = TOAST_ICONS[type];
+    t.appendChild(i);
+  }
+  t.appendChild(document.createTextNode(m));
+  t.classList.add('on');
+  clearTimeout(_tt);
+  _tt = setTimeout(()=>t.classList.remove('on'),2500);
+}
 </script>
 </body>
 </html>
